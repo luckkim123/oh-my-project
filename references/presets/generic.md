@@ -126,7 +126,7 @@ generic 은 발산이 가장 큰 프리셋이다 (시작이 거의 비어 있으
 
 ```json
 {
-  "omp_version": "0.1.0",
+  "omp_version": "0.2.0",
   "project": {
     "name": "[scan: 루트 폴더명 또는 manifest/pyproject 의 name]",
     "preset_origin": "generic",

@@ -3,10 +3,32 @@
 All notable changes to this harness. Hook contract changes are recorded explicitly
 (siblings oms/omd treat the route/verify hook text as a versioned contract).
 
-## [Unreleased]
+## [0.2.0] — 2026-05-31
+
+### Added
+
+- **`content_conventions[]` rule type** (`references/schemas/rules.schema.json`) — note-body
+  authoring rules the structure/naming axes could not express: `check.pattern` (Python `re`)
+  × `expect` (present/absent) × `scope` (body/frontmatter), with `applies_to` glob, `origin`,
+  `severity`. Optional top-level key → every existing rules.json stays valid (backward-compatible MINOR).
+- **content + wikilink audit axes** — `hooks/omp_content_audit.py` (`check_content_rule`,
+  `find_dead_links`, `split_frontmatter`), pure stdlib, the canonical algorithm the `auditor`
+  agent now invokes. Content axis is enforced (error/warn/info → error fails the gate); wikilink
+  integrity is a health hint (info, never fails the gate). Absorbs the downstream `link-checker`
+  validator (preserves its case-insensitive resolution and non-md embed handling).
+- **`.omp/CONVENTIONS.md`** — human-readable narrative paired with
+  `rules.json.content_conventions[]`, alongside STRUCTURE.md/NAMING.md. Created by codify/learn
+  only when content_conventions exist (not an init invariant).
 
 ### Changed
 
+- `specificity` now counts `content_conventions[]` entries (learning-protocol §4) — content
+  rules with origin inductive/learned raise specificity like structure/naming rules. Formula
+  and monotonic property unchanged.
+- `learned.md` `candidate_rule.target` enum gains `content_conventions[]` — content observations
+  travel the heavy channel through the human gate, never the light wiki channel.
+- `omp-codify` / `omp-learn` / `rule-architect` handle the new type; `auditor` / `omp-audit`
+  gained the content + wikilink axes.
 - **`learning-protocol.md` §5 — wiki append-only discipline made explicit.** The light
   channel (`.omp/wiki/`) always *intended* accumulation ("쓸수록 특화", "accrue freely"),
   but never wrote the binding rule that a revisited `wiki/<topic>.md` is *appended* (not
@@ -20,6 +42,13 @@ All notable changes to this harness. Hook contract changes are recorded explicit
   whose INV-2 append-merge invariant (e2e-verified) proved the discipline; omp adopts the
   written rule only — none of omx's engine (file-locks, frontmatter schema, scoring/lint)
   transfers (single-writer, free-form-grep domain — correctly rejected).
+
+### Verification
+
+- `python3 -m pytest -q` — 48 passed (schema content_conventions validation + content/link
+  pure-function tests: present/absent × body/frontmatter, dead-link detection, case-insensitive
+  resolution, non-md embed skip, CRLF frontmatter).
+- Backward-compat: existing rules.json validate unchanged (content_conventions optional).
 
 ## [0.1.0] — 2026-05-30
 

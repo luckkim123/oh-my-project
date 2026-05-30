@@ -33,6 +33,23 @@ def test_rules_schema_has_specificity():
     assert spec["minimum"] == 0 and spec["maximum"] == 1
 
 
+def test_rules_schema_has_content_conventions():
+    """content_conventions[]: note-body authoring rules (present/absent × body/frontmatter)."""
+    s = load(RULES_SCHEMA)
+    cc = s["properties"]["content_conventions"]
+    assert cc["type"] == "array"
+    item = cc["items"]
+    assert set(item["required"]) == {"applies_to", "check", "description"}
+    chk = item["properties"]["check"]
+    assert set(chk["required"]) == {"pattern", "expect"}
+    assert chk["properties"]["expect"]["enum"] == ["present", "absent"]
+    assert chk["properties"]["scope"]["enum"] == ["body", "frontmatter"]
+    assert chk["properties"]["scope"]["default"] == "body"
+    assert item["properties"]["origin"]["enum"] == ["preset", "inductive", "learned"]
+    assert item["properties"]["severity"]["enum"] == ["error", "warn", "info"]
+    assert "content_conventions" not in s["required"]
+
+
 def test_manifest_schema_is_metadata_only():
     """③ manifest 는 메타데이터-only — sha256/size/split/lineage 필드만, 데이터 복사 필드 없음."""
     s = load(MANIFEST_SCHEMA)
@@ -57,6 +74,22 @@ REPRESENTATIVE_RULES = {
         {"applies_to": "**/*.pkl", "path_constraint": {"must_be_under": "data/processed"},
          "description": ".pkl은 data/processed/ 아래", "origin": "learned", "severity": "warn"},
     ]},
+    "content_conventions": [
+        {
+            "applies_to": "papers/**/*.md",
+            "check": {"pattern": "^## Main Ideas$", "expect": "present"},
+            "description": "review notes need a Main Ideas section",
+            "origin": "inductive",
+            "severity": "warn",
+        },
+        {
+            "applies_to": "concepts/**/*.md",
+            "check": {"pattern": r"^\d+\.", "expect": "absent"},
+            "description": "no numbered lists in concept notes",
+            "origin": "inductive",
+            "severity": "info",
+        },
+    ],
     "ignore": [".git/**", ".omp/**"],
 }
 
@@ -78,6 +111,15 @@ def test_representative_instances_match_schema():
     jsonschema = pytest.importorskip("jsonschema")
     jsonschema.validate(REPRESENTATIVE_RULES, load(RULES_SCHEMA))
     jsonschema.validate(REPRESENTATIVE_MANIFEST, load(MANIFEST_SCHEMA))
+
+
+def test_content_conventions_rejects_bad_enum():
+    """An invalid expect value must fail jsonschema validation."""
+    jsonschema = pytest.importorskip("jsonschema")
+    bad = json.loads(json.dumps(REPRESENTATIVE_RULES))
+    bad["content_conventions"][0]["check"]["expect"] = "maybe"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(bad, load(RULES_SCHEMA))
 
 
 def test_sha256_pattern_matches_schema():

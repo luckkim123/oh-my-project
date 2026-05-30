@@ -42,11 +42,11 @@ description: |
 
 <Steps>
 1. **현재 규칙 적재.** `.omp/rules.json`을 읽고(스키마: `references/schemas/rules.schema.json`), 페어인 `.omp/STRUCTURE.md`·`.omp/NAMING.md`를 읽어 현 상태와 specificity·preset_origin·learned_refs를 파악한다. `.omp/`가 없으면 즉시 중단하고 "omp-init 먼저"를 안내(codify는 갱신 단계).
-2. **변경 의도 확정.** 무엇을 추가/수정/제거하는가 — 새 디렉토리 역할, 명명 패턴(regex), severity 조정, convention 변경 등. omp-learn에서 넘어온 승격건이면 그 관찰 ID와 근거를 입력에 포함.
-3. **rule-architect에게 변경안 위임**(아래 Task 디스패치). 입력: 현 rules.json/STRUCTURE.md/NAMING.md, 변경 의도, 관련 프리셋(`references/presets/<preset_origin>.md`), 승격건이면 learned.md 관찰. 산출: ① 갱신된 rules.json **초안**(스키마 준수), ② 그에 정확히 대응하는 STRUCTURE.md·NAMING.md 본문, ③ diff 요약(어떤 규칙이 추가/변경/삭제되었고 specificity가 어떻게 바뀌는지, 영향받는 파일 개략).
+2. **변경 의도 확정.** 무엇을 추가/수정/제거하는가 — 새 디렉토리 역할, 명명 패턴(regex), severity 조정, 노트 본문 컨벤션(content_conventions[]), convention 변경 등. omp-learn에서 넘어온 승격건이면 그 관찰 ID와 근거를 입력에 포함.
+3. **rule-architect에게 변경안 위임**(아래 Task 디스패치). 입력: 현 rules.json/STRUCTURE.md/NAMING.md, 변경 의도, 관련 프리셋(`references/presets/<preset_origin>.md`), 승격건이면 learned.md 관찰. 산출: ① 갱신된 rules.json **초안**(스키마 준수), ② 그에 정확히 대응하는 STRUCTURE.md·NAMING.md 본문(content_conventions가 있으면 CONVENTIONS.md 본문도), ③ diff 요약(어떤 규칙이 추가/변경/삭제되었고 specificity가 어떻게 바뀌는지, 영향받는 파일 개략).
 4. ━━━ **GATE — 규칙 변경 승인 (human).** rule-architect의 diff 요약을 사람에게 제시: proceed / revise / abort. 자동 통과 없음. 승인 전엔 어떤 파일도 쓰지 않는다. ━━━
-5. **함께 쓰기(드리프트 방지).** 승인되면, **먼저** 기존 `.omp/rules.json`을 `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json`으로 스냅샷한다(편집 전 롤백 지점 — `references/output-layout.md` work layer). 그런 다음 같은 패스에서 셋을 함께 쓴다: `.omp/rules.json`(+ `project.last_codified` 갱신, 필요 시 `specificity`·`learned_refs` 갱신) **그리고** `.omp/STRUCTURE.md`·`.omp/NAMING.md`. 셋 중 하나라도 빠지면 미완. (스냅샷·rules.json 쓰기는 부분쓰기 손상을 막기 위해 `hooks/omp_atomic.py`의 atomic write를 경유한다 — T20.) **스냅샷을 쓴 뒤** `.omp/work/versions/`를 retention 정리한다(`output-layout.md`): 최신 N=10개만 남기고 더 오래된 스냅샷은 trash 경유로 prune(영구 `rm` 금지), "pruned X old snapshots" 한 줄 보고. 이 trim 은 스냅샷을 쓴 이 스킬이 같은 패스에서 자기 subfolder에 대해 수행한다.
-6. **검증.** rules.json을 `references/schemas/rules.schema.json`으로 스키마 검증(파이썬 stdlib). regex 컴파일 가능 여부 확인. .md가 .json과 일치하는지 round-trip 확인(규칙 개수·역할·패턴이 양쪽에 모두 반영). 가벼운 결정 메모는 `.omp/wiki/`에 append.
+5. **함께 쓰기(드리프트 방지).** 승인되면, **먼저** 기존 `.omp/rules.json`을 `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json`으로 스냅샷한다(편집 전 롤백 지점 — `references/output-layout.md` work layer). 그런 다음 같은 패스에서 셋을 함께 쓴다: `.omp/rules.json`(+ `project.last_codified` 갱신, 필요 시 `specificity`·`learned_refs` 갱신) **그리고** `.omp/STRUCTURE.md`·`.omp/NAMING.md`(content_conventions를 건드렸으면 `.omp/CONVENTIONS.md`도 같은 패스에 포함 — content_conventions가 있을 때만, 모든 프로젝트가 갖진 않음). 셋 중 하나라도 빠지면 미완. (스냅샷·rules.json 쓰기는 부분쓰기 손상을 막기 위해 `hooks/omp_atomic.py`의 atomic write를 경유한다 — T20.) **스냅샷을 쓴 뒤** `.omp/work/versions/`를 retention 정리한다(`output-layout.md`): 최신 N=10개만 남기고 더 오래된 스냅샷은 trash 경유로 prune(영구 `rm` 금지), "pruned X old snapshots" 한 줄 보고. 이 trim 은 스냅샷을 쓴 이 스킬이 같은 패스에서 자기 subfolder에 대해 수행한다.
+6. **검증.** rules.json을 `references/schemas/rules.schema.json`으로 스키마 검증(파이썬 stdlib). regex 컴파일 가능 여부 확인. .md가 .json과 일치하는지 round-trip 확인(규칙 개수·역할·패턴이 양쪽에 모두 반영; content_conventions가 있으면 content_conventions↔CONVENTIONS.md 페어도 포함). 가벼운 결정 메모는 `.omp/wiki/`에 append.
 7. **후속 안내.** 규칙이 바뀌었으면 "기존 파일이 새 규칙을 어기는지"는 omp-audit(판정) → 위반 재배치는 omp-organize(safe-fileops 강제)로 이어짐을 안내. codify는 규칙만 굳히고 멈춘다.
 
 **최종 단계 — Task 디스패치 (rule-architect):**
@@ -67,8 +67,11 @@ Task(
 
   요구:
   1) 갱신된 rules.json 초안 — rules.schema.json 만족(required 필드, additionalProperties:false,
-     regex는 Python re, severity∈{error,warn,info}). 변경 출처는 learned_refs[]에 기록.
-  2) 그 rules.json과 *정확히 일치*하는 STRUCTURE.md·NAMING.md 본문(드리프트 0).
+     regex는 Python re, severity∈{error,warn,info}). 제안 가능 규칙 종류엔 content_conventions[](노트
+     본문 컨벤션: applies_to glob × check.pattern/expect/scope, optional 타입 — 관측됐을 때만)도 포함.
+     변경 출처는 learned_refs[]에 기록.
+  2) 그 rules.json과 *정확히 일치*하는 STRUCTURE.md·NAMING.md 본문(드리프트 0; content_conventions가
+     있으면 CONVENTIONS.md 본문도 — content_conventions가 있을 때만).
   3) diff 요약: 추가/변경/삭제된 규칙, specificity 변화(0→1 방향), 영향받는 파일 개략.
   규칙은 제안만 — 강제는 사람이 게이트에서 끊는다. 파일 이동 제안은 organize로 핸드오프.
   """

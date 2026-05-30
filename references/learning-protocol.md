@@ -46,7 +46,7 @@ decisions are cheap memory, so they accumulate freely.
 ### Heavy channel — RULES (`learned.md` → `omp-learn` → human gate → `rules.json`)
 
 A **rule** is anything `omp-audit` could enforce or `omp-organize` could act on: a folder
-role, a naming pattern, an ignore glob. Because a promoted rule can ultimately cause files
+role, a naming pattern, a content convention, an ignore glob. Because a promoted rule can ultimately cause files
 to be flagged or *moved*, it is a heavy, consequential decision. It therefore travels the
 gated path:
 
@@ -77,7 +77,7 @@ re-entering the heavy channel through `learned.md`.
 
 | The observation… | Channel | Why |
 |:---|:---|:---|
-| could be enforced by audit or acted on by organize (folder role, naming regex, ignore glob) | **Heavy** (`learned.md`) | can move/flag files → needs the gate |
+| could be enforced by audit or acted on by organize (folder role, naming regex, content convention, ignore glob) | **Heavy** (`learned.md`) | can move/flag files → needs the gate |
 | is a fact, rationale, or decision worth remembering but not enforcing | **Light** (`wiki/`) | cheap memory → no gate |
 | is ambiguous | **default to Light**, and let a human or a later `omp-learn` pass escalate it into `learned.md` | safer to remember-without-enforcing than to enforce-without-asking |
 
@@ -133,7 +133,7 @@ Each observation is one fenced block:
 - status: candidate | promoted | rejected | superseded
 - pattern: <precise, testable statement of the regularity>
 - candidate_rule:                    # the exact rules.json edit this would become, if promoted
-    target: structure.directories[] | naming.patterns[] | ignore[]
+    target: structure.directories[] | naming.patterns[] | content_conventions[] | ignore[]
     value: <the concrete dir-role / regex / glob being proposed>
 - evidence_count: <integer ≥ 1>      # how many distinct files/events support it
 - evidence:                          # the actual support — paths/events, NOT a vibe
@@ -239,8 +239,8 @@ generic preset?"** It is the quantitative trace of the generic→specialized jou
 
 ### Computation
 
-Each rule entry (a `structure.directories[]` item, a `naming.patterns[]` item, an `ignore[]`
-glob) carries an implicit **origin**:
+Each rule entry (a `structure.directories[]` item, a `naming.patterns[]` item, a
+`content_conventions[]` item, an `ignore[]` glob) carries an implicit **origin**:
 
 | origin | how it got there | weight toward specificity |
 |:---|:---|:---|

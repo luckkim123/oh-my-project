@@ -19,6 +19,7 @@ codify* them, not to absorb them.
     ├── PROJECT.md               # human: what this project is, one screen
     ├── STRUCTURE.md             # human: folder layout + role of each directory
     ├── NAMING.md                # human: naming conventions, with examples
+    ├── CONVENTIONS.md           # human: note-body content conventions (paired with rules.json.content_conventions[]; only when present)
     ├── DATASETS.md              # human: dataset catalog (mirror of manifest)
     ├── rules.json               # machine: enforceable rules (audit reads this)
     ├── manifest.json            # machine: file + dataset inventory (checksum/split/lineage)
@@ -70,6 +71,7 @@ in the same pass that writes the file. `tmp/` is exempt (always safe to wipe who
 | Human (.md) | Machine (.json) | Relationship |
 |:---|:---|:---|
 | STRUCTURE.md, NAMING.md | rules.json | The .md is the readable narrative; rules.json is the enforceable form. codify writes both; they must agree. |
+| CONVENTIONS.md | rules.json (content_conventions[]) | The readable narrative of note-body conventions; rules.json.content_conventions[] is the enforceable form. Paired only when content_conventions exist; codify writes both together. |
 | DATASETS.md | manifest.json (datasets[]) | DATASETS.md is a generated human view of the manifest. |
 
 Rule: when codify or dataset changes a .json, it regenerates the paired .md in the same

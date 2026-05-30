@@ -105,6 +105,7 @@ organizer의 실제 오이동을 유발)이라 항상 사람 승인 게이트를
      - references/learning-protocol.md        # 2채널 정의 + 증거 바 (승격 기준의 정본)
 
      지시:
+     - 승격 대상 규칙 종류: structure.directories[] / naming.patterns[] / **content_conventions[]**(노트 본문 컨벤션: applies_to glob × check.pattern/expect/scope) / ignore[]. content 관찰도 동일한 증거 바·게이트를 거친다.
      - 보수적 승격 (한 방향 래칫): 반복 ≥ N회 + 반례 없음을 넘은 관찰만 승격 제안.
        애매하면 held candidate로 사람에게 surfacing — 자동 승격 금지.
      - 승격되는 각 규칙은 근거 learned.md 관찰 id를 learned_refs[]에 기록 (provenance).
@@ -131,7 +132,8 @@ organizer의 실제 오이동을 유발)이라 항상 사람 승인 게이트를
      `specificity` 갱신, `project.last_codified` 갱신. (스키마 부합 재확인. rules.json·스냅샷 쓰기는
      부분쓰기 손상을 막기 위해 `hooks/omp_atomic.py` atomic write 경유 — T20.)
    - 페어 .md 동기 재생성 (output-layout.md의 .md↔.json 페어 규칙): rules.json 구조/명명 규칙이
-     바뀌면 `STRUCTURE.md`·`NAMING.md`를 같은 패스에서 갱신해 drift 방지.
+     바뀌면 `STRUCTURE.md`·`NAMING.md`를, content_conventions가 바뀌면 `CONVENTIONS.md`를 같은 패스에서
+     갱신해 drift 방지 (CONVENTIONS.md는 content_conventions가 있을 때만).
    - `<project>/.omp/learned.md` — 승격된 관찰은 "promoted → rules.json (date)"로 마킹, held는
      candidate 상태 유지 (다음 learn에서 재평가).
 6. **후속 안내**: 규칙이 바뀌었으므로 `omp-audit`로 새 규칙 준수를 확인하고, 위반이 나오면

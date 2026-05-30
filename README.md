@@ -79,4 +79,4 @@ Mac / Linux / Windows. 모든 hook은 **python3 stdlib only + fail-open** (에�
 
 ## Status
 
-v0.1.0 — 9 skill + 5 agent + 6 preset + 4 reference card + 4 hook(route/verify/atomic/`__init__`) + 스키마 구현. 훅·스키마는 pytest로 검증(34 passed, 1 skipped). **runtime end-to-end 실측 완료** (plugin reload 세션에서 route/verify hook·init→codify→organize→audit 흐름·work/ 분리 실동작 확인). 자세한 내역은 [CHANGELOG](CHANGELOG.md).
+v0.2.0 — 9 skill + 5 agent + 6 preset + 4 reference card + 4 hook(route/verify/atomic/`__init__`) + 스키마 구현. 0.2.0에서 `content_conventions[]` 규칙 타입(노트 본문 컨벤션: present/absent × body/frontmatter)과 content·wikilink audit 축 추가. 훅·스키마·content/link 순수함수는 pytest로 검증(48 passed). **runtime end-to-end 실측 완료** (plugin reload 세션에서 route/verify hook·init→codify→organize→audit 흐름·work/ 분리 실동작 확인). 자세한 내역은 [CHANGELOG](CHANGELOG.md).

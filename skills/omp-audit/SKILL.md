@@ -48,7 +48,7 @@ description: |
 1. **대상·SSOT 확인**: 프로젝트 루트와 `.omp/rules.json`·`.omp/manifest.json` 존재를 확인한다.
    - `.omp/`가 없으면 audit 불가 → 호출자에게 "`omp-init` 필요"를 보고하고 종료 (검사 기준 없음).
    - rules.json/manifest.json JSON이 깨졌으면 전체 FAIL로 표기하고 "`omp-codify`/`omp-dataset`로 SSOT 복구 필요" 보고.
-2. **검사 축 확정**: 이번 회차가 다룰 축을 명시한다 — 구조 위반(`rules.json.structure.directories[].enforced`), 명명 위반(`naming.patterns[]` Python regex + severity), dataset 체크섬 drift(`manifest.datasets[].sha256` SHA-256 재계산), split 누수(`split.group` 내 동일 hash/path), lineage·orphan 무결성, specificity 정합(정보). 호출 맥락이 한 축만 요청해도 dataset 축과 구조/명명 축은 서로 독립적으로 수행 — 한 축 FAIL이 다른 축 검사를 건너뛰게 하지 않는다.
+2. **검사 축 확정**: 이번 회차가 다룰 축을 명시한다 — 구조 위반(`rules.json.structure.directories[].enforced`), 명명 위반(`naming.patterns[]` Python regex + severity), 콘텐츠 컨벤션 위반(`content_conventions[]` applies_to × check.pattern/expect/scope, enforced — error→FAIL), wikilink 무결성(vault `[[link]]` 해소, 정보 — dead link = health hint, FAIL 아님), dataset 체크섬 drift(`manifest.datasets[].sha256` SHA-256 재계산), split 누수(`split.group` 내 동일 hash/path), lineage·orphan 무결성, specificity 정합(정보). 호출 맥락이 한 축만 요청해도 dataset 축과 구조/명명 축은 서로 독립적으로 수행 — 한 축 FAIL이 다른 축 검사를 건너뛰게 하지 않는다.
 3. **참조 카드 적재 (위임 입력)**: auditor에게 넘길 SSOT·카드 경로를 모은다 —
    - `.omp/rules.json` + `references/schemas/rules.schema.json` (규칙 스키마 SSOT: 필수 필드 `omp_version/project/specificity/structure/naming`)
    - `.omp/manifest.json` + `references/schemas/manifest.schema.json` (인벤토리 스키마 SSOT: 필수 `omp_version/generated/datasets`, sha256 `^[a-f0-9]{64}$|^UNHASHED$`)
@@ -79,6 +79,8 @@ description: |
        - 스키마 유효성 (rules.json·manifest.json 필수 필드)
        - 구조 위반 (structure.directories[] 중 enforced:true role 위반)
        - 명명 위반 (naming.patterns[] applies_to glob × regex, severity별 집계)
+       - 콘텐츠 컨벤션 위반 (content_conventions[] applies_to glob × check.pattern/expect/scope, hooks/omp_content_audit.check_content_rule, severity별 집계 error→FAIL)
+       - wikilink 무결성 (vault [[link]] 해소, hooks/omp_content_audit.find_dead_links, dead link = info hint, FAIL 아님)
        - dataset 체크섬 drift (manifest.datasets[].sha256 vs hashlib 재계산; UNHASHED는 size+mtime 폴백)
        - split 누수 (같은 split.group 내 train↔val↔test 동일 SHA-256 또는 중복 path)
        - lineage·orphan (derived_from·by 실재; manifest path 디스크 실재; 미등록 파일 경고)
@@ -94,7 +96,7 @@ description: |
 </Steps>
 
 <Output>
-- **항목별 결과표**: 스키마 유효 / 구조 위반 / 명명 위반(error·warn·info) / dataset 체크섬 drift / split 누수 / lineage 무결성 / manifest path 실재(orphan·미등록) / specificity 정합 — 각 PASS·FAIL·WARN + 비고.
+- **항목별 결과표**: 스키마 유효 / 구조 위반 / 명명 위반(error·warn·info) / 콘텐츠 컨벤션(error·warn·info) / wikilink 무결성(dead link 정보) / dataset 체크섬 drift / split 누수 / lineage 무결성 / manifest path 실재(orphan·미등록) / specificity 정합 — 각 PASS·FAIL·WARN + 비고.
 - **FAIL 항목 증거**: 위반 파일 경로·행·어긴 rules.json 규칙 ID/regex·기대 해시 vs `hashlib` 재계산 해시·중복 path — 재현 가능한 형태.
 - **organizer 처리 필요 목록** (자동 이동 안 함): 위반 경로 + 어긴 규칙 + 제안 목적지 후보. `references/safe-fileops.md`(mv→find 잔류0 검증→삭제·trash 경유·dry-run·사람 승인) 프로토콜로 `omp-organize`가 처리 — audit은 인용만 하고 직접 옮기지 않음.
 - **dataset-curator 재등록 필요 목록** (자동 갱신 안 함): drift·orphan·미등록 — 데이터 콘텐츠는 안 건드리고 `omp-dataset`이 메타데이터만 재등록.

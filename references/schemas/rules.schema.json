@@ -114,6 +114,31 @@
         }
       }
     },
+    "content_conventions": {
+      "type": "array",
+      "description": "File-content rules: what must (or must not) appear INSIDE matching files. Checked by omp-audit via deterministic grep/regex over file contents. Distinct from naming (basename/location) — this inspects the body.",
+      "items": {
+        "type": "object",
+        "required": ["applies_to", "check", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "applies_to": { "type": "string", "description": "Glob of files this rule inspects, e.g. 'docs/**/*.md'." },
+          "check": {
+            "type": "object",
+            "required": ["pattern", "expect"],
+            "additionalProperties": false,
+            "properties": {
+              "pattern": { "type": "string", "description": "Python regex tested against file content (re.MULTILINE)." },
+              "expect": { "type": "string", "enum": ["present", "absent"], "description": "'present' = pattern MUST match; 'absent' = pattern must NOT match." },
+              "scope": { "type": "string", "enum": ["body", "frontmatter"], "default": "body", "description": "Where to test: full body, or only YAML frontmatter (between leading '---' fences)." }
+            }
+          },
+          "description": { "type": "string" },
+          "origin": { "type": "string", "enum": ["preset", "inductive", "learned"], "default": "preset", "description": "Provenance for specificity (learning-protocol.md §4): 'preset' weight 0, 'inductive'/'learned' weight 1." },
+          "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "warn" }
+        }
+      }
+    },
     "ignore": {
       "type": "array",
       "items": { "type": "string" },

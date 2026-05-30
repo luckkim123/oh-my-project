@@ -76,5 +76,5 @@ description: |
 </Steps>
 
 <Output>
-생성된 `.omp/` SSOT 전체 경로 목록(`PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md` + `rules.json`/`manifest.json` + `learned.md` + `wiki/`) + 매칭된 `preset_origin` + 초안 `specificity`(0에 가까운 정직한 시작값) + GATE 1 결정 이력(proceed/revise/abort) + .gitignore 선택 기록 + 다음 단계 후보(codify/dataset/audit). `.omp` 이미 존재 시: 경고 메시지 + 재초기화 미진행(또는 사용자 명시 동의 시에만 진행)임을 명시. 게이트 통과 전엔 디스크에 아무것도 확정 기록하지 않았음을 보고(read-only 진단만 수행).
+생성된 `.omp/` SSOT 전체 경로 목록(`PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md` + `rules.json`/`manifest.json` + `learned.md` + `wiki/`) — `CONVENTIONS.md`는 init이 항상 만들지 않고 `content_conventions[]`가 있을 때 codify/learn이 생성 + 매칭된 `preset_origin` + 초안 `specificity`(0에 가까운 정직한 시작값) + GATE 1 결정 이력(proceed/revise/abort) + .gitignore 선택 기록 + 다음 단계 후보(codify/dataset/audit). `.omp` 이미 존재 시: 경고 메시지 + 재초기화 미진행(또는 사용자 명시 동의 시에만 진행)임을 명시. 게이트 통과 전엔 디스크에 아무것도 확정 기록하지 않았음을 보고(read-only 진단만 수행).
 </Output>
