@@ -59,8 +59,11 @@ and `auditor` are read-only and cannot write their own output):
 - `work/tmp/` is transient scratch any stage may use and is always safe to wipe.
 
 Retention: keep the latest N (default 10) per subfolder; older ones are pruned into trash (never
-permanent `rm`), surfacing a one-line "pruned X old snapshots" note. The pruning runs at the end of
-each writing skill's pass (so a skill that writes a snapshot also trims its own subfolder).
+permanent `rm`), surfacing a one-line "pruned X old …" note. The pruning runs at the end of
+each writing skill's pass (so a skill that writes a snapshot also trims its own subfolder). This is
+wired into each writing skill, not just declared here: `omp-init` trims `scans/`, `omp-codify` and
+`omp-learn` trim `versions/`, `omp-organize` trims `plans/`, and `omp-audit` trims `audits/` — each
+in the same pass that writes the file. `tmp/` is exempt (always safe to wipe wholesale).
 
 ## Human .md  ↔  Machine .json pairing
 

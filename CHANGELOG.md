@@ -10,8 +10,8 @@ oh-my-scholar (oms) and oh-my-docs (omd), modeled on their verified stage-driven
 
 ### Added
 
-- **8 stage skills** (`skills/omp-*/SKILL.md`): init, codify, organize, dataset, doc,
-  learn, audit, pilot — a management loop, not a generation pipeline.
+- **9 stage skills** (`skills/omp-*/SKILL.md`): init, codify, organize, dataset, doc,
+  learn, audit, pilot, doctor — a management loop, not a generation pipeline.
 - **5 agents** (`agents/*.md`, 11-section `<Agent_Prompt>` XML):
   - `project-scanner` (sonnet, read-only) — inventory + inductive structure/naming scan
   - `rule-architect` (opus, read-only) — preset×scan synthesis, promotion judgment
@@ -25,21 +25,26 @@ oh-my-scholar (oms) and oh-my-docs (omd), modeled on their verified stage-driven
   learning-protocol.md (the generic→specialized self-evolution SSOT).
 - **2 machine schemas** (`references/schemas/`): rules.schema.json (with `specificity`
   0..1 tracking generic→specialized), manifest.schema.json (metadata-only datasets).
-- **2 hooks** (`hooks/`, stdlib-only, fail-open, cross-platform):
-  - `omp_route_emit.py` (UserPromptSubmit) — injects `STAGE(project) → …` checkpoint
+- **4 hook-layer files** (`hooks/`, stdlib-only, fail-open, cross-platform) — 2 passive
+  hooks + 1 write helper + package init (the lean identity stays "2 passive hooks"):
+  - `omp_route_emit.py` (UserPromptSubmit) — injects `STAGE(project) → …` checkpoint; also
+    appends a one-line "no `.omp/` yet — run omp-init first" hint when cwd lacks `.omp/` (T25).
   - `omp_verify_emit.py` (PostToolUse) — integrity reminder after `.omp/` edits or
     move/delete commands. Deliberately avoids the freeze-inducing "fix before
     continuing" phrasing (OMC freeze pattern); reminder tone only, never auto-fixes.
+  - `omp_atomic.py` — `atomic_write_json` helper (tempfile→fsync→os.replace) for `.omp/`
+    SSOT writes; not a hook, a library the writing skills route through (T20).
+  - `__init__.py` — package marker so the helper/tests import cleanly.
 
 ### Hook contract
 
-- `omp_route_emit.py` STAGE catalog = `init|codify|organize|dataset|doc|learn|audit|omp-pilot` (8 stages).
+- `omp_route_emit.py` STAGE catalog = `init|codify|organize|dataset|doc|learn|audit|omp-pilot|omp-doctor` (9 stages).
 - `omp_verify_emit.py` fires on `Edit|Write|MultiEdit|Bash`; reminds only on `.omp/`
   paths (incl. Windows `\` separators) or move/delete commands; silent otherwise.
 
 ### Verification
 
-- `tests/` — 21 passed, 1 skipped (jsonschema optional). Covers: route 8-stage
+- `tests/` — 34 passed, 1 skipped (jsonschema optional). Covers: route 9-stage
   enumeration, fail-open, sibling-label distinctness (STAGE(project) ≠ paper/docs/ROUTE),
   no-emoji, stdlib-only; verify .omp/ detection, move detection, silence on unrelated
   work, **no-freeze-phrase**, Windows path, no-auto-fix; schema validity, specificity

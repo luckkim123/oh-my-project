@@ -124,6 +124,9 @@ organizer의 실제 오이동을 유발)이라 항상 사람 승인 게이트를
 5. **승인분 반영 (게이트 통과 후에만)**: 사람이 승인한 규칙만 이 스킬이 디스크에 쓴다.
    - **먼저** 기존 `.omp/rules.json`을 `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json`으로 스냅샷한다
      (승격은 한 방향 래칫 — 잘못 승격 시 롤백 지점. `references/output-layout.md` work layer).
+     스냅샷 후 `.omp/work/versions/`를 retention 정리한다: 최신 N=10개만 남기고 더 오래된 것은
+     trash 경유 prune(영구 `rm` 금지), "pruned X old snapshots" 한 줄 보고 — 스냅샷을 쓴 이 스킬이
+     같은 패스에서 자기 subfolder를 trim(`output-layout.md`).
    - `<project>/.omp/rules.json` — 승인된 규칙 추가/변경, `learned_refs[]`에 출처 관찰 id 기록,
      `specificity` 갱신, `project.last_codified` 갱신. (스키마 부합 재확인. rules.json·스냅샷 쓰기는
      부분쓰기 손상을 막기 위해 `hooks/omp_atomic.py` atomic write 경유 — T20.)

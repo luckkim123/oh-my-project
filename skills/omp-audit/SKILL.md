@@ -59,7 +59,7 @@ description: |
    - `references/presets/*.md` (`project.preset_origin`이 가리키는 시드 — specificity 정합 참고)
 4. **검사 결과 수령**: auditor의 항목별 PASS/FAIL + 증거(파일 경로·행·어긴 규칙 ID/regex·기대 해시 vs 재계산 해시·중복 path)를 취합한다. 증거 없는 PASS·"검사 미실행"은 PASS로 카운트하지 않는다.
 5. **핸드오프 분류**: FAIL 위반을 처리 주체별로 나눈다 — **organizer 처리 필요**(구조/명명 위반 파일: 위반 경로 + 어긴 rules.json 규칙 + 제안 목적지 후보) / **dataset-curator 재등록 필요**(체크섬 drift·orphan·미등록: 데이터 콘텐츠는 안 건드리고 메타만). audit 자신은 이들을 직접 dispatch하지 않는다 — 핸드오프 목록만 산출하고, 실제 호출은 `omp-organize`/`omp-dataset`/`omp-pilot`이 사람 승인 게이트를 거쳐 한다.
-6. **스냅샷 식별자 부착 + 리포트 기록**: 판정을 검증 대상 스냅샷 식별자에 묶어, organize/codify 후 stale PASS 재사용을 차단한다. 그리고 항목별 PASS/FAIL + 증거 + 스냅샷 식별자를 `.omp/work/audits/audit-{YYYY-MM-DD-HHMM}.json`에 기록해 drift 이력(시계열 비교)을 남긴다. ⚠️ **이 기록은 read-only auditor가 아니라 컨트롤러인 이 스킬이 쓴다** — auditor는 산출(텍스트)만 내고, work/audits 기록은 호출 스킬의 몫이다(auditor의 read-only 불변·탐지≠실행 분리 유지). `references/output-layout.md` work layer.
+6. **스냅샷 식별자 부착 + 리포트 기록**: 판정을 검증 대상 스냅샷 식별자에 묶어, organize/codify 후 stale PASS 재사용을 차단한다. 그리고 항목별 PASS/FAIL + 증거 + 스냅샷 식별자를 `.omp/work/audits/audit-{YYYY-MM-DD-HHMM}.json`에 기록해 drift 이력(시계열 비교)을 남긴다. ⚠️ **이 기록은 read-only auditor가 아니라 컨트롤러인 이 스킬이 쓴다** — auditor는 산출(텍스트)만 내고, work/audits 기록은 호출 스킬의 몫이다(auditor의 read-only 불변·탐지≠실행 분리 유지). 기록 후 `.omp/work/audits/`를 retention 정리: 최신 N=10개만 남기고 더 오래된 리포트는 trash 경유 prune(영구 `rm` 금지), "pruned X old audits" 한 줄 보고 — 기록한 이 스킬이 자기 subfolder를 trim. `references/output-layout.md` work layer.
 7. **Task 위임 (단일, read-only)**: 위 입력을 묶어 auditor에 단일 위임한다. read-only 게이트이므로 자동 검사의 독립성을 위해 **단일 dispatch** (검사 항목을 여러 agent로 쪼개지 않는다 — 한 auditor가 전 축을 결정론적으로 본다):
    ```
    Task(

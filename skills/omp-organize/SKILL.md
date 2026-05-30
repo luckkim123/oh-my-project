@@ -47,7 +47,7 @@ description: |
    - 입력: 프로젝트 루트, `.omp/rules.json`(기계 규칙 SSOT), `references/schemas/rules.schema.json`(스키마), 범위, severity 필터.
    - 지시: rules.json의 `structure.directories[].enforced`·`naming.patterns[].regex`(Python re)·`ignore` glob에 따라 실제 트리를 검사. 각 위반에 대해 {위반 파일 경로, 어긴 규칙(structure/naming + 규칙 id), severity(error/warn/info), 제안 목적지(어느 규칙이 어디로 요구하는지)}를 낸다. **파일은 옮기지 않는다 — 탐지만**.
 3. **위반 목록 수령 + move plan 초안**: auditor 산출을 받아 severity별로 집계하고, 각 위반을 `from → to`(위반 규칙 인용 포함) move plan으로 정리한다. 모호한 목적지(규칙이 한 자리를 특정 못 함)는 이동 후보가 아니라 **사람 질문 항목**으로 분리.
-4. **dry-run 제시 (0 mutation)**: organizer에게 dry-run을 요청해 전체 move plan + *실행될* 검증 명령(`find`/`ls`/SHA-256 비교)·삭제 경로(trash 분기)를 출력한다. 이 단계는 사용자 파일시스템을 건드리지 않는다. dry-run plan(from→to + 위반 규칙 인용 + 검증 명령)은 `.omp/work/plans/organize-{YYYY-MM-DD-HHMM}.md`에 기록해 undo provenance로 남긴다(`references/output-layout.md` work layer — 이 기록은 사용자 파일이 아닌 omp 자체 작업장 쓰기다).
+4. **dry-run 제시 (0 mutation)**: organizer에게 dry-run을 요청해 전체 move plan + *실행될* 검증 명령(`find`/`ls`/SHA-256 비교)·삭제 경로(trash 분기)를 출력한다. 이 단계는 사용자 파일시스템을 건드리지 않는다. dry-run plan(from→to + 위반 규칙 인용 + 검증 명령)은 `.omp/work/plans/organize-{YYYY-MM-DD-HHMM}.md`에 기록해 undo provenance로 남긴다(`references/output-layout.md` work layer — 이 기록은 사용자 파일이 아닌 omp 자체 작업장 쓰기다). 기록 후 `.omp/work/plans/`를 retention 정리: 최신 N=10개만 남기고 더 오래된 plan은 trash 경유 prune(영구 `rm` 금지), "pruned X old plans" 한 줄 보고 — 기록한 이 스킬이 자기 subfolder를 trim.
 5. ━━━ **GATE: 이동 승인 (human)** — dry-run plan을 사람에게 보이고 결정받는다: proceed(전체) / 일부 선택 / revise(목적지 수정) / abort. **승인 없이는 단 한 건도 실행하지 않는다.**
 6. **실행 lane 위임 (organizer, write)**: 승인된 plan에 대해서만 `Task(subagent_type="oh-my-project:organizer", ...)`로 실제 이동을 위임한다.
    - 입력: 승인된 move plan(from→to + 규칙 인용), `references/safe-fileops.md`(절대 규약), 대상 OS 정보.
