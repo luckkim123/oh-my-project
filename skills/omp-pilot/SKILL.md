@@ -46,7 +46,7 @@ description: |
 0. **`.omp/` 존재 확인 → 분기** (pilot 첫 동작):
    - `<project>/.omp/rules.json`이 **없으면** → **init 흡수 분기**: omp-init을 이 pilot 안에서 1회 부트스트랩으로 실행한다 (omd docs-pilot이 intake를 흡수하듯).
      - (a) project-scanner가 실제 폴더 트리·확장자 분포·명명 패턴을 **귀납** (read-only, 추측 0)
-     - (b) rule-architect(opus)가 `references/presets/*.md`(python-ml/web-app/research-lab/monorepo/johnny-decimal/generic) 중 최적 프리셋을 매칭
+     - (b) rule-architect(opus)가 `references/presets/*.md`(python-ml/web-app/research-lab/monorepo/johnny-decimal/para/generic) 중 최적 프리셋을 매칭
      - (c) (a)+(b) **합성** → 초안 `rules.json`(`references/schemas/rules.schema.json` 준수) + `manifest.json`(`references/schemas/manifest.schema.json`) + 사람용 `PROJECT.md`/`STRUCTURE.md`/`NAMING.md` 초안
      ━━━ **GATE 0: 초안 rules.json 승인 (human)** — proceed/revise/abort. `.omp/` 커밋 여부(`.gitignore` 힌트)도 여기서 한 번 묻고 기록 ━━━
    - `<project>/.omp/rules.json`이 **이미 있으면** → init은 "재초기화?" 경고만 하고 **skip**, 기존 `.omp/`를 입력으로 1번 단계(codify)부터 관리 루프 시작.

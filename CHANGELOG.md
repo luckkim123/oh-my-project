@@ -36,8 +36,8 @@ oh-my-scholar (oms) and oh-my-docs (omd), modeled on their verified stage-driven
   - `organizer` (sonnet, write) — the ONLY file-moving agent; obeys safe-fileops.md
   - `dataset-curator` (sonnet, write manifest) — checksum/split/lineage, metadata-only
   - `auditor` (opus, read-only) — rule-compliance PASS/FAIL, detection-only
-- **6 preset cards** (`references/presets/`): python-ml, web-app, research-lab,
-  monorepo, johnny-decimal, generic — generic seeds for the "ships generic" half.
+- **7 preset cards** (`references/presets/`): python-ml, web-app, research-lab,
+  monorepo, johnny-decimal, para, generic — generic seeds for the "ships generic" half.
 - **4 reference cards** (`references/`): safe-fileops.md (organizer's hard protocol),
   output-layout.md (.omp/ path SSOT), omc-backport-analysis.md (OMC adopt/exclude),
   learning-protocol.md (the generic→specialized self-evolution SSOT).
