@@ -81,6 +81,41 @@ re-entering the heavy channel through `learned.md`.
 | is a fact, rationale, or decision worth remembering but not enforcing | **Light** (`wiki/`) | cheap memory → no gate |
 | is ambiguous | **default to Light**, and let a human or a later `omp-learn` pass escalate it into `learned.md` | safer to remember-without-enforcing than to enforce-without-asking |
 
+### Capturing USER feedback (the most important, most-missed trigger)
+
+The richest observations do not come from a stage scanning the tree — they come from the
+**user correcting how omp operates on their project**: "report only the *incomplete* ones",
+"code stays in the vault, it's conceptual", "always use `done` not a timestamp". These are
+gold, and they are exactly the ones a tree-scanning stage will never produce, because they
+encode the user's intent, not the filesystem's shape.
+
+The failure this section fixes: the model hears the correction, says sorry, fixes the one
+instance — and **does not write it down**, so the same correction recurs next session. That
+is not learning; it is repeated apology. omp's whole premise (specialize in place) collapses
+if user corrections evaporate.
+
+**The trigger is durable and unconditional.** Whenever the user corrects, constrains, or
+states a preference about how omp should handle *this project* — in ANY turn, not only inside
+a running skill — capture it the same turn, before moving on:
+
+1. **Route it** through the table above. Enforceable rule (a folder role, a naming pattern,
+   an ignore glob, "files of type X must live under Y") → **Heavy**: append an `OBS-NNNN`
+   block to `learned.md` (§2 format), so `omp-learn` can later promote it through the gate.
+   An operating habit / reporting preference / decision that audit can't mechanically enforce
+   ("show only incomplete", "prefer `done`") → **Light**: append to the relevant
+   `wiki/<topic>.md` (dated section, append-only). Ambiguous → default Light.
+2. **Mark provenance.** A feedback-sourced `learned.md` block sets `source_stage: feedback`
+   and `user_overridden: false`; if the feedback *contradicts* an existing rule, the existing
+   rule's candidate is marked `user_overridden: true` (the user's "no" is durable, §3).
+3. **Do it without being asked.** Writing the note is part of honoring the correction, not a
+   separate favor the user must request. "Update the harness to learn better" means *use this
+   mechanism*, not "dump this specific learning into a global rules file" — project knowledge
+   goes to *this project's* `.omp/`, never to a distributed/user-scope config (that pollutes
+   every other project; see the household CLAUDE.md "write knowledge to the repo that owns it").
+
+This makes user feedback a first-class source on equal footing with init-time induction and
+audit-time observation — the three feeders of `specificity` toward 1.
+
 ---
 
 ## 2. The `learned.md` observation format (heavy-channel staging)
@@ -108,7 +143,7 @@ Each observation is one fenced block:
 - first_seen: <ISO date>
 - last_seen: <ISO date>
 - user_overridden: false             # set true if the user has ever rejected/contradicted this
-- source_stage: <init|audit|organize|dataset|doc>   # which stage logged it
+- source_stage: <init|audit|organize|dataset|doc|feedback>   # which stage logged it (feedback = user correction, any turn)
 ```
 
 Worked example:
