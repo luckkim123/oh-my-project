@@ -45,7 +45,7 @@ description: |
 4. **프리셋 매칭 + 합성 (dispatch ②)**: scanner 산출을 입력으로 rule-architect에게 위임 — `references/presets/*.md`(python-ml/web-app/research-lab/monorepo/johnny-decimal/generic) 중 가장 맞는 시드를 고르고, 귀납 결과로 보정해 **초안 rules.json**을 합성. 스키마는 `references/schemas/rules.schema.json` 준수(`omp_version`/`project`/`specificity`/`structure`/`naming` 필수, `preset_origin`에 선택한 프리셋 명시). manifest.json은 `references/schemas/manifest.schema.json`에 맞춰 얕게 시드(파일 인벤토리; dataset 엔트리는 후보 식별만). read-only — 디스크에 안 씀, 초안을 텍스트로 반환.
    ━━━ **GATE 1 (핵심): 초안 rules.json 승인 (human)** — proceed / revise / abort. 사람에게 매칭된 프리셋·합성된 structure/naming 규칙·추정 specificity를 제시하고 결정을 받는다. 자동 통과 없음. revise면 4로 되돌아 재합성. ━━━
 5. **`.omp/` 기록 (게이트 통과 후에만)**: 승인된 초안으로 `references/output-layout.md`의 고정 구조대로 SSOT를 생성 —
-   - `.omp/rules.json` (승인본), `.omp/manifest.json` (시드 인벤토리)
+   - `.omp/rules.json` (승인본), `.omp/manifest.json` (시드 인벤토리) — 두 .json 쓰기는 부분쓰기 손상을 막기 위해 `hooks/omp_atomic.py`의 atomic write를 경유한다(T20).
    - `.omp/STRUCTURE.md`·`.omp/NAMING.md` (rules.json의 사람용 narrative — .md↔.json 페어, 서로 어긋나지 않게)
    - `.omp/PROJECT.md` (이 프로젝트가 무엇인가, 한 화면), `.omp/DATASETS.md` (manifest dataset 뷰; init 시점엔 후보 목록 또는 빈 카탈로그)
    - `.omp/learned.md` (빈 관찰 로그, 승격 대기 채널), `.omp/wiki/` (빈 디렉토리, 자동 누적 채널)
