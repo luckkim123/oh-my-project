@@ -52,9 +52,10 @@ oh-my-scholar (oms) and oh-my-docs (omd), modeled on their verified stage-driven
   own `hooks/omp_route_emit.py` (`STAGE(project) → …`) plus its `plugin.json` description landing on
   omha's 2nd-tier domain-skill path. omha core / omc / superpowers cards stay untouched. (Card-tier
   rationale: design §6 re-review correction. The earlier `cards/oh-my-project.json` was removed via trash.)
-- **Marketplace registration + git push: not yet done.** This [0.1.0] entry marks *local
-  implementation complete*; actual deployment (a real remote repo so `marketplace.json`'s github
-  source resolves, then registration) happens after explicit user approval — see Notes / Status.
+- **Marketplace registration + git push: done.** The harness is pushed to the GitHub source
+  (`luckkim123/oh-my-project`, public) and registered in heroacademia's
+  `.claude-plugin/marketplace.json` alongside siblings oms/omd, with `oh-my-project@heroacademia`
+  enabled in claudebase `config/settings.json` — installable like the other siblings.
 
 ### Notes
 
