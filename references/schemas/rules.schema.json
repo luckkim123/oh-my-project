@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/luckkim123/oh-my-project/schemas/rules.schema.json",
+  "title": "omp rules.json",
+  "description": "Machine-readable rule set for a project folder. Written by omp-init/codify/learn, read by omp-audit. The specificity field tracks the generic->specialized evolution (0 = pure preset, 1 = fully project-specific).",
+  "type": "object",
+  "required": ["omp_version", "project", "specificity", "structure", "naming"],
+  "additionalProperties": false,
+  "properties": {
+    "omp_version": {
+      "type": "string",
+      "description": "omp schema/harness version this file was written against, e.g. '0.1.0'."
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "preset_origin", "initialized"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "preset_origin": {
+          "type": "string",
+          "description": "Which references/presets/*.md seeded this project, e.g. 'python-ml', 'johnny-decimal', 'generic'."
+        },
+        "initialized": { "type": "string", "description": "ISO date the .omp/ was created." },
+        "last_codified": { "type": "string", "description": "ISO date rules last changed." }
+      }
+    },
+    "specificity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "0 = rules are pure preset (just deployed). 1 = fully project-specific (learned). Rises as omp-learn promotes observations into project-owned rules."
+    },
+    "structure": {
+      "type": "object",
+      "description": "Folder layout rules: which directories exist and what role each plays.",
+      "required": ["directories"],
+      "additionalProperties": false,
+      "properties": {
+        "convention": {
+          "type": "string",
+          "description": "Named layout convention if any, e.g. 'johnny-decimal', 'src-layout', 'kedro', 'flat'."
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "role"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string", "description": "Relative dir path, e.g. 'data/raw'." },
+              "role": { "type": "string", "description": "What belongs here, human sentence." },
+              "id": { "type": "string", "description": "Optional ID, e.g. Johnny-Decimal '11'." },
+              "origin": {
+                "type": "string",
+                "enum": ["preset", "inductive", "learned"],
+                "default": "preset",
+                "description": "Provenance for the specificity computation (see learning-protocol.md §4): 'preset' weight 0, 'inductive'/'learned' weight 1."
+              },
+              "enforced": {
+                "type": "boolean",
+                "default": true,
+                "description": "If true, omp-audit flags files that violate this dir's role."
+              }
+            }
+          }
+        }
+      }
+    },
+    "naming": {
+      "type": "object",
+      "description": "File/dir naming rules. Patterns are regex (Python re syntax).",
+      "required": ["patterns"],
+      "additionalProperties": false,
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["applies_to", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "applies_to": {
+                "type": "string",
+                "description": "Glob the rule applies to, e.g. 'data/processed/*.parquet'. Scope it to the layer the rule targets (e.g. '*/' = root-level dirs only) so audit does not apply a regex to every basename in the tree."
+              },
+              "regex": {
+                "type": "string",
+                "description": "Optional Python regex the basename must match. Omit when the rule is purely a path_constraint (where a file type must live), not a basename-shape rule."
+              },
+              "path_constraint": {
+                "type": "object",
+                "description": "Optional location rule: files matching applies_to must (or must not) live under a directory. Expresses 'all .pkl belong under data/processed/' — which a basename regex cannot. audit flags files of this kind found outside must_be_under.",
+                "additionalProperties": false,
+                "properties": {
+                  "must_be_under": { "type": "string", "description": "Relative dir the matched files must live under, e.g. 'data/processed'." },
+                  "must_not_be_under": { "type": "string", "description": "Relative dir the matched files must NOT live under." }
+                }
+              },
+              "description": { "type": "string", "description": "Human explanation of the rule." },
+              "origin": {
+                "type": "string",
+                "enum": ["preset", "inductive", "learned"],
+                "default": "preset",
+                "description": "Provenance for the specificity computation: 'preset' (weight 0, shipped generic), 'inductive' (weight 1, observed at init scan), 'learned' (weight 1, promoted via omp-learn gate). See learning-protocol.md §4."
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["error", "warn", "info"],
+                "default": "warn"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ignore": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Glob patterns omp-audit skips (e.g. '.git/**', 'node_modules/**', '.omp/**')."
+    },
+    "learned_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of learned.md observations that were promoted into the rules above (provenance)."
+    }
+  }
+}

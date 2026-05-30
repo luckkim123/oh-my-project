@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/luckkim123/oh-my-project/schemas/manifest.schema.json",
+  "title": "omp manifest.json",
+  "description": "File & dataset inventory for a project folder. Metadata-only: omp NEVER copies/moves/pushes the actual data — it records checksum, size, split, and lineage so changes are detectable and provenance is traceable. If DVC/git-lfs manages the data, omp defers and mirrors metadata only.",
+  "type": "object",
+  "required": ["omp_version", "generated", "datasets"],
+  "additionalProperties": false,
+  "properties": {
+    "omp_version": { "type": "string" },
+    "generated": { "type": "string", "description": "ISO timestamp this manifest was last written." },
+    "managed_by_external": {
+      "type": "object",
+      "description": "If a versioning tool (DVC, git-lfs) is detected, record it here. omp then only mirrors metadata and does not claim ownership.",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "enum": ["dvc", "git-lfs", "none"] },
+        "note": { "type": "string" }
+      }
+    },
+    "datasets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "sha256", "size_bytes", "added"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Stable dataset id, e.g. 'train-v2'." },
+          "path": { "type": "string", "description": "Relative path to the data file." },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$|^UNHASHED$",
+            "description": "SHA-256 of the file (hashlib, deterministic across OS). 'UNHASHED' allowed for files too large to hash on registration (size+mtime tracked instead)."
+          },
+          "size_bytes": { "type": "integer", "minimum": 0 },
+          "rows": { "type": "integer", "minimum": 0, "description": "Optional row count for tabular data." },
+          "split": {
+            "type": "object",
+            "description": "Train/val/test split membership, to detect leakage across splits.",
+            "additionalProperties": false,
+            "properties": {
+              "role": { "type": "string", "enum": ["train", "val", "test", "holdout", "other"] },
+              "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+              "group": { "type": "string", "description": "Split-group id; siblings sharing a group are one split set." }
+            }
+          },
+          "lineage": {
+            "type": "object",
+            "description": "Where this data came from and how it was produced.",
+            "additionalProperties": false,
+            "properties": {
+              "derived_from": { "type": "string", "description": "Source path or dataset id." },
+              "by": { "type": "string", "description": "Script/command that produced it." },
+              "at": { "type": "string", "description": "ISO date of derivation." }
+            }
+          },
+          "source": {
+            "type": "string",
+            "description": "Origin, e.g. 'internal', 'kaggle:titanic', 'vendor-X'."
+          },
+          "added": { "type": "string", "description": "ISO date registered into the manifest." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "oh-my-project",
+  "description": "Project-folder management & evolution harness — knows your local directory like a second brain. Ships generic, specializes to your project the more you use it: scans structure, codifies naming/layout rules, organizes files safely, tracks datasets (checksum/split/lineage), and learns project-specific rules over time. SSOT lives in a hidden .omp/ folder (human .md + machine .json).",
+  "author": { "name": "kimseungmin" },
+  "license": "MIT",
+  "keywords": ["claude-code", "plugin", "project", "directory", "structure", "naming", "convention", "dataset", "lineage", "organize", "second-brain", "orchestration", "multi-agent"],
+  "skills": [
+    "./skills/omp-init/",
+    "./skills/omp-codify/",
+    "./skills/omp-organize/",
+    "./skills/omp-dataset/",
+    "./skills/omp-doc/",
+    "./skills/omp-learn/",
+    "./skills/omp-audit/",
+    "./skills/omp-doctor/",
+    "./skills/omp-pilot/"
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/omp_route_emit.py"]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/omp_verify_emit.py"]
+          }
+        ]
+      }
+    ]
+  }
+}
