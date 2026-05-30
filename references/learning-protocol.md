@@ -263,6 +263,18 @@ recall. There is no opaque ranking, no embedding drift, no possibility of recall
 that does not literally contain the queried terms. The second brain remembers *only what was
 actually written*, and recalls it *only by literal match*. That is the entire trust model.
 
+**Wiki notes are append-only.** When a stage revisits an existing `wiki/<topic>.md`, it
+*appends* (preferably as a dated `## <ISO date> — <one-line>` section), never rewrites or
+truncates the file. Whole-file overwrite is reserved for the paired SSOT docs
+(`PROJECT.md` / `STRUCTURE.md` / `NAMING.md` / `DATASETS.md`, regenerated wholesale by
+`omp-doc`/`omp-codify`) — *never* for a wiki note. The light channel must accrue, not
+replace: a revisited topic deepens (old observation + new section coexist as a ledger the
+human reads as an evolution), it does not get clobbered. This mirrors how the heavy channel
+already treats `learned.md` (the append-only observation ledger, §2), so both channels share
+one append discipline — knowledge accrues without loss. (The `## <date>` heading is a *soft*
+convention, not a schema: it is free-form grep-able prose, never a parsed frontmatter field —
+§6.A's "no database, no index" trust model is untouched.)
+
 (The light channel is intentionally low-ceremony: a wiki note is never load-bearing for an
 enforced rule. If a wiki insight should *become* enforceable, it must be restated as an
 observation in `learned.md` and travel the heavy channel through the human gate. The wiki

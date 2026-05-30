@@ -3,6 +3,24 @@
 All notable changes to this harness. Hook contract changes are recorded explicitly
 (siblings oms/omd treat the route/verify hook text as a versioned contract).
 
+## [Unreleased]
+
+### Changed
+
+- **`learning-protocol.md` §5 — wiki append-only discipline made explicit.** The light
+  channel (`.omp/wiki/`) always *intended* accumulation ("쓸수록 특화", "accrue freely"),
+  but never wrote the binding rule that a revisited `wiki/<topic>.md` is *appended* (not
+  rewritten/truncated) and that whole-file overwrite is reserved for the paired SSOT docs
+  (PROJECT/STRUCTURE/NAMING/DATASETS), never for a wiki note. Adjacent in `omp-doc`, the
+  same controller is told to whole-overwrite the human .md docs — this clause forecloses
+  that habit bleeding into the light channel. The `## <date>` section heading is a *soft*
+  free-form convention, **not** a frontmatter schema (§6.A's "no database, no index" trust
+  model is untouched). Echoed in `skills/omp-doc/SKILL.md` where both instructions sit
+  together. Sourced from a cross-harness analysis against **omx** (oh-my-experiments) wiki,
+  whose INV-2 append-merge invariant (e2e-verified) proved the discipline; omp adopts the
+  written rule only — none of omx's engine (file-locks, frontmatter schema, scoring/lint)
+  transfers (single-writer, free-form-grep domain — correctly rejected).
+
 ## [0.1.0] — 2026-05-30
 
 Initial implementation. Project-folder management & evolution harness — sibling of

@@ -63,8 +63,11 @@ repo 루트의 README 를 만들 듯 omp-doc 은 같은 "코드베이스 정독 
   섞여 있을 수 있으니 — 큰 구조 변경이면 확인을 받는다.
 - **wiki 자동 누적(가벼운 채널).** 문서를 쓰다 발견한 비자명한 패턴·결정("이 repo 는 `tests/`가
   `src/` 미러 구조", "`legacy/`는 동결됨")은 `.omp/wiki/*.md`에 자동 append — 승인 게이트 없음,
-  다음 세션 grep 회수용. 규칙으로 *승격*할 만한 관찰이면 자동 강제하지 말고 `.omp/learned.md`에 후보로
-  적어 `omp-learn` 게이트로 넘긴다. 두 채널 구분은 `references/learning-protocol.md` 참조.
+  다음 세션 grep 회수용. ⚠️ wiki 는 **append 만, 통째 덮어쓰기 금지** — 바로 위 "통째로 덮어쓰기"는
+  *사람용 SSOT .md(PROJECT/STRUCTURE/NAMING/DATASETS)* 전용이고, wiki 노트는 기존 내용을 지우지 않고
+  새 절만 덧붙인다(`references/learning-protocol.md` §5). 규칙으로 *승격*할 만한 관찰이면 자동 강제하지
+  말고 `.omp/learned.md`에 후보로 적어 `omp-learn` 게이트로 넘긴다. 두 채널 구분은
+  `references/learning-protocol.md` 참조.
 - **단일 dispatch.** 인벤토리는 여러 폴더를 한 번에 스캔하면 되므로 project-scanner 1 회 dispatch 로
   충분하다. 문서 4종을 따로 스캔하려고 병렬 fan-out 하지 않는다(같은 트리를 중복으로 읽을 뿐).
 - **게이트 없음(판정 단계 아님).** omp-doc 은 사람용 문서를 쓰는 가벼운 단계로, 파일 이동·규칙 강제 같은
