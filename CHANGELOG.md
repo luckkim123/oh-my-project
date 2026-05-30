@@ -3,6 +3,16 @@
 All notable changes to this harness. Hook contract changes are recorded explicitly
 (siblings oms/omd treat the route/verify hook text as a versioned contract).
 
+## [0.2.1] — 2026-05-31
+
+### Fixed
+
+- **`find_dead_links`: Obsidian table-escaped pipe `[[Note\|alias]]` no longer
+  false-flagged as dead** (was capturing the trailing backslash into the target,
+  e.g. `Perceptron\`, which never matched the stem set). Table cells escape the
+  alias separator as `\|`; the target is now normalized by stripping a trailing
+  backslash before resolution. Found via real-vault audit (67 false positives → 0).
+
 ## [0.2.0] — 2026-05-31
 
 ### Added

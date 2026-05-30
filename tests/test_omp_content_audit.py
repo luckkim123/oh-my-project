@@ -95,3 +95,11 @@ def test_split_frontmatter_handles_crlf():
     assert "title: x" in fm
     assert "body" in rest
     assert "title" not in rest
+
+
+def test_table_escaped_pipe_link_resolves(tmp_path):
+    # Obsidian table cell: [[Note\|alias]] — escaped pipe must still resolve to Note.md
+    (tmp_path / "a.md").write_text("| x | [[Perceptron\\|MLP]] | and [[Perceptron\\|MLP]] |\n")
+    (tmp_path / "Perceptron.md").write_text("p\n")
+    dead = find_dead_links(tmp_path)
+    assert dead == []  # escaped-pipe alias resolves, not dead

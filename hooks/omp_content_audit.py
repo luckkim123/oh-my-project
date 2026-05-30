@@ -43,12 +43,14 @@ _EXT = re.compile(r"\.([^.\\/]+)\Z")
 
 
 def find_dead_links(root: Path) -> list[dict]:
-    """Scan all .md under root for [[target]] links whose target resolves to no file.
+    r"""Scan all .md under root for [[target]] links whose target resolves to no file.
 
     Obsidian resolution: match by basename, case-insensitively (wikilinks ignore case).
     A `.md` suffix is optional; a non-`.md` extension marks an attachment embed
     (e.g. `![[img.png]]`) which is skipped (attachment existence is out of scope).
-    alias (|...) and heading (#...) are stripped before resolving. Returns info-level hints.
+    alias (|...) and heading (#...) are stripped before resolving; a table-escaped
+    `\|` alias separator (Obsidian table cells) is normalized so its trailing
+    backslash is not captured into the target. Returns info-level hints.
     """
     root = Path(root)
     md_files = list(root.rglob("*.md"))
@@ -57,7 +59,7 @@ def find_dead_links(root: Path) -> list[dict]:
     for f in md_files:
         text = f.read_text(encoding="utf-8", errors="replace")
         for m in _WIKILINK.finditer(text):
-            target = m.group(1).strip()
+            target = m.group(1).strip().rstrip("\\").strip()
             base = target.rsplit("/", 1)[-1]
             ext = _EXT.search(base)
             if ext and ext.group(1).lower() != "md":

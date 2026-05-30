@@ -191,7 +191,7 @@ coverage/**
 
 ```json
 {
-  "omp_version": "0.2.0",
+  "omp_version": "0.2.1",
   "project": { "name": "my-web-app", "preset_origin": "web-app", "initialized": "2026-05-30" },
   "specificity": 0,
   "structure": {
