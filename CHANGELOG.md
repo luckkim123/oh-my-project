@@ -7,6 +7,17 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ### Changed
 
+- **organize 후 인덱스 drift 방지 — "구조를 바꾼 이동은 `.omp/` 인덱스 동기화까지가 한 작업" 명문화 (hook contract 변경).**
+  실사용에서 폴더 리네임·평탄화(`12_Theses_Defense` → `12_Masters_Thesis` + 중간 계층 폐지)를 한 뒤
+  `.omp/STRUCTURE.md`·`rules.json`·`DATASETS.md` 가 옛 경로를 가리킨 채 남아, 사용자가 직접 "인덱스도
+  갱신하라"고 지시해야 했던 구멍을 메움. 세 곳을 지침·문구 레벨로만 강화(코드 로직 불변):
+  - `skills/omp-organize/SKILL.md`: Step 8(인덱스 동기화) 신설 — 옮긴 폴더가 rules.json·STRUCTURE.md 에
+    이름으로 적혀 있으면 동기화가 organize 완료 정의의 일부(단순 path 치환=직접 Edit, 규칙 의미 변경=codify
+    게이트). 구조 불변이면 no-op. "순서 불변"·Output 에도 반영.
+  - `hooks/omp_route_emit.py`: CHECKPOINT 에 "⚠️ 인덱스 정합" 한 줄 추가 — 구조 영향 이동·맨손 mv 후
+    `.omp/` 갱신을 같은 작업 안에서 끝내라(drift 금지). 기존 STAGE/NO_OMP 마커 불변.
+  - `hooks/omp_verify_emit.py`: PostToolUse 리마인더에 "구조를 바꾼 이동이면 인덱스 갱신은 이 작업의 일부"
+    한 줄 추가. freeze 유발 문구("fix before continuing")는 쓰지 않음(권유→완료조건 톤만 강화). 49 tests pass.
 - **`references/omc-backport-analysis.md` §5 신설 — 0.2.0 신규의 형제 전파 검토(전파 0).**
   0.2.0 이 추가한 5종(content_conventions·content audit·dead-link·CONVENTIONS.md·specificity
   content 항)을 oms/omd/omx 로 전파할지 적대 검증(15쌍) → 전부 REJECT. 5종 모두 omp 의 "살아있는

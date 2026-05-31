@@ -53,8 +53,9 @@ description: |
    - 입력: 승인된 move plan(from→to + 규칙 인용), `references/safe-fileops.md`(절대 규약), 대상 OS 정보.
    - 지시: 각 이동을 **copy-verify-delete** 순서로 — mv/copy → 목적지 `find`/`ls`+SHA-256 검증 → 통과 후에만 원본 trash 경유 삭제. rename 지양, sync 폴더는 superset 확인. 한 건이라도 검증 실패하면 그 건은 **롤백 가능 상태로 STOP**하고 보고(나머지 진행 여부는 사람에게).
 7. **사후 검증 + 기록**: 이동 후 `omp-audit`(또는 auditor 재탐지)로 위반이 실제로 해소됐는지 확인(잔류 위반 0 목표). 정리 중 드러난 가벼운 패턴은 `.omp/wiki/`에 append, 규칙화할 무거운 관찰은 `.omp/learned.md`에 후보로 적어 `omp-learn`으로 넘긴다.
+8. **인덱스 동기화 (구조를 바꿨으면 필수)**: 이동/리네임이 **rules.json `structure.directories[].path`나 STRUCTURE.md 트리에 이름으로 등장하는 폴더의 이름·계층·존재 자체를 바꿨다면**, 그 변경은 인덱스를 *어긋나게* 만든다 — `.omp/STRUCTURE.md`·`rules.json`(+ 경로가 적힌 경우 `DATASETS.md`)이 옛 경로를 가리키게 된다(drift). 이 동기화는 **organize 완료 정의의 일부**다: 별도 사용자 요청 없이 organize 안에서 끝낸다(사용자가 "인덱스도 고쳐"라고 다시 말하게 만들면 실패). 판별 — *방금 옮긴/이름 바꾼 폴더가 rules.json·STRUCTURE.md에 이름으로 적혀 있나?* **아니오**(파일을 규칙대로 제자리에 옮겼을 뿐, 구조 정의 불변) → no-op, 인덱스는 이미 맞다. **예** → 단순 path 문자열 치환이면 직접 Edit로 동기화, `enforced`·`role`·구획 신설처럼 규칙 *의미*가 바뀌면 `omp-codify` 게이트로 넘긴다(rule-architect 제안 → 사람 승인). 동기화한 파일과 옛→새 경로를 Output에 명시.
 
-> **순서 불변**: auditor(탐지) → move plan → dry-run → **사람 승인** → organizer(실행) → 사후 audit. 어떤 경우에도 탐지 context가 그대로 실행하거나, 승인·dry-run을 건너뛰지 않는다.
+> **순서 불변**: auditor(탐지) → move plan → dry-run → **사람 승인** → organizer(실행) → 사후 audit → **인덱스 동기화**. 어떤 경우에도 탐지 context가 그대로 실행하거나, 승인·dry-run을 건너뛰지 않는다. **구조를 바꾼 이동은 인덱스 동기화까지가 한 작업** — 옛 경로가 인덱스에 남은 채 다음 작업으로 넘어가지 않는다.
 </Steps>
 
 <Output>
@@ -63,6 +64,7 @@ description: |
 - 사람 승인 결정 이력 (proceed/일부/revise/abort)
 - 실행 결과: 각 이동의 copy-verify-delete 검증 증거(개수·SHA-256 일치), trash 경유 삭제 경로, 실패·롤백 건(있으면)
 - 사후 audit 결과(잔류 위반 수) + 모호 목적지로 분리된 사람 질문 항목
+- **인덱스 동기화 결과**: 구조를 바꿨으면 갱신한 `.omp/` 파일(STRUCTURE.md·rules.json·DATASETS.md)과 옛→새 경로 / 구조 불변이면 "인덱스 동기화 불필요(no-op)" 명시
 - `.omp/wiki/` 자동 append 내역 / `.omp/learned.md` 승격 후보(→ omp-learn 안내)
 - ⚠️ 승인 없이 실행한 이동 없음 / safe-fileops.md 우회 없음 명시
 </Output>
