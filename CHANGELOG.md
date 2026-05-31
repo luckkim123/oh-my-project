@@ -3,6 +3,17 @@
 All notable changes to this harness. Hook contract changes are recorded explicitly
 (siblings oms/omd treat the route/verify hook text as a versioned contract).
 
+## [Unreleased]
+
+### Changed
+
+- **`references/omc-backport-analysis.md` §5 신설 — 0.2.0 신규의 형제 전파 검토(전파 0).**
+  0.2.0 이 추가한 5종(content_conventions·content audit·dead-link·CONVENTIONS.md·specificity
+  content 항)을 oms/omd/omx 로 전파할지 적대 검증(15쌍) → 전부 REJECT. 5종 모두 omp 의 "살아있는
+  `.omp/` 관리 루프" 정체성에 종속돼 생성-파이프라인 형제엔 자리가 없음(의도된 부재). "전파할 게
+  없다"는 결론을 영속 기록해 재검토 반복 방지. 형제별 동형 판정은 oms/omd `omc-backport-analysis.md`
+  §4 에 기록(omx 는 self-contained·문서 부재라 형제 기록에만). 코드 변경 0 — 문서만.
+
 ## [0.2.1] — 2026-05-31
 
 ### Fixed
