@@ -7,6 +7,19 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ### Changed
 
+- **dataset 정의를 포맷-무관(role-based)으로 명확화 — "dataset = ML 입력 파일" 오독 차단 (코드/스키마 불변, 프롬프트만).**
+  실사용에서 ROS bag·실험 데이터를 등록하려는데, 스킬·agent의 *모든 예시*가 `train.parquet`/`rows`/`.csv`
+  같은 정형 ML 파이프라인 하나로만 채워져 있어 "dataset = tabular ML 입력"으로 좁게 귀납되는 구멍을 메움.
+  schema(`manifest.schema.json`)는 이미 `rows`/`split`/`lineage`가 전부 optional이라 비정형 데이터도
+  수용 가능 — 문제는 *규칙*이 아니라 *편향된 예시 분포*였으므로 schema·코드 로직은 불변, 정의·예시 문구만 강화:
+  - `skills/omp-dataset/SKILL.md`: `<Use_When>`·`<Steps>` 에서 확장자 나열을 *예시*로 격하하고
+    비정형(`.bag`/`.db3`/`.png`/`.mp4`/`.pcd`)을 나란히 추가. "dataset 판별 기준 = 포맷이 아니라 역할
+    (고정·추적 가치 있는 입력·수집 데이터인가)" 한 줄 명시 — `.npy` 매-런 출력=run artifact(비대상),
+    `.bag` 일회수집=dataset(대상).
+  - `agents/dataset-curator.md`: Role 진원지에 "What counts as a dataset is defined by ROLE, not format"
+    단락 신설(로보틱스·센서·미디어 명시). Investigation_Protocol 의 확장자를 whitelist→hint 로,
+    `rows` tabular 한정 문구에 "비정형은 생략이 정상" 보강, Good/Bad 예시에 ROS bag 등록 1쌍 추가
+    (포맷 이유로 `.bag` 스킵 = Bad). 47 tests pass(문서 변경, 회귀 0).
 - **organize 후 인덱스 drift 방지 — "구조를 바꾼 이동은 `.omp/` 인덱스 동기화까지가 한 작업" 명문화 (hook contract 변경).**
   실사용에서 폴더 리네임·평탄화(`12_Theses_Defense` → `12_Masters_Thesis` + 중간 계층 폐지)를 한 뒤
   `.omp/STRUCTURE.md`·`rules.json`·`DATASETS.md` 가 옛 경로를 가리킨 채 남아, 사용자가 직접 "인덱스도

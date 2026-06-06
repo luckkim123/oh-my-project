@@ -15,11 +15,13 @@ description: |
 </Purpose>
 
 <Use_When>
-- 데이터 파일(`.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord` 등)을 `.omp/manifest.json`에 처음 등록할 때
+- 데이터 파일을 `.omp/manifest.json`에 처음 등록할 때 — **포맷은 무관**. 정형 ML 입력(`.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord`)뿐 아니라 로보틱스·센서·미디어 데이터도 모두 dataset이다: ROS bag(`.bag`/`.db3` + `metadata.yaml`), 이미지·비디오(`.png`/`.jpg`/`.mp4`), 포인트클라우드(`.pcd`/`.las`), 오디오, 체크포인트·임베딩 등 "한 번 만들어지면 고정돼야 하고 추적할 가치가 있는" 모든 데이터.
 - 데이터가 바뀌었는지(SHA-256 drift) 추적·갱신하고 싶을 때
 - train/val/test split 그룹을 묶어 누수 점검 기반을 만들고 싶을 때
 - lineage(원본 → 생성 스크립트 → 산출물)를 기록해 provenance를 남기고 싶을 때
 - `.omp/DATASETS.md` 사람용 데이터 카탈로그를 manifest와 동기화하고 싶을 때
+
+> **dataset 판별 기준 = 포맷이 아니라 *역할*.** "이 바이트가 바뀌었는지 추적하고 싶은, 고정돼야 하는 입력·수집 데이터인가?"가 기준이다. `.npy`라도 매 런 새로 덮어쓰는 *출력*이면 dataset이 아니고(→ run artifact), `.bag`이라도 한 번 수집되면 불변인 *입력*이면 dataset이다. 확장자 화이트리스트가 정의를 좁히지 않게 할 것 — `rows`처럼 정형데이터 전용 필드는 그냥 생략하면 비정형 데이터도 그대로 등록된다.
 </Use_When>
 
 <Do_Not_Use_When>
@@ -43,7 +45,7 @@ description: |
 
 <Steps>
 1. **`.omp/` 존재 확인**: `<project>/.omp/`가 없으면 dataset 등록 불가 — 먼저 `omp-init`을 돌려 부트스트랩해야 함을 알리고 중단. 있으면 기존 `manifest.json`(갱신 대상, clobber 금지)과 계약(`references/schemas/manifest.schema.json`)을 로드.
-2. **등록 범위 확인**: 사용자가 명시한 경로 또는 데이터 위치(`data/`/`datasets/`/`raw/`/`processed/` + `.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord` 확장자). split 멤버십·lineage·source를 사용자가 알면 받아두되, 모르는 건 비워두고 dataset-curator가 증거 기반으로만 채우게 함.
+2. **등록 범위 확인**: 사용자가 명시한 경로 또는 데이터 위치(`data/`/`datasets/`/`raw/`/`processed/` + 정형 `.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord` *또는* 비정형 `.bag`/`.db3`/`.png`/`.mp4`/`.pcd` 등 — 확장자는 예시일 뿐, 판별은 위 "역할" 기준). split 멤버십·lineage·source를 사용자가 알면 받아두되, 모르는 건 비워두고 dataset-curator가 증거 기반으로만 채우게 함.
 3. **외부 버저닝 먼저 감지**(해시 전): `.dvc/`·`*.dvc`·`.gitattributes`의 `filter=lfs`. 발견 시 위임 정책 — `managed_by_external` 설정 + 메타만 미러, 인수·push 금지를 진행 방침으로 확정.
 4. **dataset-curator에게 단일 위임** — `Task(subagent_type="oh-my-project:dataset-curator", ...)`:
    - **입력**: (a) 등록 범위 데이터 파일 경로(있으면), (b) 알려진 split/lineage/source 힌트(있으면 — 없으면 생략), (c) 프로젝트 루트, (d) 계약 카드 `references/schemas/manifest.schema.json`, (e) 출력 경로 규약 `references/output-layout.md`, (f) 데이터-이동 경계 참조 `references/safe-fileops.md`(이동은 organizer 소관임을 명시), (g) 자가학습 채널 `references/learning-protocol.md`(반복 관찰은 `.omp/learned.md`/`.omp/wiki/`로 — 규칙 승격은 `omp-learn`).
