@@ -1,147 +1,148 @@
 # OMC Backport Analysis — oh-my-project (omp)
 
-omp 의 init 스코핑 게이트·consensus 레이어·organize 루프·자가학습 누적(wiki/notepad/
-verifier 토큰)은 **oh-my-claudecode (OMC)** 의 검증된 패턴을 프로젝트 폴더 관리·진화 도메인으로
-옮겨온 것이다. OMC 가 업데이트되면 *무엇이 바뀌었고 omp 를 갱신해야 하는지* 판단할 영속 기준이
-필요하다. OMC 는 CHANGELOG 가 없고(GitHub commit/release 만 존재) 개별 파일 버전도 없으므로,
-"diff 기준"을 이 문서가 자체 보관한다.
+omp's init scoping gate, consensus layer, organize loop, and self-learning accumulation (wiki/notepad/
+verifier tokens) are a port of the proven patterns from **oh-my-claudecode (OMC)** into the project-folder
+management/evolution domain. When OMC updates, we need a persistent baseline to judge *what changed and
+whether omp needs to be refreshed*. OMC has no CHANGELOG (only GitHub commits/releases) and no per-file
+versioning, so this document keeps its own "diff baseline."
 
-> **이 문서는 배포 plugin 의 references/ 라 개인 환경에 비의존이다.** OMC 경로는 *공개 plugin
-> 내부 구조*(상대 표현)로만 적는다. 특정 머신의 절대경로·작업 메모·사용자 조직 체계는 박지 않는다.
+> **This document lives in the distributed plugin's references/, so it is independent of any personal environment.** OMC paths
+> are written only as the *public plugin's internal structure* (relative expression). No specific machine's absolute paths, work notes, or
+> the user's organizational system are embedded here.
 
-> **도메인 비대칭 주의**: oms/omd 는 "매번 새 산출물을 만드는 생성 파이프라인"이고, omp 는
-> "하나의 살아있는 `.omp/` 를 계속 갱신하는 관리 루프"다. OMC 패턴을 옮길 때 *단계=생성 step*
-> 이 아니라 *단계=관리 루프 phase* 로 재해석한다. 이 차이가 아래 채택/제외의 근거를 가른다.
+> **Beware the domain asymmetry**: oms/omd are "generation pipelines that produce a fresh artifact every time," whereas omp is
+> "a management loop that keeps updating one living `.omp/`." When porting OMC patterns, reinterpret *stage = management-loop phase*,
+> not *stage = generation step*. This difference governs the rationale for the adopt/exclude decisions below.
 
 ---
 
-## §1. OMC 4.14.4 구조 스냅샷 — backport 원천 컴포넌트
+## §1. OMC 4.14.4 structural snapshot — backport source components
 
-OMC plugin 은 **이중 구조**다: `skill-bodies/<name>/SKILL.md` 가 전체 로직이고,
-`skills/<name>/SKILL.md` 는 시작 컨텍스트를 가볍게 유지하기 위한 *compact 참조 shim*
-(본문을 `skill-bodies/` 에서 로드). backport 의 원천은 항상 `skill-bodies/` 쪽이다.
+The OMC plugin has a **dual structure**: `skill-bodies/<name>/SKILL.md` holds the full logic, and
+`skills/<name>/SKILL.md` is a *compact reference shim* that keeps startup context lightweight
+(it loads the body from `skill-bodies/`). The backport source is always the `skill-bodies/` side.
 
-| 원천 (OMC 4.14.4 내부 경로) | 무엇을 가져왔나 |
+| Source (OMC 4.14.4 internal path) | What was brought over |
 |:---|:---|
-| `skill-bodies/deep-interview/SKILL.md` | Round 0 topology · 차원별 모호성 판정 · challenge agents(contrarian/simplifier/ontologist) · soft limits · 3-point injection → **omp-init** 의 스코핑 게이트 골격(폴더 정체·구조 의도·명명 컨벤션·dataset 경계의 모호성 해소) |
-| `skill-bodies/plan/SKILL.md`, `skill-bodies/ralplan/SKILL.md` | RALPLAN-DR consensus(Principles/Drivers/Options≥2/steelman/tradeoff/ADR) · 순차 강제(병렬 금지) 프롬프트 규율 → **rule-architect** 의 규칙 변경 합의(큰 rules.json 변경·learn 승격이 파일 이동을 유발할 때) |
-| `skill-bodies/autopilot/SKILL.md` | brief→완성 단계 오케스트레이션 + 게이트 골격 → **omp-pilot** (`.omp` 없으면 init 흡수 → codify→organize→dataset→doc) |
-| `skill-bodies/ralph/SKILL.md` | 결함=PRD·passes:true 게이트까지 fix/verify 루프·no scope reduction → **omp-organize** 가 omp-audit PASS 까지 도는 루프(위반 탐지→재배치→재감사) |
-| `agents/analyst.md` | 사전 진단·요구 분석 사상 → init 스코핑의 폴더 정체 판정 |
-| `agents/architect.md` | steelman/antithesis/tradeoff → **rule-architect 에 흡수**(별도 consensus agent 신설 안 함) |
-| `agents/planner.md` | 구조 설계·역할 분해 → rule-architect 의 STRUCTURE/NAMING 설계 |
-| `agents/critic.md` | pre-commitment · assumption(VERIFIED/REASONABLE/FRAGILE) · pre-mortem · self-audit → **auditor 의 위반 판정 기법** |
-| OMC MCP 도구 서버 (`wiki_*`/`notepad_*`/`shared_memory_*`/`state_*`) | 누적·압축생존·핸드오프 *사상*. ⚠️ omp 는 **.md degrade 가 기본**이고 MCP 는 선택 가속 — Node MCP 를 새로 넣지 않는다 |
+| `skill-bodies/deep-interview/SKILL.md` | Round 0 topology · per-dimension ambiguity judgment · challenge agents (contrarian/simplifier/ontologist) · soft limits · 3-point injection → the scoping-gate skeleton of **omp-init** (resolving ambiguity in folder identity, structural intent, naming convention, and dataset boundaries) |
+| `skill-bodies/plan/SKILL.md`, `skill-bodies/ralplan/SKILL.md` | RALPLAN-DR consensus (Principles/Drivers/Options≥2/steelman/tradeoff/ADR) · sequential-enforcement (parallel-prohibited) prompt discipline → the rule-change consensus of **rule-architect** (when large rules.json changes or learn promotion would trigger file moves) |
+| `skill-bodies/autopilot/SKILL.md` | brief→completion stage orchestration + gate skeleton → **omp-pilot** (if `.omp` is absent, absorb init → codify→organize→dataset→doc) |
+| `skill-bodies/ralph/SKILL.md` | defect=PRD · fix/verify loop until the passes:true gate · no scope reduction → the loop in **omp-organize** that runs until omp-audit PASS (violation detection→relocation→re-audit) |
+| `agents/analyst.md` | upfront-diagnosis / requirements-analysis ethos → folder-identity judgment in init scoping |
+| `agents/architect.md` | steelman/antithesis/tradeoff → **absorbed into rule-architect** (no separate consensus agent is created) |
+| `agents/planner.md` | structure design · role decomposition → rule-architect's STRUCTURE/NAMING design |
+| `agents/critic.md` | pre-commitment · assumption (VERIFIED/REASONABLE/FRAGILE) · pre-mortem · self-audit → **auditor's violation-judgment techniques** |
+| OMC MCP tool servers (`wiki_*`/`notepad_*`/`shared_memory_*`/`state_*`) | the *ethos* of accumulation, surviving-compaction, and handoff. ⚠️ omp defaults to **.md degrade** and MCP is an optional accelerant — no new Node MCP is added |
 
 ---
 
-## §2. 분석 기준 버전 + diff 기준
+## §2. Analysis baseline version + diff baseline
 
-- **분석 기준 snapshot = OMC 4.14.4.** 이 문서가 backport 원천을 읽을 때 본 OMC 버전이다
-  (당시 plugin 의 `package.json`·`.claude-plugin/plugin.json`·`.claude-plugin/marketplace.json`
-  세 곳 모두 `"version": "4.14.4"`). **이것은 *분석 시점의 스냅샷*이지 런타임 핀이 아니다** —
-  `~/.claude/settings.json` 의 omc marketplace 선언(`repo: Yeachan-Heo/oh-my-claudecode`)에는
-  버전·commit-SHA 가 없어 **OMC 는 항상 marketplace 최신을 자동 추종**한다. oms/omd/omp 어디에도
-  OMC 를 특정 버전으로 묶는 핀은 없다. 따라서 OMC 업그레이드에 별도 작업이 필요 없고,
-  아래 diff 기준은 *backport 채택/제외 결정이 여전히 유효한지* 재검토하기 위한 것일 뿐이다.
-- **diff 기준**: OMC 는 CHANGELOG 가 없다(GitHub commit/release 만). 다음 OMC 업데이트 시,
-  위 §1 원천 파일들(`skill-bodies/{deep-interview,plan,ralplan,autopilot,ralph}/SKILL.md`,
-  `agents/{analyst,architect,planner,critic}.md`)의 diff 를 직접 보고 omp 갱신 여부를 판단한다.
-- 판단 규칙: OMC 업데이트가 **§3 의 *채택* 영역**을 바꾸면 → 대응 backport 갱신 검토.
-  **§3 의 *제외* 영역**을 새로 건드리면 → 제외 결정이 여전히 유효한지 재검토.
+- **Analysis-baseline snapshot = OMC 4.14.4.** This is the OMC version this document saw when reading the backport sources
+  (at the time, the plugin's `package.json`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json`
+  all read `"version": "4.14.4"`). **This is a *snapshot at analysis time*, not a runtime pin** —
+  the omc marketplace declaration in `~/.claude/settings.json` (`repo: Yeachan-Heo/oh-my-claudecode`) has
+  no version or commit-SHA, so **OMC always auto-tracks the marketplace latest**. Nowhere in oms/omd/omp is there
+  a pin tying OMC to a specific version. Therefore an OMC upgrade requires no separate work, and
+  the diff baseline below exists only to re-examine *whether the backport adopt/exclude decisions are still valid*.
+- **diff baseline**: OMC has no CHANGELOG (only GitHub commits/releases). On the next OMC update,
+  directly inspect the diff of the §1 source files above (`skill-bodies/{deep-interview,plan,ralplan,autopilot,ralph}/SKILL.md`,
+  `agents/{analyst,architect,planner,critic}.md`) and judge whether omp needs updating.
+- Judgment rule: if an OMC update changes an ***adopted* area in §3** → review the corresponding backport update.
+  If it newly touches an ***excluded* area in §3** → re-examine whether the exclude decision is still valid.
 
 ---
 
-## §3. 채택·제외 매핑 (내부 backport 작업 ID = Tn)
+## §3. Adopt/exclude mapping (internal backport work ID = Tn)
 
-> Tn 은 이 repo 의 내부 backport 작업 식별자(니모닉)다. 각 행은 *무엇이 바뀌었나*로
-> 자족 기술하므로 외부 plan 문서 없이도 읽힌다. oms(논문)·omd(문서)와 동형이되 도메인만 다르다.
+> Tn is this repo's internal backport work identifier (a mnemonic). Each row is self-describing in terms of *what changed*,
+> so it reads without an external plan document. It is isomorphic to oms (papers) and omd (documents), differing only in domain.
 
-### 채택 (adopt)
+### Adopt
 
-| Tn | OMC 패턴 | omp 적용 (실제 변경) |
+| Tn | OMC pattern | omp application (actual change) |
 |:---|:---|:---|
-| T1 | deep-interview/ralplan 의 단계 경계 | init↔codify↔organize 경계 규약. 별도 scoping·consensus agent **신설 안 함**(init 스킬·rule-architect 로 흡수). 단계=관리 루프 phase 로 재해석(생성 step 아님) |
-| T2 | critic 4기법 | `agents/auditor.md` 가 critic 의 *정신*을 채택(명칭·기법 라벨은 박지 않음 — omp 어휘로 재구현). pre-mortem("어떤 재배치가 데이터를 깰까")은 `<Why_This_Matters>`의 drift 사고 서사로, self-audit(LOW confidence→사람 확인)은 `<Constraints>` "should/probably/seems 금지 + 검사 미실행 표기"로, assumption 검증은 **loud-fail 평가계약**(파싱실패·필수필드누락=즉시 전체 FAIL, broken≠empty 구분)으로 흡수 — critic 4기법보다 정밀하나 `pre-commitment`/`VERIFIED-REASONABLE-FRAGILE` 라벨 자체는 미삽입 |
-| T4 | ralplan RALPLAN-DR + architect steelman | `agents/rule-architect.md` 가 RALPLAN-DR 의 *합의 규율*을 채택(`<Consensus_RALPLAN_DR_Protocol>` XML 블록·steelman/ADR 라벨은 박지 않음 — omp 어휘로 재구현). "큰 rules.json 변경·learn 승격이 파일 이동을 유발하므로 보수적 합의가 필요하다"는 정신을 **evidence-trace 강제**(모든 규칙이 scan/learned/preset 출처 추적, 추측 규칙 금지) + **one-way ratchet conservative promotion**(반복·반례0 증거 바 미달이면 candidate 로만 hold) + **human approval gate**(proposal-only, 자기채택 3중 금지)로 구현. RALPLAN-DR 의 Options≥2/steelman/Deliberate-Short 모드 구분은 별도 프로토콜로 분리하지 않고 "fewer, evidenced rules" 단일 보수 규율로 단순화 |
-| T5 | ralplan 순차 합의 | `skills/omp-codify/SKILL.md` 가 규칙 변경 시 순차 강제(병렬 금지) — 규칙은 파일 이동을 유발하므로 동시 변경 금지. consensus 산출 = `.omp/` 안 별도 파일(아래 T7) |
-| T7 | shared_memory 핸드오프 | 단계 간 전달 = `.omp/` 파일이 **기본**(learned.md·wiki/·consensus 노트), MCP 는 선택 미러(부재 시 .md degrade) |
-| T8 | deep-interview 게이트 | `skills/omp-init/SKILL.md` 스코핑 게이트 — Round 0 topology + 4차원 **정성** 판정(폴더 정체/구조 의도/명명 컨벤션/dataset 경계, 수치화 0) + challenge 3종 + soft limits + 사람 승인(초안 rules.json 게이트). data-fragile flag(이동 위험 폴더 표시) |
-| T8b | autopilot wiring | `skills/omp-pilot/SKILL.md` `<Steps>` 에 `.omp` 부재 시 init 흡수 분기 + 큰 규칙 변경 시 codify --consensus 분기 삽입 — 엔진이 pilot 경로에서 실제 발동(죽은 코드 방지) |
-| T10 | wiki 누적 (가벼운 채널) | `<project>/.omp/wiki/*.md` + 결정론적 grep 이 **기본**, `wiki_query(category)` 는 추상 함수(미래 MCP 교체점). 패턴·결정 자동 append(승인 불필요) — "범용→특화" 진화의 가벼운 채널 |
-| T11 | notepad 압축생존 | omp-pilot 진입 시 `.omp/notepad.md`(또는 learned.md `## Priority Context`)에 safe-fileops 3원칙(mv→검증→삭제, trash 경유, rename 지양) + 게이트 기록(.md 기본) |
-| T12 | verifier request-id | `agents/auditor.md` 에 스냅샷 상관 토큰(rules.json mtime·해시 + manifest SHA256 + 위반ID) — organize 루프 multi-round 의 stale-PASS 재사용 차단. checksum 상관이 manifest SHA256 과 직접 맞물림 |
-| T13 | ralph regression 사상 | `skills/omp-organize/SKILL.md` 에 재배치 후 **구조-regression**(rules.json 위반 0 + manifest 경로 정합 + dataset SHA256 불변) 전수 재audit — 파일이 깨지지 않았음을 기계 검증 |
-| T14 | (omp 자체 라우팅) | `hooks/omp_route_emit.py` STAGE 카탈로그 = 8단계(init/codify/organize/dataset/doc/learn/audit/omp-pilot) 열거 |
-| T15 | state 경로 | SSOT = `<project>/.omp/` 고정(`.omp/specs`·`sessions/{sid}` 미검증 세그먼트 없음). 30s state-MCP 트랩은 *미래 대비 메모만* |
-| T16 | (계약 이력) | `CHANGELOG.md` 신설 — commit-SHA 버저닝 유지하되 hook·rules.schema 계약 변경을 명문 기록(oms/omd 톤 통일) |
-| T17 | (omp 고유) wiki 가벼운 채널 ↔ learn 무거운 채널 분리 | OMC wiki(자동)/게이트(승인) 분리를 **2채널 진화**로 구체화: wiki/ 자동 누적(grep) vs learned.md→omp-learn→rule-architect 승격→사람 승인→rules.json. specificity 0→1 추적 |
-| T18 | OMC `REFERENCE.md` artifact-first 핸드오프 + descriptor(kind/path/contentHash/producer) | `.omp/work/{scans,versions,plans,audits,tmp}` 가 이 정신 — 큰 중간물(스캔 인벤토리·이동 계획·감사 리포트)을 control plane 에 복붙하지 않고 파일로 두고 경로로 참조. SSOT(.omp 상단)와 work layer 분리(output-layout.md) |
-| T19 | OMC Platform Support (Windows=native 미지원, tmux 의존 → WSL2 권장) | omp 는 **tmux·Node 의존 없음** — hook=python3 stdlib + 경로=pathlib + 삭제=OS별 trash 분기. 따라서 **omp 는 OMC 보다 Windows 친화적**(WSL 불요). 크로스플랫폼은 omp 의 의도적 강점이지 OMC 흉내가 아님 |
+| T1 | the stage boundaries of deep-interview/ralplan | init↔codify↔organize boundary convention. **No separate scoping/consensus agent is created** (absorbed into the init skill and rule-architect). Reinterpreted as stage=management-loop phase (not a generation step) |
+| T2 | critic's 4 techniques | `agents/auditor.md` adopts the *spirit* of critic (the names and technique labels are not embedded — reimplemented in omp's vocabulary). pre-mortem ("which relocation would break the data") becomes the drift-reasoning narrative in `<Why_This_Matters>`; self-audit (LOW confidence→ask the human) becomes the `<Constraints>` rule "no should/probably/seems + flag checks not run"; assumption verification is absorbed as a **loud-fail evaluation contract** (parse failure / missing required field = immediate full FAIL, distinguishing broken≠empty) — more precise than critic's 4 techniques, though the `pre-commitment`/`VERIFIED-REASONABLE-FRAGILE` labels themselves are not inserted |
+| T4 | ralplan RALPLAN-DR + architect steelman | `agents/rule-architect.md` adopts RALPLAN-DR's *consensus discipline* (the `<Consensus_RALPLAN_DR_Protocol>` XML block and steelman/ADR labels are not embedded — reimplemented in omp's vocabulary). The spirit that "large rules.json changes or learn promotion trigger file moves, so conservative consensus is needed" is implemented as **evidence-trace enforcement** (every rule traces to a scan/learned/preset source, no speculative rules) + **one-way ratchet conservative promotion** (held as candidate only if the evidence bar of repetition / zero-counterexamples is unmet) + **human approval gate** (proposal-only, triple prohibition on self-adoption). RALPLAN-DR's distinction of Options≥2/steelman/Deliberate-Short modes is not split into a separate protocol but simplified into the single conservative discipline "fewer, evidenced rules" |
+| T5 | ralplan sequential consensus | `skills/omp-codify/SKILL.md` enforces sequencing on rule changes (parallel-prohibited) — because rules trigger file moves, concurrent changes are forbidden. The consensus output = a separate file inside `.omp/` (T7 below) |
+| T7 | shared_memory handoff | inter-stage transfer = `.omp/` files by **default** (learned.md · wiki/ · consensus notes), MCP an optional mirror (degrades to .md when absent) |
+| T8 | deep-interview gate | the scoping gate in `skills/omp-init/SKILL.md` — Round 0 topology + 4-dimension **qualitative** judgment (folder identity / structural intent / naming convention / dataset boundary, zero quantification) + 3 challenge types + soft limits + human approval (draft rules.json gate). data-fragile flag (marks move-risk folders) |
+| T8b | autopilot wiring | in `skills/omp-pilot/SKILL.md` `<Steps>`, inserts an "absorb init when `.omp` is absent" branch + a "codify --consensus on large rule changes" branch — the engine actually fires on the pilot path (preventing dead code) |
+| T10 | wiki accumulation (the light channel) | `<project>/.omp/wiki/*.md` + deterministic grep by **default**, with `wiki_query(category)` an abstract function (a future MCP swap point). Patterns/decisions auto-appended (no approval needed) — the light channel of "general→specialized" evolution |
+| T11 | notepad surviving-compaction | on entering omp-pilot, records the 3 safe-fileops principles (mv→verify→delete, route via trash, avoid rename) + gate records in `.omp/notepad.md` (or learned.md `## Priority Context`) (.md by default) |
+| T12 | verifier request-id | a snapshot-correlation token in `agents/auditor.md` (rules.json mtime/hash + manifest SHA256 + violation ID) — blocks stale-PASS reuse across the multi-round organize loop. The checksum correlation engages directly with the manifest SHA256 |
+| T13 | ralph regression ethos | in `skills/omp-organize/SKILL.md`, a full re-audit after relocation for **structural regression** (zero rules.json violations + manifest path consistency + dataset SHA256 unchanged) — machine-verifying that files were not broken |
+| T14 | (omp's own routing) | the STAGE catalog in `hooks/omp_route_emit.py` = enumerates 8 stages (init/codify/organize/dataset/doc/learn/audit/omp-pilot) |
+| T15 | state path | SSOT = fixed at `<project>/.omp/` (no unverified segments like `.omp/specs` or `sessions/{sid}`). The 30s state-MCP trap is *a future-proofing note only* |
+| T16 | (contract history) | a new `CHANGELOG.md` — keeps commit-SHA versioning but explicitly records hook/rules.schema contract changes (tone unified with oms/omd) |
+| T17 | (omp-specific) separation of the wiki light channel ↔ the learn heavy channel | concretizes OMC's wiki(auto)/gate(approval) separation as **2-channel evolution**: wiki/ auto-accumulation (grep) vs learned.md→omp-learn→rule-architect promotion→human approval→rules.json. Tracks specificity 0→1 |
+| T18 | OMC `REFERENCE.md` artifact-first handoff + descriptor (kind/path/contentHash/producer) | `.omp/work/{scans,versions,plans,audits,tmp}` is this spirit — large intermediates (scan inventories, move plans, audit reports) are left as files and referenced by path rather than pasted into the control plane. Separates the SSOT (top of .omp) from the work layer (output-layout.md) |
+| T19 | OMC Platform Support (Windows=no native support, tmux dependency → WSL2 recommended) | omp has **no tmux/Node dependency** — hook=python3 stdlib + paths=pathlib + deletion=per-OS trash branching. Therefore **omp is more Windows-friendly than OMC** (no WSL needed). Cross-platform is omp's intentional strength, not OMC mimicry |
 
-#### 채택 — OMC 4.14.4 심층 재분석 (2026-05-30, 60후보→45반증/7생존)
+#### Adopt — OMC 4.14.4 deep re-analysis (2026-05-30, 60 candidates→45 refuted/7 survived)
 
-> 권위문서 §5 의 6패턴을 넘어 OMC 원본(19 agents+40 skills+dist/{lib·hooks·features}+docs24)을 5영역 병렬
-> 정독→후보별 적대 반증(author≠review)→opus 종합(workflow wf_11040f52, 58 agents, 2.7M tokens). 생존 7건은
-> 전부 "런타임 무관 + python stdlib 10줄 이하"(포팅이 아닌 *정신만* 채택). 반증 45건은 아래 제외 표 참조.
+> Beyond the 6 patterns in §5 of the authority document, OMC's source (19 agents + 40 skills + dist/{lib·hooks·features} + docs24) was read
+> in 5 areas in parallel → per-candidate adversarial refutation (author≠review) → opus synthesis (workflow wf_11040f52, 58 agents, 2.7M tokens). All 7 survivors
+> are "runtime-agnostic + python stdlib under 10 lines" (adopting the *spirit only*, not a port). The 45 refutations are in the exclude table below.
 
-| Tn | OMC 패턴 (원천) | omp 적용 (실제 변경) |
+| Tn | OMC pattern (source) | omp application (actual change) |
 |:---|:---|:---|
-| T20 | `dist/lib/atomic-write.js` (tempfile→fsync→rename) | `hooks/omp_atomic.py` (`atomic_write_json`, stdlib `tempfile`+`os.fsync`+`os.replace`). `.omp/` JSON SSOT를 쓰는 4개 스킬 전부 이 헬퍼 경유로 강제 — omp-codify·omp-learn(rules.json + versions/ 스냅샷), omp-init(rules.json + manifest.json 시드), omp-dataset(manifest.json). 부분쓰기로 SSOT 손상 방지. (omp-doc·omp-organize는 JSON SSOT를 쓰지 않아 대상 아님.) (must: omp 는 *사용자 파일 이동*엔 safe-fileops 강제하나 *자기 상태 파일* 쓰기엔 보호 없던 비대칭 해소) |
-| T21 | `skill-bodies/omc-doctor/` 설치 자가진단 | `skills/omp-doctor/SKILL.md` — hooks 설치·python3 가용성·reference 카드 존재 진단(omp-audit 이 가정하는 *.omp 존재 이전*의 설치 gap). ⚠️ rules.json 스키마 검증은 omp-audit 소관이라 doctor 에서 제외(중복 회피) |
-| T22 | `dist/lib/worktree-cleanup-safety.js` `validateWorktreeRemovalTarget` | `references/safe-fileops.md`+`agents/organizer.md` 에 경계 검증 — 이동 target realpath(symlink 해소)가 project root 안인지 확인, 밖이면 거부. iCloud symlink 탈출 가드. stdlib 5줄(포팅 아님) |
-| T23 | `dist/lib/swallowed-error.js` `logSwallowedError` | 두 hook 의 bare `except` 에 stderr 1줄(에러 맥락) — fail-open 유지하며 디버그 가능. except 당 1줄(모듈 포팅 아님) |
-| T25 | OMC hook non-blocking 재주입 철학(매 턴 주입하되 차단 안 함) | `hooks/omp_route_emit.py` **init 발견성** — cwd 에 `.omp/` 부재 시 STAGE 줄 다음 "아직 .omp/가 없다 — omp-init 먼저" 힌트(부재 전용 마커, 존재 시 억제=false nag 방지). best-effort+fail-open, cwd 상대(sub-dir false-neg 무해). 사용자가 init 필요를 *모를* 발견성 gap 해소이지 자동 실행 아님. 사용자 런타임 제안(2026-05-30) |
+| T20 | `dist/lib/atomic-write.js` (tempfile→fsync→rename) | `hooks/omp_atomic.py` (`atomic_write_json`, stdlib `tempfile`+`os.fsync`+`os.replace`). All 4 skills that write the `.omp/` JSON SSOT are forced through this helper — omp-codify·omp-learn (rules.json + versions/ snapshots), omp-init (rules.json + manifest.json seed), omp-dataset (manifest.json). Prevents SSOT corruption from partial writes. (omp-doc·omp-organize do not write the JSON SSOT, so they are out of scope.) (must: resolves the asymmetry where omp enforced safe-fileops on *moving user files* but had no protection when writing *its own state files*) |
+| T21 | `skill-bodies/omc-doctor/` install self-diagnosis | `skills/omp-doctor/SKILL.md` — diagnoses hook installation, python3 availability, and reference-card existence (the install gap *before the .omp existence* that omp-audit assumes). ⚠️ rules.json schema validation belongs to omp-audit, so it is excluded from doctor (avoiding duplication) |
+| T22 | `dist/lib/worktree-cleanup-safety.js` `validateWorktreeRemovalTarget` | boundary validation in `references/safe-fileops.md`+`agents/organizer.md` — checks that the move target's realpath (symlink-resolved) is inside the project root, refusing if outside. An iCloud symlink-escape guard. 5 lines of stdlib (not a port) |
+| T23 | `dist/lib/swallowed-error.js` `logSwallowedError` | a 1-line stderr (error context) on the bare `except` in both hooks — keeps fail-open while remaining debuggable. 1 line per except (not a module port) |
+| T25 | OMC hook non-blocking re-injection philosophy (inject every turn but never block) | the **init discoverability** of `hooks/omp_route_emit.py` — when `.omp/` is absent in cwd, after the STAGE line emit a hint "no .omp/ yet — run omp-init first" (an absence-only marker, suppressed when present = no false nag). best-effort+fail-open, cwd-relative (a sub-dir false-negative is harmless). Resolves the discoverability gap where the user *doesn't know* init is needed; it is not auto-execution. User runtime suggestion (2026-05-30) |
 
-> **T24 = 의도적 no-add**: directory-readme-injector / pre-compact / posttool-capture 3종은 각각 가치는
-> 있으나 전부 hook 수를 2→3 으로 늘려 경량 정체성(T19)을 희석 → 단일 묶음으로 **추가 안 함**. 실증 필요
-> 발현 시 단일 통합 hook 으로 재검토.
+> **T24 = intentional no-add**: the 3 — directory-readme-injector / pre-compact / posttool-capture — each have value
+> but all grow the hook count 2→3, diluting the lightweight identity (T19) → **not added** as a single bundle. If an empirical need
+> appears, revisit as a single consolidated hook.
 
-### 제외 (exclude — 사유 포함)
+### Exclude (with rationale)
 
-| OMC 패턴 | 제외 사유 |
+| OMC pattern | Exclusion rationale |
 |:---|:---|
-| scoping-agent / consensus-agent 류 **신설** | init 스킬·rule-architect 와 중복 → 확장으로 흡수 |
-| **임베딩 검색 / 의미 검색** | 파일·규칙 매칭은 **결정론적 grep 만**. 임베딩은 "비슷해 보이는" 오탐으로 잘못된 폴더에 파일을 옮길 위험 — organize 가 데이터를 망가뜨림. 현재도 미래도 영구 금지 |
-| **state MCP 실호출** | 관리 루프 철학에 과잉. `.omp/` (.md) 가 압축생존·세션 간 핸드오프 더 잘함. 30s 트랩은 문서화만 |
-| **ambiguity 수치화**(가중합·threshold·stability_ratio) | 정성 게이트 채택 — magic number 근거 약함. "이 폴더가 무엇인가"는 정성 판정이 정직 |
-| persistent-mode **Stop-hook 강제** | freeze 위험 + 파일 이동은 사람 승인이 필수라 자동 루프 위험. organize 의 audit-PASS 루프로 충분. 보류 |
-| **multi-perspective / realist / adversarial escalation** | pre-mortem·self-audit 와 중복, auditor "탐지만 하고 멈춤"(탐지≠실행 분리)과 충돌 |
-| 코드 전용 런타임 15+ (comment-checker·code-simplifier·ast/lsp·python_repl·ultragoal·loop_authority 등) | 도메인 무관. 단 lsp/ast 는 미래 omp-doc 의 코드 인벤토리 보조로 *재검토 여지만* 메모 |
-| **dataset 실데이터 이동/remote push 자동화** | dataset-curator 는 메타데이터-only(SHA256·split·lineage). DVC/git-lfs 감지 시 위임. 실데이터 이동은 iCloud/exFAT 함정 + 누수 위험 — 영구 금지 |
+| **creating** scoping-agent / consensus-agent types | redundant with the init skill and rule-architect → absorbed as an extension |
+| **embedding search / semantic search** | file/rule matching is **deterministic grep only**. Embeddings risk "looks similar" false positives that move files into the wrong folder — organize corrupting the data. Permanently forbidden, now and in the future |
+| **actual state MCP calls** | overkill for the management-loop philosophy. `.omp/` (.md) does surviving-compaction and inter-session handoff better. The 30s trap is documentation-only |
+| **ambiguity quantification** (weighted sum / threshold / stability_ratio) | the qualitative gate is adopted — the magic-number basis is weak. "What is this folder" is honestly a qualitative judgment |
+| persistent-mode **Stop-hook enforcement** | freeze risk + because file moves require human approval, an auto-loop is risky. organize's audit-PASS loop is sufficient. Deferred |
+| **multi-perspective / realist / adversarial escalation** | redundant with pre-mortem/self-audit, and conflicts with the auditor's "detect only and halt" (detect≠execute separation) |
+| 15+ code-only runtimes (comment-checker · code-simplifier · ast/lsp · python_repl · ultragoal · loop_authority etc.) | domain-irrelevant. Only lsp/ast are noted with *room for re-examination* as an aid to a future omp-doc code inventory |
+| **dataset real-data movement / remote-push automation** | dataset-curator is metadata-only (SHA256 · split · lineage). Delegates when DVC/git-lfs is detected. Real-data movement carries iCloud/exFAT traps + leakage risk — permanently forbidden |
 
-#### 제외 — OMC 4.14.4 심층 재분석 반증 45건 (2026-05-30)
+#### Exclude — OMC 4.14.4 deep re-analysis, 45 refutations (2026-05-30)
 
-> 공통 원칙: **OMC 가 throughput·병렬 Node 런타임으로 푸는 것을 omp 는 더 높은 레벨(단일 writer + 인간
-> 게이트 + 결정론적 grep)에서 *설계로 제거*했다.** 그래서 가져올 경쟁 조건·런타임 전제가 omp 엔 없다.
-> "OMC 에 X 가 있는데 omp 엔 왜 없나"의 방어 근거가 이 표다(누락 아닌 의도된 부재).
+> Common principle: **what OMC solves with throughput / a parallel Node runtime, omp *designed away* at a higher level (single writer + human
+> gate + deterministic grep).** So the race conditions and runtime assumptions one would import do not exist in omp.
+> This table is the defense for "OMC has X, so why doesn't omp" (an intended absence, not an omission).
 
-| 제외 카테고리 | 대표 OMC 패턴 (반증된 후보) | 반증 사유 |
+| Exclusion category | Representative OMC pattern (refuted candidate) | Refutation rationale |
 |:---|:---|:---|
-| 동시성·잠금 인프라 | file-lock, session-isolation, project-memory-merge, mode-state-io `_meta` | omp 는 단일 writer(organizer)+인간 게이트(learn/codify)로 동시 쓰기 경쟁이 구조적으로 부재 → 잠금/merge 가 풀 문제가 없음 |
-| Node 런타임 전제 hook | context-injector, keyword-detector, codebase-map(+SKIP_DIRS), rules-injector | stateless python subprocess 에서 실행 불가 또는 ~150–300줄 인프라 신설 필요 → stdlib 2훅 경량 강점 파괴. (codebase-map 은 project-scanner 가, rules-injector 는 verify hook+audit 이 이미 커버) |
-| 경로/페이로드 인프라 | worktree-paths(785줄), payload-limits, truncate-prompt | 진짜 필요분은 10줄 stdlib util 이지 모듈 포팅이 아님. payload guard 는 dataset-curator 아키텍처 제약이 이미 처리. truncate 는 omp 가 프롬프트를 재주입하지 않아 전제 부재 |
-| 실행 파이프라인 어휘 | task-decomposer, model-routing, deepinit(전체) | 생성/실행 도메인 전용 — 관리 루프(폴더·명명·dataset)와 직교 |
-| 이미 omp 에 존재 | learner(↔omp-learn), learner skill injector(↔wiki+route_emit), project-memory learner | 관찰→규칙 승격은 omp-learn+learned.md+wiki 가 이미 2채널로 커버. 자동 passive 수집의 좁은 조각은 route_emit regex 몇 줄로 흡수 가능(새 훅 불필요) |
-| 세션/컴팩션 상태 | pre-compact checkpoint, session-end cleanup, project-memory pre-compact | omp 훅은 stateless(정리할 세션 state 자체가 없음). compaction 생존은 T11(notepad Priority Context)이 이미 담당. 새 PreCompact/SessionEnd 훅은 경량 정체성 희석 |
+| concurrency/locking infrastructure | file-lock, session-isolation, project-memory-merge, mode-state-io `_meta` | omp is single-writer (organizer) + human gate (learn/codify), so concurrent-write contention is structurally absent → there is no problem for locking/merge to solve |
+| Node-runtime-assuming hooks | context-injector, keyword-detector, codebase-map(+SKIP_DIRS), rules-injector | either cannot run in a stateless python subprocess or require ~150–300 lines of new infrastructure → would destroy the stdlib 2-hook lightweight strength. (codebase-map is covered by project-scanner, rules-injector by the verify hook + audit) |
+| path/payload infrastructure | worktree-paths (785 lines), payload-limits, truncate-prompt | the genuinely needed portion is a 10-line stdlib util, not a module port. The payload guard is already handled by the dataset-curator architecture constraint. truncate has no premise since omp does not re-inject the prompt |
+| execution-pipeline vocabulary | task-decomposer, model-routing, deepinit (whole) | generation/execution-domain-specific — orthogonal to the management loop (folders · naming · dataset) |
+| already present in omp | learner (↔omp-learn), learner skill injector (↔wiki+route_emit), project-memory learner | observation→rule promotion is already covered by omp-learn + learned.md + wiki as 2 channels. The narrow sliver of automatic passive collection can be absorbed by a few regex lines in route_emit (no new hook needed) |
+| session/compaction state | pre-compact checkpoint, session-end cleanup, project-memory pre-compact | omp hooks are stateless (there is no session state to clean up). Surviving compaction is already handled by T11 (notepad Priority Context). A new PreCompact/SessionEnd hook would dilute the lightweight identity |
 
 ---
 
-## §5. 0.2.0 신규 → 형제(oms/omd/omx) 전파 검토 (2026-05-31, 전파 0)
+## §5. 0.2.0 additions → propagation review to siblings (oms/omd/omx) (2026-05-31, 0 propagated)
 
-omp 0.2.0 이 추가한 5종(`content_conventions[]` 규칙 타입, content audit 축 `check_content_rule`,
-dead-link `find_dead_links`, `.omp/CONVENTIONS.md`, specificity content 항)을 형제로 *전파*할지
-적대 검증(propose↔refute→synthesize, 2026-05-31)으로 따졌다 — 결과 **5후보 × 3형제 = 15쌍 전부
-REJECT, 전파 0**. 사유는 단 하나로 수렴한다: 이 5종은 모두 omp 의 정체성(**하나의 살아있는 `.omp/`
-를 rules.json 정규식으로 반복 재검사하는 관리 루프**)에 뿌리박혀 있는데, 형제 oms/omd/omx 는 *매 실행
-새 산출물을 만드는 생성 파이프라인*이라 그 전제(rules.json 레지스트리 + audit PASS/FAIL gate +
-specificity 카운터)가 구조적으로 부재(결함 아닌 의도된 설계 — 검증을 rubric 정성평가로 함). 형제가
-옮길 가치 있던 부분은 이미 도메인 적합 형태로 보유(scholar/docs-verify 의 loud 게이트, PPTEval/inspect
-rubric, docs-standardize style spec, venues.md, wiki append-only). 형제별 판정은 각 형제
-`references/omc-backport-analysis.md` §4 에 동형 기록. **이 절은 "전파할 게 없다"는 정직한 결론의 영속
-기록 — 다음 세션이 같은 검토를 반복하지 않도록.** (omx 는 backport-analysis 문서가 없고 self-contained
-설계라 형제 기록에만 남김.)
+We weighed whether to *propagate* to the siblings the 5 additions omp 0.2.0 made (`content_conventions[]` rule type,
+the content audit axis `check_content_rule`, dead-link `find_dead_links`, `.omp/CONVENTIONS.md`, the specificity content item)
+via adversarial verification (propose↔refute→synthesize, 2026-05-31) — result: **all 5 candidates × 3 siblings = 15 pairs
+REJECT, 0 propagated**. The rationale converges to a single point: all 5 are rooted in omp's identity (**a management loop that
+repeatedly re-checks one living `.omp/` with rules.json regular expressions**), whereas the siblings oms/omd/omx are *generation
+pipelines that produce a fresh artifact every run*, so that premise (rules.json registry + audit PASS/FAIL gate +
+specificity counter) is structurally absent (an intended design, not a defect — they verify via rubric qualitative evaluation). The parts the siblings
+had worth porting are already held in domain-appropriate forms (the loud gates of scholar/docs-verify, the PPTEval/inspect
+rubric, docs-standardize style spec, venues.md, wiki append-only). Per-sibling verdicts are recorded isomorphically in each sibling's
+`references/omc-backport-analysis.md` §4. **This section is the persistent record of the honest conclusion "there is nothing to propagate" —
+so the next session does not repeat the same review.** (omx has no backport-analysis document and is self-contained
+by design, so it is recorded only in the sibling notes.)
 
 ---
 
-**Analysis snapshot**: OMC 4.14.4 (런타임 핀 아님 — marketplace 최신 자동 추종, §2) · **isomorphic sibling**: oh-my-scholar `references/omc-backport-analysis.md`(논문 도메인) · oh-my-docs `references/omc-backport-analysis.md`(문서 도메인) · **0.2.0 형제 전파 검토**: 전파 0(§5)
+**Analysis snapshot**: OMC 4.14.4 (not a runtime pin — auto-tracks marketplace latest, §2) · **isomorphic sibling**: oh-my-scholar `references/omc-backport-analysis.md` (paper domain) · oh-my-docs `references/omc-backport-analysis.md` (document domain) · **0.2.0 sibling propagation review**: 0 propagated (§5)

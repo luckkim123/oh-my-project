@@ -1,10 +1,10 @@
 # Preset — `monorepo`
 
-> 범용 시드 규칙 세트. 여러 패키지·앱·라이브러리를 **하나의 repo**에서 공유 tooling으로
-> 관리하는 monorepo. omp-init이 실제 폴더 스캔(귀납)과 이 카드(연역)를 **합성**해 초안
-> `rules.json`을 만든다. 이 카드는 모든 사용자에게 동일하게 배포되는 generic seed이며,
-> 특정 프로젝트의 패키지 이름·도구 선택을 박지 않는다 — 그건 init의 귀납 스캔과 이후
-> omp-learn 승격이 채운다.
+> A generic seed rule set. A monorepo manages multiple packages/apps/libraries in **one repo**
+> with shared tooling. omp-init **synthesizes** the actual folder scan (induction) with this card
+> (deduction) to produce a draft `rules.json`. This card is a generic seed distributed identically
+> to all users; it does not hardcode any specific project's package names or tool choices — those
+> are filled in by init's inductive scan and later omp-learn promotions.
 
 `preset_origin`: `monorepo`
 
@@ -12,168 +12,176 @@
 
 ## 1. Canonical directory layout
 
-monorepo의 본질은 **다수의 배포 단위(packages/apps/libs)를 한 repo가 품고, tooling은
-root에서 공유**한다는 것. 두 가지 주류 배치가 있으며 omp-init은 스캔으로 어느 쪽인지 판별한다.
+The essence of a monorepo is that **one repo holds many deployable units (packages/apps/libs),
+with tooling shared at the root**. There are two mainstream layouts, and omp-init determines which
+one via the scan.
 
-### Variant A — flat `packages/` (npm/pnpm/yarn workspaces, Turborepo, Nx 기본)
+### Variant A — flat `packages/` (npm/pnpm/yarn workspaces, Turborepo, Nx default)
 
 ```
 <repo root>/
-├── packages/                 # 모든 배포 단위가 여기 평면 나열 (★ 핵심 경계)
-│   ├── <pkg-a>/              # 독립 패키지 1개 = 1 디렉토리
-│   │   ├── src/             # 패키지 소스
-│   │   ├── tests/           # 패키지-스코프 테스트 (또는 __tests__/, *.test.ts 동거)
-│   │   ├── package.json     # 패키지별 manifest (이름·버전·deps)
+├── packages/                 # all deployable units listed flat here (★ key boundary)
+│   ├── <pkg-a>/              # one independent package = one directory
+│   │   ├── src/             # package source
+│   │   ├── tests/           # package-scoped tests (or __tests__/, *.test.ts colocated)
+│   │   ├── package.json     # per-package manifest (name·version·deps)
 │   │   └── README.md
 │   ├── <pkg-b>/
 │   └── <pkg-c>/
-├── apps/                     # (선택) 배포 가능한 앱 — 라이브러리(packages)와 구분
+├── apps/                     # (optional) deployable apps — distinct from libraries (packages)
 │   └── <app-name>/
-├── tools/ | scripts/         # repo 전역 빌드·코드젠 스크립트
-├── package.json              # root manifest — workspaces 선언, 공유 devDeps
-├── pnpm-workspace.yaml | turbo.json | nx.json | lerna.json  # workspace 도구 설정
-├── tsconfig.base.json        # 공유 tooling 설정 (root에서 상속)
-├── .eslintrc | biome.json    # 공유 lint
-└── .github/workflows/        # CI (보통 affected/changed 패키지만 빌드)
+├── tools/ | scripts/         # repo-wide build·codegen scripts
+├── package.json              # root manifest — declares workspaces, shared devDeps
+├── pnpm-workspace.yaml | turbo.json | nx.json | lerna.json  # workspace tool config
+├── tsconfig.base.json        # shared tooling config (inherited from root)
+├── .eslintrc | biome.json    # shared lint
+└── .github/workflows/        # CI (usually builds only affected/changed packages)
 ```
 
-### Variant B — `apps/` + `libs/` 분리 (Nx 권장, Bazel/Gradle 다언어)
+### Variant B — split `apps/` + `libs/` (Nx recommended, Bazel/Gradle polyglot)
 
 ```
 <repo root>/
-├── apps/                     # 배포되는 application (end product)
+├── apps/                     # deployed applications (end product)
 │   └── <app-name>/{src,tests}/
-├── libs/ | packages/         # 공유 라이브러리 (앱들이 의존)
+├── libs/ | packages/         # shared libraries (apps depend on these)
 │   └── <lib-name>/{src,tests}/
-├── tools/                    # 빌드 플러그인·generator
-├── BUILD | WORKSPACE | settings.gradle  # (Bazel/Gradle인 경우)
-└── (root 공유 tooling 동일)
+├── tools/                    # build plugins·generators
+├── BUILD | WORKSPACE | settings.gradle  # (if Bazel/Gradle)
+└── (same root shared tooling)
 ```
 
-### 디렉토리별 역할 (role) — rules.json `structure.directories[]` 시드
+### Role per directory — rules.json `structure.directories[]` seed
 
 | path | role | enforced |
 |:---|:---|:---:|
-| `packages/` (또는 `libs/`) | 공유·재사용 라이브러리. 각 하위 디렉토리 = 독립 패키지 경계. | true |
-| `apps/` | 배포 가능한 application. libs에 의존하되 libs는 apps에 의존 금지. | true |
-| `packages/<pkg>/src/` | 해당 패키지의 소스. 다른 패키지 src를 상대경로로 직접 import 금지(패키지 이름으로). | true |
-| `packages/<pkg>/tests/` | 해당 패키지-스코프 테스트만. cross-package 테스트 금지. | true |
-| `packages/<pkg>/package.json` | 패키지별 manifest. 패키지마다 1개 필수. | true |
-| `tools/` \| `scripts/` | repo 전역 도구·코드젠. 패키지 로직 금지. | false |
-| (root) `package.json` 등 workspace 설정 | 공유 tooling SSOT. 패키지 단위로 중복 선언 금지. | true |
+| `packages/` (or `libs/`) | Shared·reusable libraries. Each subdirectory = an independent package boundary. | true |
+| `apps/` | Deployable applications. May depend on libs, but libs must not depend on apps. | true |
+| `packages/<pkg>/src/` | The package's source. Do not directly import another package's src by relative path (use the package name). | true |
+| `packages/<pkg>/tests/` | Only that package-scoped tests. No cross-package tests. | true |
+| `packages/<pkg>/package.json` | Per-package manifest. Exactly one required per package. | true |
+| `tools/` \| `scripts/` | Repo-wide tools·codegen. No package logic. | false |
+| (root) `package.json` etc. workspace config | Shared tooling SSOT. Do not duplicate declarations per package. | true |
 
-> **합성 지침**: init 스캔이 `packages/`만 발견 → `structure.convention = "monorepo-flat"`.
-> `apps/` + `libs/`(또는 `apps/`+`packages/`) 둘 다 발견 → `"monorepo-apps-libs"`.
-> 실제 존재하는 디렉토리만 `directories[]`에 넣고, 카드의 나머지는 주석/learned 후보로 둔다
-> (없는 폴더를 enforced로 박지 말 것 — audit이 전부 위반으로 띄운다).
+> **Synthesis guidance**: If the init scan finds only `packages/` → `structure.convention = "monorepo-flat"`.
+> If it finds both `apps/` + `libs/` (or `apps/`+`packages/`) → `"monorepo-apps-libs"`.
+> Put only directories that actually exist into `directories[]`, and leave the rest of the card as
+> comment/learned candidates (don't hardcode nonexistent folders as enforced — audit would flag
+> them all as violations).
 
 ---
 
 ## 2. Naming conventions
 
-monorepo 명명의 핵심은 **package-scoped 식별** — 패키지 이름이 곧 import 경로·CI 필터·버전
-태그의 단위가 된다.
+The crux of monorepo naming is **package-scoped identification** — the package name becomes the
+unit of the import path, CI filter, and version tag.
 
-| 대상 | 규칙 | 예시 (good / bad) |
+| target | rule | example (good / bad) |
 |:---|:---|:---|
-| 패키지 디렉토리 | `kebab-case`, 짧고 도메인 의미. | `auth-client`, `ui-tokens` / `AuthClient`, `pkg1` |
-| 패키지 이름 (`package.json` name) | scoped: `@<org>/<pkg>`, 디렉토리명과 suffix 일치. | `@acme/auth-client` / `@acme/AuthClient` |
-| 앱 디렉토리 | `kebab-case`, 제품/타깃 명시. | `web`, `admin-dashboard`, `mobile` / `App2` |
-| 라이브러리 vs 앱 접두 (선택) | Nx 스타일 도메인-타입: `<domain>-<type>`. | `feature-checkout`, `util-formatters` |
-| repo-전역 스크립트 | `kebab-case`, 동사로 시작. | `build-affected.ts`, `gen-types.mjs` |
-| 버전 태그 (독립 배포 시) | `<pkg>@<semver>`. | `@acme/auth-client@1.4.0` |
+| package directory | `kebab-case`, short with domain meaning. | `auth-client`, `ui-tokens` / `AuthClient`, `pkg1` |
+| package name (`package.json` name) | scoped: `@<org>/<pkg>`, suffix matches the directory name. | `@acme/auth-client` / `@acme/AuthClient` |
+| app directory | `kebab-case`, names the product/target. | `web`, `admin-dashboard`, `mobile` / `App2` |
+| library vs app prefix (optional) | Nx-style domain-type: `<domain>-<type>`. | `feature-checkout`, `util-formatters` |
+| repo-wide scripts | `kebab-case`, starts with a verb. | `build-affected.ts`, `gen-types.mjs` |
+| version tag (when independently released) | `<pkg>@<semver>`. | `@acme/auth-client@1.4.0` |
 
-### rules.json `naming.patterns[]` 시드 (Python regex, 실제 언어 맞춰 조정)
+### rules.json `naming.patterns[]` seed (Python regex, adjust to the actual language)
 
 ```jsonc
 [
   {
     "applies_to": "packages/*/",
     "regex": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
-    "description": "패키지 디렉토리는 kebab-case",
+    "description": "package directory is kebab-case",
     "severity": "warn"
   },
   {
     "applies_to": "apps/*/",
     "regex": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
-    "description": "앱 디렉토리는 kebab-case",
+    "description": "app directory is kebab-case",
     "severity": "warn"
   },
   {
     "applies_to": "{packages,libs,apps}/*/package.json",
     "regex": "^package\\.json$",
-    "description": "각 패키지·앱은 자체 manifest를 가진다(존재 검사는 audit이 디렉토리 단위로)",
+    "description": "each package/app has its own manifest (audit checks existence per directory)",
     "severity": "error"
   }
 ]
 ```
 
-> JS/TS 외 언어 monorepo면 manifest 이름이 다르다(`Cargo.toml`/`go.mod`/`pyproject.toml`/
-> `pom.xml`/`BUILD.bazel`). init은 스캔으로 실제 manifest를 잡아 `applies_to`를 치환한다 —
-> 카드의 `package.json`은 가장 흔한 기본값일 뿐.
+> For monorepos in languages other than JS/TS, the manifest name differs (`Cargo.toml`/`go.mod`/`pyproject.toml`/
+> `pom.xml`/`BUILD.bazel`). init catches the actual manifest via scan and substitutes `applies_to` —
+> the card's `package.json` is just the most common default.
 
 ---
 
 ## 3. Dataset conventions
 
-monorepo는 일반적으로 **dataset-light** — 코드·라이브러리 중심이라 data/ 디렉토리가 없을 수
-있다. 따라서 dataset 규칙은 **조건부**다(없으면 비워 둔다, 억지로 만들지 않는다).
+A monorepo is generally **dataset-light** — being code/library-centric, it may have no data/
+directory. So dataset rules are **conditional** (leave them empty if absent; don't force them).
 
-- monorepo 안에 data 패키지가 있다면(`packages/<data-pkg>/` 또는 root `fixtures/`), 그 안의
-  데이터는 해당 패키지 경계에 귀속 — cross-package에서 상대경로로 읽지 말 것.
-- 테스트 fixture(`packages/<pkg>/tests/fixtures/`, `__fixtures__/`)는 데이터가 아니라 **테스트
-  자산**으로 분류 — manifest dataset이 아니라 코드의 일부.
-- 진짜 큰 dataset(학습 데이터 등)이 monorepo에 섞여 있으면 보통 anti-pattern(repo 비대) → omp는
-  metadata-only로만 manifest에 기록하고 `.dvc/`·git-lfs 감지 시 위임(메타만 미러). 데이터 내용은
-  **절대 이동·복사 안 함**(dataset-curator 불변 계약).
+- If there is a data package inside the monorepo (`packages/<data-pkg>/` or root `fixtures/`), the
+  data within belongs to that package boundary — don't read it from another package by relative path.
+- Test fixtures (`packages/<pkg>/tests/fixtures/`, `__fixtures__/`) are classified as **test
+  assets**, not data — part of the code, not a manifest dataset.
+- If a truly large dataset (training data, etc.) is mixed into the monorepo, it's usually an
+  anti-pattern (repo bloat) → omp records it in the manifest as metadata-only and, upon detecting
+  `.dvc/`·git-lfs, delegates (mirroring metadata only). The data content is **never moved or copied**
+  (dataset-curator invariant contract).
 
-> 합성 지침: 스캔에서 `data/`·`*.parquet`·`*.csv` 등이 안 보이면 `manifest.datasets`는 빈 배열로
-> 시작. DATASETS.md는 "이 monorepo는 dataset을 추적하지 않음(코드 중심)"으로 시드.
+> Synthesis guidance: If the scan shows no `data/`·`*.parquet`·`*.csv` etc., start `manifest.datasets`
+> as an empty array. Seed DATASETS.md with "this monorepo does not track datasets (code-centric)".
 
 ---
 
 ## 4. How omp-init maps a scanned folder onto this preset
 
-rule-architect가 이 카드를 후보로 선택하는 **귀납 신호(scan signals)** → **합성 동작**:
+The **inductive signals (scan signals)** by which rule-architect selects this card as a candidate
+→ **synthesis action**:
 
-| 스캔에서 이게 보이면 | monorepo 프리셋 신호 | 합성 동작 |
+| if the scan shows this | monorepo preset signal | synthesis action |
 |:---|:---|:---|
-| root `package.json`에 `workspaces` 키 / `pnpm-workspace.yaml` / `turbo.json` / `nx.json` / `lerna.json` | 강함 (확정에 가까움) | `preset_origin = "monorepo"`, workspace 도구를 PROJECT.md에 기록 |
-| `packages/` 아래 2개 이상 디렉토리가 각자 `package.json`(또는 manifest) 보유 | 강함 | `convention = "monorepo-flat"`, 각 패키지를 `directories[]`에 등록 |
-| `apps/` + (`libs/` 또는 `packages/`) 동시 존재 | 강함 | `convention = "monorepo-apps-libs"`, apps→libs 단방향 의존 규칙 시드 |
-| 다언어 빌드 설정 (`WORKSPACE`/`BUILD.bazel`, `settings.gradle` 다중 모듈) | 중간 | monorepo로 매핑하되 manifest 이름·언어를 스캔값으로 치환 |
-| root에만 `package.json` 하나, 하위 패키지 없음 | 약함 (오탐 주의) | monorepo 아님 → `web-app`/`python-ml`/`generic` 등 다른 프리셋 재검토 |
+| `workspaces` key in root `package.json` / `pnpm-workspace.yaml` / `turbo.json` / `nx.json` / `lerna.json` | strong (near-certain) | `preset_origin = "monorepo"`, record the workspace tool in PROJECT.md |
+| two or more directories under `packages/` each holding a `package.json` (or manifest) | strong | `convention = "monorepo-flat"`, register each package in `directories[]` |
+| `apps/` + (`libs/` or `packages/`) both present | strong | `convention = "monorepo-apps-libs"`, seed the apps→libs one-way dependency rule |
+| polyglot build config (`WORKSPACE`/`BUILD.bazel`, multi-module `settings.gradle`) | medium | map to monorepo but substitute manifest names·language with scanned values |
+| only a single `package.json` at root, no sub-packages | weak (beware false positive) | not a monorepo → re-examine other presets such as `web-app`/`python-ml`/`generic` |
 
-**합성 절차 (rule-architect):**
-1. 위 신호로 monorepo 확신도 산정. 약하면 다른 프리셋과 비교해 best-match를 고른다.
-2. 카드의 generic layout을 **스캔된 실제 트리로 투영** — 존재하는 디렉토리·패키지만 `structure.directories[]`에 넣는다(없는 폴더 enforce 금지).
-3. 실제 manifest 파일명·실제 패키지 명명 패턴을 보고 `naming.patterns[]`의 `applies_to`/`regex`를 치환(예: kebab이 아니라 `snake_case`면 regex 교체).
-4. `specificity = 0`으로 시작(순수 프리셋). 귀납으로 채운 부분이 많을수록 실질 특화도는 높지만, 명시적 specificity는 omp-learn 승격이 올린다.
-5. 초안 `rules.json` + STRUCTURE.md/NAMING.md를 사람 게이트에 제시. 승인 후에만 `.omp/`에 기록.
+**Synthesis procedure (rule-architect):**
+1. Estimate monorepo confidence from the signals above. If weak, compare against other presets and pick the best match.
+2. **Project the card's generic layout onto the scanned actual tree** — put only directories·packages that exist into `structure.directories[]` (don't enforce nonexistent folders).
+3. Look at the actual manifest filename·actual package naming pattern and substitute `applies_to`/`regex` in `naming.patterns[]` (e.g., if it's `snake_case` rather than kebab, swap the regex).
+4. Start with `specificity = 0` (pure preset). The more you fill via induction, the higher the effective specialization; but explicit specificity is raised by omp-learn promotion.
+5. Present the draft `rules.json` + STRUCTURE.md/NAMING.md at the human gate. Write to `.omp/` only after approval.
 
-**불확실하면**: 카드 규칙을 enforced로 박지 말고 `severity: "info"` 또는 learned.md 후보로
-둔다 — monorepo는 팀마다 컨벤션 편차가 크므로 audit이 거짓 위반을 쏟지 않게 보수적으로 시드.
+**When uncertain**: Don't hardcode card rules as enforced; leave them as `severity: "info"` or
+learned.md candidates — monorepos vary widely in convention across teams, so seed conservatively
+so audit doesn't spew false violations.
 
 ---
 
 ## 5. What omp-learn typically specializes here
 
-monorepo에서 운영 중 가장 자주 프로젝트-고유 규칙으로 승격되는 관찰들(generic→specialized
-대표 경로). omp-learn이 learned.md에 누적 → 사람 승인 → rules.json 강제 규칙으로 승격:
+The observations most often promoted to project-specific rules during monorepo operation
+(representative generic→specialized paths). omp-learn accumulates them in learned.md → human
+approval → promotion to enforced rules in rules.json:
 
-- **의존 방향 규칙**: "apps는 libs를 import하나 libs는 apps를 import 금지", "`util-*`는 어떤
-  `feature-*`도 import 금지" 같은 **layer/boundary** 규칙. monorepo 특화의 핵심.
-- **패키지 명명 도메인 사전**: 이 repo가 실제로 쓰는 접두/도메인(`feature-`/`util-`/`data-`/
-  `ui-`) 집합을 enum으로 굳힘 → 새 패키지가 사전 밖 이름이면 audit warn.
-- **공유 tooling 경계**: "tsconfig/eslint/jest 설정은 root에서만, 패키지가 재정의 금지" 또는
-  반대로 "각 패키지가 자체 build 스크립트 보유" 중 이 repo의 실제 관습을 규칙화.
-- **테스트 위치 관습**: `tests/` vs `__tests__/` vs `src` 동거(`*.test.ts`) 중 이 repo가
-  실제로 쓰는 패턴 하나로 수렴 → 나머지 위치 warn.
-- **release 단위**: 독립 버전 배포(packages별 semver) vs fixed 버전(lerna fixed) — 관찰된
-  태그 패턴으로 `naming` 버전 규칙 특화.
-- **신규 패키지 scaffold 규칙**: 새 패키지는 반드시 `src/` + `tests/` + `package.json` +
-  `README.md`를 갖춘다 → 누락 시 audit error로 승격.
+- **Dependency-direction rules**: **layer/boundary** rules such as "apps import libs but libs must
+  not import apps", "`util-*` must not import any `feature-*`". The heart of monorepo specialization.
+- **Package naming domain dictionary**: Solidify the set of prefixes/domains this repo actually uses
+  (`feature-`/`util-`/`data-`/`ui-`) into an enum → if a new package has a name outside the
+  dictionary, audit warns.
+- **Shared tooling boundary**: Codify this repo's actual habit — either "tsconfig/eslint/jest config
+  lives only at root, packages must not redefine it", or conversely "each package holds its own build
+  script".
+- **Test location habit**: Converge on the one pattern this repo actually uses among `tests/` vs
+  `__tests__/` vs colocated in `src` (`*.test.ts`) → warn on the other locations.
+- **Release unit**: Independent versioned releases (per-package semver) vs fixed version (lerna
+  fixed) — specialize the `naming` version rule from the observed tag pattern.
+- **New-package scaffold rule**: A new package must have `src/` + `tests/` + `package.json` +
+  `README.md` → promote to audit error when missing.
 
-가벼운 채널(wiki/): "이 repo는 pnpm + turbo 사용", "affected 빌드만 CI에서 돈다",
-"패키지 간 순환 의존 1건 발견(`auth`↔`session`)" 같은 패턴·결정은 게이트 없이 wiki에
-자동 누적되어 다음 세션 grep으로 회수.
+Light channel (wiki/): patterns·decisions such as "this repo uses pnpm + turbo", "CI runs only
+affected builds", "found 1 circular dependency between packages (`auth`↔`session`)" accumulate
+automatically into the wiki without a gate, recoverable via grep in the next session.

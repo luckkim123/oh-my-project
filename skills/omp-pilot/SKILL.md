@@ -1,105 +1,106 @@
 ---
 name: omp-pilot
 description: |
-  프로젝트 폴더 한 줄 지정 → `.omp/` SSOT 전체 오케스트레이션. `.omp/`가 없으면 init을 흡수
-  (스캔→귀납+프리셋 합성→초안 rules.json→사람 게이트)해 부트스트랩한 뒤 codify→organize→
-  dataset→doc 관리 루프를 게이트마다 사용자 확인하며 엮는다. OMC autopilot의 프로젝트 관리판 —
-  생성 파이프라인이 아니라 살아있는 `.omp/`를 갱신하는 루프. `--from <stage>` 재진입 지원.
+  Point at one project folder → full `.omp/` SSOT orchestration. If `.omp/` is missing, absorb init
+  (scan → inductive + preset synthesis → draft rules.json → human gate) to bootstrap, then weave the
+  codify → organize → dataset → doc management loop with a user confirmation at every gate. The
+  project-management counterpart of OMC autopilot — not a generation pipeline but a loop that updates
+  a living `.omp/`. Supports `--from <stage>` re-entry.
   Triggers: 이 프로젝트 정리해줘, 폴더 통째로 관리, 프로젝트 셋업, .omp 만들어줘, omp 부트스트랩,
   project pilot, manage this project, end to end 프로젝트, 알아서 정리해줘, omp pilot
 ---
 
-# omp-pilot — `.omp/` 전체 오케스트레이션 (autopilot 프로젝트 관리판)
+# omp-pilot — full `.omp/` orchestration (the project-management counterpart of autopilot)
 
 <Purpose>
-프로젝트 폴더 하나를 받아 `.omp/` SSOT를 부트스트랩·갱신하는 전 단계(부트스트랩 → 규칙 성문화 → 재배치 → dataset 등록 → 문서)를 자동 조율한다. 사용자는 *어느 폴더를 비서에게 맡길지*만 말하고, *어떤 프리셋과 합성할지·어떤 규칙으로 검증할지·무엇을 옮길지*는 하네스가 정한다. omc autopilot의 프로젝트 관리판이되, omp의 본질이 **생성 파이프라인이 아니라 관리 루프**임을 지킨다 — 매번 새 산출물이 아니라 하나의 살아있는 `.omp/`를 계속 갱신한다. 위험(규칙 변경이 파일 이동을 유발)이 크므로 단계마다 게이트 — 완전 자율 아님.
+Takes a single project folder and auto-coordinates every stage that bootstraps and updates the `.omp/` SSOT (bootstrap → rule codification → relocation → dataset registration → docs). The user only says *which folder to hand off to the assistant*; the harness decides *which preset to synthesize with, which rules to verify against, and what to move*. It is the project-management counterpart of omc autopilot, but it preserves the essence of omp: **a management loop, not a generation pipeline** — it keeps updating one living `.omp/` rather than producing a fresh artifact each time. Because the risk is high (a rule change can trigger file moves), there is a gate at every stage — it is not fully autonomous.
 </Purpose>
 
 <Use_When>
-- "이 프로젝트 폴더 통째로 관리해줘" 류 end-to-end 요청 — `.omp/`가 아직 없는 새 폴더부터
-- 이미 `.omp/`가 있는 프로젝트의 전체 관리 루프를 한 번에 돌리고 싶을 때 (codify→organize→dataset→doc 갱신)
-- 상위 메타-하네스(omha)가 프로젝트 관리 작업을 omp에 위임할 때 (자족 진입점)
-- 어느 단계부터 시작할지 명확하면 그 단계부터 (`--from`)
+- End-to-end requests like "manage this whole project folder for me" — starting from a new folder that has no `.omp/` yet
+- When you want to run the full management loop of a project that already has `.omp/` in one shot (codify → organize → dataset → doc update)
+- When a higher meta-harness (omha) delegates project-management work to omp (a self-sufficient entry point)
+- When it's clear which stage to start from, start there (`--from`)
 </Use_When>
 
 <Do_Not_Use_When>
-- 한 단계만 필요하면 → 해당 omp-* skill 직접 (`omp-audit`만, `omp-organize`만 등)
-- 규칙 후보 승격만 검토할 때 → `omp-learn` 직접 (pilot 루프에 끼우지 않음 — 승격은 무거운 게이트라 별도 의식)
-- 단순 규칙 준수 PASS/FAIL 판정만 → `omp-audit` 직접
-- dataset 실제 데이터를 옮기거나 remote push를 기대할 때 → omp는 메타데이터-only. 실제 데이터 이동은 omp의 일이 아님 (DVC/git-lfs 감지 시 위임)
+- If only one stage is needed → use the corresponding omp-* skill directly (`omp-audit` only, `omp-organize` only, etc.)
+- When you only want to review rule-candidate promotions → use `omp-learn` directly (not wired into the pilot loop — promotion is a heavy gate, so it's a separate ritual)
+- When you only want a plain rule-compliance PASS/FAIL verdict → use `omp-audit` directly
+- When you expect actual dataset data to be moved or a remote push → omp is metadata-only. Moving actual data is not omp's job (delegate when DVC/git-lfs is detected)
 </Do_Not_Use_When>
 
 <Execution_Policy>
-- 각 단계는 fresh subagent로 dispatch — 컨트롤러 컨텍스트 보호. 각 단계는 전용 omp-* skill에 위임 (재구현 금지).
-- 게이트는 사용자 결정점 — 자동 통과 금지. 위험 = 사용자 파일이 옮겨지는 것이므로 확인 생략 안 함.
-- **쓰기 단일 집중 강제**: 파일을 옮기는 agent는 `organizer` 단 하나. 나머지(project-scanner / rule-architect / auditor)는 read-only(`disallowedTools: [Write, Edit, NotebookEdit]`). dataset-curator는 manifest만 쓰고 데이터는 안 옮긴다. 어떤 단계도 self-approve 안 한다(탐지 ≠ 실행 분리: auditor 탐지 → organizer 이동).
-- ⚠️ **omp-organize는 절대 auto-move 금지**: `references/safe-fileops.md`를 organizer가 강제 — (1) **dry-run** 먼저(전체 이동 계획 + 실행될 verify 명령을 mutation 0으로 출력), (2) **사람 승인** 후에만 실행, (3) move = `mv`→`find`/`ls`로 목적지 잔류 검증(중요 파일은 SHA-256 비교)→**그 다음에야** 원본 삭제(같은 호흡에 `rm` 금지 — iCloud/Drive 동기화 지연·exFAT AppleDouble 잔재), (4) 삭제는 **trash 경유**(OS 분기: macOS `trash`/`~/.Trash`, Linux `gio trash`/`trash-cli`, Windows recycle bin; trash 없으면 사람 재확인 후에만), (5) sync 폴더에선 **rename 지양**(`diff -rq old new` 부분집합 검증 통과 시에만 구경로 삭제).
-- ⚠️ **omp는 사용자 파일을 `.omp/`로 절대 흡수하지 않는다** (`references/output-layout.md` core principle). `.omp/`는 omp가 이 프로젝트에 *대해* 아는 지식(rules/inventory/docs/learning)만 담고, 실제 프로젝트 파일은 제자리에서 in-place 관리된다.
-- **범용→특화 합성 + 사람 게이트 명시 (omp 고유)**: init 흡수 단계는 (a) project-scanner의 실제 폴더 귀납 + (b) rule-architect의 최적 프리셋 매칭을 **합성**해 초안 `rules.json`을 만든다 — 절대 자동 확정하지 않고 **사람 승인 게이트**를 거쳐야 `.omp/rules.json`이 된다. 이후 운영 중 특화는 2채널(`references/output-layout.md` §"Two learning channels"): 무거운 채널(`learned.md`→`omp-learn`→rule-architect 승격 판단→**사람 승인 게이트**→`rules.json.specificity` 0→1 상승)과 가벼운 채널(`wiki/*.md` 자동 append, 승인 불필요, 다음 세션 grep 회수). 학습 승격 프로토콜은 `references/learning-protocol.md`가 SSOT(부재 시 `output-layout.md` §learning channels로 fallback) — pilot은 무거운 채널을 자동으로 끼우지 않고 별도 `omp-learn`에 맡긴다.
-- **진입 시 priority 컨텍스트 기록 (압축 생존)**: 파이프라인 시작 시 `<project>/.omp/notepad.md`의 `## Priority Context` 섹션에 치명 제약을 적는다 — "사용자 파일을 `.omp/`로 옮기지 않음 / organizer만 이동·safe-fileops 강제·이동 전 dry-run+사람 승인 / dataset은 메타만·데이터 안 건드림 / 규칙 변경=무거운 게이트 + 현재 게이트 위치 + 프로젝트 root 경로". 긴 루프에서 컨텍스트가 압축돼도 안전 프로토콜과 게이트 위치가 항상 복원되도록.
-  - **.md가 기본**: 직접 `<project>/.omp/notepad.md`에 write/append. notepad MCP 가용 시 `notepad_write_priority(...)`로 미러 가능(같은 .md 대상, 선택 가속) — 부재해도 .md write로 동일 동작, 에러 아님.
-- 단계 산출·진행 상태는 **`<project>/.omp/`** 고정 (검증된 실재 경로 — `PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md` + `rules.json`/`manifest.json` + `learned.md` + `wiki/`; `.omp/state`·`sessions/{sid}` 같은 미검증 하위 세그먼트는 박지 않는다). codify/dataset이 .json을 바꾸면 페어 .md를 같은 pass에 재생성해 drift 0 유지.
-  - ⚠️ **30s 트랩 (향후 state MCP 도입 시에만 — 지금은 미적용)**: state MCP를 쓰게 되면 단계 핸드오프 *직전*에 `state_clear`를 호출하지 말 것(30s간 stop-hook 비활성화로 루프가 조용히 끊긴다). 비종료 핸드오프는 `state_write(active=false)`로, `state_clear`는 *terminal에서만*. **현재는 state MCP를 실호출하지 않으므로(.md/`.omp/` 파일이 기본) 순수 미래 대비 메모.**
+- Each stage is dispatched as a fresh subagent — protecting controller context. Each stage delegates to a dedicated omp-* skill (no re-implementation).
+- Gates are user decision points — no automatic pass-through. Risk = the user's files being moved, so confirmation is never skipped.
+- **Single-focus write enforcement**: the only agent that moves files is `organizer`. The rest (project-scanner / rule-architect / auditor) are read-only (`disallowedTools: [Write, Edit, NotebookEdit]`). dataset-curator writes only the manifest and does not move data. No stage self-approves (detection ≠ execution separation: auditor detects → organizer moves).
+- ⚠️ **omp-organize must never auto-move**: `references/safe-fileops.md` is enforced by organizer — (1) **dry-run** first (output the full move plan + the verify commands that will run, with 0 mutations), (2) execute only after **human approval**, (3) move = `mv` → verify the destination retains the files via `find`/`ls` (compare SHA-256 for critical files) → **only then** delete the source (no `rm` in the same breath — iCloud/Drive sync lag, exFAT AppleDouble residue), (4) deletion goes **through trash** (OS branch: macOS `trash`/`~/.Trash`, Linux `gio trash`/`trash-cli`, Windows recycle bin; if no trash, only after human re-confirmation), (5) in sync folders **avoid rename** (delete the old path only when the `diff -rq old new` subset check passes).
+- ⚠️ **omp never absorbs the user's files into `.omp/`** (`references/output-layout.md` core principle). `.omp/` holds only the knowledge omp has *about* this project (rules/inventory/docs/learning); the actual project files are managed in-place where they are.
+- **Generic→specialized synthesis + explicit human gate (omp-specific)**: the init-absorption stage **synthesizes** (a) project-scanner's actual folder induction + (b) rule-architect's best-preset match into a draft `rules.json` — it is never auto-finalized; it must pass a **human approval gate** to become `.omp/rules.json`. Specialization during later operation runs on 2 channels (`references/output-layout.md` §"Two learning channels"): the heavy channel (`learned.md` → `omp-learn` → rule-architect promotion judgment → **human approval gate** → `rules.json.specificity` rising 0→1) and the light channel (`wiki/*.md` auto-append, no approval needed, recovered via grep next session). The learning-promotion protocol is owned by `references/learning-protocol.md` as SSOT (fall back to `output-layout.md` §learning channels if absent) — pilot does not wire in the heavy channel automatically; it leaves that to a separate `omp-learn`.
+- **Record priority context on entry (compaction survival)**: at pipeline start, write the critical constraints into the `## Priority Context` section of `<project>/.omp/notepad.md` — "do not move user files into `.omp/` / only organizer moves, safe-fileops enforced, dry-run + human approval before any move / dataset is metadata-only, never touches data / a rule change = heavy gate + current gate position + project root path". So that even if context is compacted in a long loop, the safety protocol and gate position are always restorable.
+  - **.md is the default**: write/append directly to `<project>/.omp/notepad.md`. When the notepad MCP is available, it can be mirrored via `notepad_write_priority(...)` (same .md target, optional accelerator) — equivalent behavior via .md write even when absent; not an error.
+- Stage outputs and progress state are fixed at **`<project>/.omp/`** (a verified real path — `PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md` + `rules.json`/`manifest.json` + `learned.md` + `wiki/`; unverified sub-segments like `.omp/state`·`sessions/{sid}` are not hard-coded). When codify/dataset changes a .json, regenerate the paired .md in the same pass to keep drift at 0.
+  - ⚠️ **The 30s trap (only when state MCP is adopted in the future — not in effect now)**: if you start using the state MCP, do not call `state_clear` *right before* a stage handoff (it disables the stop-hook for 30s, silently breaking the loop). Use `state_write(active=false)` for non-terminal handoffs; reserve `state_clear` for *terminal only*. **Right now the state MCP is not actually invoked (the .md/`.omp/` files are the default), so this is a pure future-proofing note.**
 </Execution_Policy>
 
 <Steps>
-0. **`.omp/` 존재 확인 → 분기** (pilot 첫 동작):
-   - `<project>/.omp/rules.json`이 **없으면** → **init 흡수 분기**: omp-init을 이 pilot 안에서 1회 부트스트랩으로 실행한다 (omd docs-pilot이 intake를 흡수하듯).
-     - (a) project-scanner가 실제 폴더 트리·확장자 분포·명명 패턴을 **귀납** (read-only, 추측 0)
-     - (b) rule-architect(opus)가 `references/presets/*.md`(python-ml/web-app/research-lab/monorepo/johnny-decimal/para/generic) 중 최적 프리셋을 매칭
-     - (c) (a)+(b) **합성** → 초안 `rules.json`(`references/schemas/rules.schema.json` 준수) + `manifest.json`(`references/schemas/manifest.schema.json`) + 사람용 `PROJECT.md`/`STRUCTURE.md`/`NAMING.md` 초안
-     ━━━ **GATE 0: 초안 rules.json 승인 (human)** — proceed/revise/abort. `.omp/` 커밋 여부(`.gitignore` 힌트)도 여기서 한 번 묻고 기록 ━━━
-   - `<project>/.omp/rules.json`이 **이미 있으면** → init은 "재초기화?" 경고만 하고 **skip**, 기존 `.omp/`를 입력으로 1번 단계(codify)부터 관리 루프 시작.
-1. **codify**: omp-codify → 구조·명명 규칙 성문화·갱신 (`rules.json` + `STRUCTURE.md`/`NAMING.md`, 페어 동기화). dispatch: rule-architect.
-   - *규칙이 GATE 0 직후 그대로이고 갱신할 변경이 없으면* skip.
-   ━━━ **GATE 1: 규칙 변경 승인 (human)** — 변경 diff 제시, proceed/revise/abort ━━━
-2. **organize**: omp-organize → 규칙 위반 탐지(auditor) → 재배치 제안·실행(organizer). dispatch: auditor(탐지) → organizer(이동).
-   - ⚠️ `references/safe-fileops.md` 강제 + **dry-run 먼저** + **이동 전 사람 승인**. 위반 없으면 "정리 불필요" 보고 후 skip.
-   ━━━ **GATE 2: 이동 계획 승인 (human)** — dry-run 출력(from→to + 위반 규칙 인용) 확인, approve/revise/abort. 승인 전 어떤 파일도 mutation 0 ━━━
-3. **dataset**: omp-dataset → dataset 등록·SHA256·split·lineage 추적 (`manifest.json` + `DATASETS.md`). dispatch: dataset-curator.
-   - ⚠️ **메타데이터-only**: 실제 데이터 복사·이동·remote push 안 함. `.dvc/`·git-lfs 감지 시 "DVC 관리 중 — manifest는 메타만 미러" 위임. dataset이 없으면 skip.
-   ━━━ **GATE 3: dataset 등록 확인 (human)** — manifest 엔트리 확인, confirm/revise ━━━
-4. **doc**: omp-doc → `.omp/` 사람용 문서 생성·갱신 (`PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md`). dispatch: project-scanner(인벤토리 공급). (omp-doc은 `.omp/` 문서 중심 — 루트 README 생성기가 아니다.)
-   - 문서가 최신이면 skip. (게이트 없음 — 사람용 문서는 가벼운 산출)
-5. **terminal**: 관리 루프 1회전 완료 보고. `.omp/`의 갱신된 SSOT 경로 일람 + 각 게이트 결정 이력 + 다음 권장 행동(`omp-audit`로 준수 재확인 / 관찰 누적 시 `omp-learn`으로 승격 검토).
-   - ⚠️ omp는 **사용자 파일을 정리·삭제하지 않는다** — pilot의 terminal은 `.omp/` 지식 갱신 보고일 뿐, 사용자 자산 cleanup은 명시적 `omp-organize`(safe-fileops 강제) 경로로만.
+0. **Check whether `.omp/` exists → branch** (pilot's first action):
+   - If `<project>/.omp/rules.json` is **missing** → **init-absorption branch**: run omp-init as a one-shot bootstrap inside this pilot (the way omd docs-pilot absorbs intake).
+     - (a) project-scanner **induces** the actual folder tree, extension distribution, and naming patterns (read-only, 0 guessing)
+     - (b) rule-architect(opus) matches the best preset among `references/presets/*.md` (python-ml/web-app/research-lab/monorepo/johnny-decimal/para/generic)
+     - (c) **synthesize** (a)+(b) → draft `rules.json` (conforming to `references/schemas/rules.schema.json`) + `manifest.json` (`references/schemas/manifest.schema.json`) + human-facing draft `PROJECT.md`/`STRUCTURE.md`/`NAMING.md`
+     ━━━ **GATE 0: draft rules.json approval (human)** — proceed/revise/abort. Whether to commit `.omp/` (`.gitignore` hint) is also asked once and recorded here ━━━
+   - If `<project>/.omp/rules.json` **already exists** → init only warns "re-initialize?" and **skips**, starting the management loop from step 1 (codify) with the existing `.omp/` as input.
+1. **codify**: omp-codify → codify and update structure/naming rules (`rules.json` + `STRUCTURE.md`/`NAMING.md`, paired sync). dispatch: rule-architect.
+   - *If the rules are unchanged right after GATE 0 and there is nothing to update*, skip.
+   ━━━ **GATE 1: rule change approval (human)** — present the change diff, proceed/revise/abort ━━━
+2. **organize**: omp-organize → detect rule violations (auditor) → propose and execute relocation (organizer). dispatch: auditor (detect) → organizer (move).
+   - ⚠️ `references/safe-fileops.md` enforced + **dry-run first** + **human approval before any move**. If there are no violations, report "no cleanup needed" and skip.
+   ━━━ **GATE 2: move-plan approval (human)** — review the dry-run output (from→to + cited violated rule), approve/revise/abort. 0 mutations on any file before approval ━━━
+3. **dataset**: omp-dataset → register datasets, track SHA256, split, lineage (`manifest.json` + `DATASETS.md`). dispatch: dataset-curator.
+   - ⚠️ **metadata-only**: does not copy/move actual data or remote-push. When `.dvc/`·git-lfs is detected, delegate with "under DVC management — manifest mirrors metadata only". If there are no datasets, skip.
+   ━━━ **GATE 3: dataset registration confirmation (human)** — review the manifest entries, confirm/revise ━━━
+4. **doc**: omp-doc → generate and update the human-facing `.omp/` docs (`PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md`). dispatch: project-scanner (supplies inventory). (omp-doc is `.omp/`-doc-centric — not a root README generator.)
+   - If the docs are up to date, skip. (No gate — human-facing docs are a light artifact)
+5. **terminal**: report completion of one turn of the management loop. A listing of the updated SSOT paths in `.omp/` + the decision history of each gate + the next recommended action (re-confirm compliance with `omp-audit` / review promotion with `omp-learn` once observations have accumulated).
+   - ⚠️ omp does **not** clean up or delete the user's files — pilot's terminal is merely a report of the `.omp/` knowledge update; cleanup of user assets only goes through the explicit `omp-organize` path (safe-fileops enforced).
 
-> **`--from <stage>` 진입점**: 중간 단계부터 시작 가능 — `init|codify|organize|dataset|doc`. `.omp/`가 이미 있으면 0번 분기는 자동으로 codify부터(init skip). 예: `--from organize`면 기존 `rules.json`을 입력으로 위반 탐지(organize)부터, `--from dataset`이면 dataset 등록부터. 모든 진입은 해당 단계의 게이트를 그대로 거친다(게이트 우회 없음).
+> **`--from <stage>` entry point**: you can start from a middle stage — `init|codify|organize|dataset|doc`. If `.omp/` already exists, step 0's branch automatically starts from codify (init skipped). E.g. `--from organize` starts from violation detection (organize) using the existing `rules.json` as input; `--from dataset` starts from dataset registration. Every entry goes through that stage's gate as-is (no gate bypass).
 
-6. **Task 위임 (각 단계의 최종 동작)**: 위 단계들은 fresh subagent로 dispatch된다. omp-init 흡수 분기의 귀납 채널(0-(a)) 및 omp-doc 인벤토리(4번)는 read-only project-scanner에 위임한다:
+6. **Task delegation (the final action of each stage)**: the stages above are dispatched as fresh subagents. The induction channel of the omp-init absorption branch (0-(a)) and the omp-doc inventory (step 4) are delegated to the read-only project-scanner:
 
 ```
 Task(
   subagent_type="oh-my-project:project-scanner",
-  description="<project> 폴더 read-only 인벤토리 + de-facto 구조·명명 패턴 귀납",
+  description="<project> folder read-only inventory + induction of de-facto structure/naming patterns",
   prompt="""
-프로젝트 root: <project absolute path>
-임무 (read-only — 절대 쓰거나 옮기지 마라):
-1. 디렉토리 트리 인벤토리: 깊이, 디렉토리별 파일 수, 확장자 분포, 대략 크기.
-   비-소스/무시 영역(.git/ node_modules/ .venv/ __pycache__/ .omp/)을 rules.json.ignore 후보로 분리.
-2. de-facto 구조 귀납: 각 디렉토리가 *사실상* 하는 역할 + 관찰 증거(예: 'data/raw/ 12개 전부 .csv → 원본 데이터 전용').
-3. 명명 패턴 귀납: basename 반복 규칙 → 후보 Python re 정규식(rules.schema.json의 naming.patterns[].regex 형식)
-   + 만족 예시 + 위반 예시 + 신뢰도(N/M 일치, 강/약).
-4. 외부 관리 신호 보고: .dvc/ git-lfs(.gitattributes lfs 항목) — dataset-curator의 '메타만 미러' 판단 입력.
-제약: 추측·상상 0건, 실제 트리/grep 결과에만 묶을 것. 규칙 *설계*나 프리셋 합성은 하지 마라(그건 rule-architect).
-PASS/FAIL 판정 금지(그건 auditor). .omp/ 어떤 파일도 쓰지 마라 — 출력은 보고서(텍스트)뿐.
-출력: 인벤토리 + 귀납 구조 패턴(증거 첨부) + 귀납 명명 패턴(정규식+예시+신뢰도) + ignore 후보 + 외부 관리 신호.
+Project root: <project absolute path>
+Mission (read-only — never write or move):
+1. Directory tree inventory: depth, file count per directory, extension distribution, approximate size.
+   Separate non-source/ignore areas (.git/ node_modules/ .venv/ __pycache__/ .omp/) as rules.json.ignore candidates.
+2. Induce de-facto structure: what each directory *actually* does + observed evidence (e.g. 'data/raw/ all 12 are .csv → dedicated to raw data').
+3. Induce naming patterns: recurring basename rules → candidate Python re regex (the naming.patterns[].regex format of rules.schema.json)
+   + matching examples + violation examples + confidence (N/M match, strong/weak).
+4. Report external-management signals: .dvc/ git-lfs (.gitattributes lfs entries) — input for dataset-curator's 'mirror metadata only' judgment.
+Constraints: 0 guessing/imagination, bind only to actual tree/grep results. Do not *design* rules or synthesize presets (that's rule-architect).
+No PASS/FAIL verdict (that's auditor). Do not write any file under .omp/ — the output is the report (text) only.
+Output: inventory + induced structure patterns (with evidence) + induced naming patterns (regex+examples+confidence) + ignore candidates + external-management signals.
 """
 )
 ```
 
-dispatch 후: project-scanner의 귀납 보고를 rule-architect(opus)에게 넘겨 프리셋과 합성 → 초안 rules.json → GATE 0. 이후 단계(codify/organize/dataset)는 각 omp-* skill이 rule-architect / auditor→organizer / dataset-curator를 dispatch한다 (pilot은 게이트와 핸드오프만 조율, agent 재구현 금지).
+After dispatch: hand project-scanner's induction report to rule-architect(opus) to synthesize with the preset → draft rules.json → GATE 0. The later stages (codify/organize/dataset) each have their own omp-* skill dispatch rule-architect / auditor→organizer / dataset-curator (pilot only coordinates the gates and handoffs, no agent re-implementation).
 </Steps>
 
 <Output>
-관리 루프 1회전의 산출 = **갱신된 `<project>/.omp/` SSOT** (생성 파이프라인의 "새 산출물"이 아니라 살아있는 지식의 갱신):
-- 사람용: `PROJECT.md` / `STRUCTURE.md` / `NAMING.md` / `DATASETS.md`
-- 기계용: `rules.json`(specificity 추적) / `manifest.json`(SHA256·split·lineage)
-- 학습: `learned.md`(승격 대기) / `wiki/`(자동 누적)
+The output of one turn of the management loop = the **updated `<project>/.omp/` SSOT** (an update of living knowledge, not a "new artifact" of a generation pipeline):
+- Human-facing: `PROJECT.md` / `STRUCTURE.md` / `NAMING.md` / `DATASETS.md`
+- Machine-facing: `rules.json` (specificity tracking) / `manifest.json` (SHA256·split·lineage)
+- Learning: `learned.md` (awaiting promotion) / `wiki/` (auto-accumulated)
 
-경로 규약은 `references/output-layout.md`가 SSOT. + GATE 0~3 결정 이력 + organize의 이동 로그(실제 이동된 from→to, dry-run 거쳐 승인된 것만) + dataset 외부 관리 위임 여부(.dvc/git-lfs) + 사람 확인 필요 잔여(rule-architect가 보류한 약한 패턴·승격 후보) + 다음 권장 단계(`omp-audit` 재확인 / `omp-learn` 승격 검토). 사용자 파일은 그대로 제자리(`.omp/`로 흡수 안 됨), self-approve 안 함 명시.
+Path conventions are owned by `references/output-layout.md` as SSOT. + GATE 0~3 decision history + organize's move log (the actual from→to moves, only those approved after dry-run) + whether dataset was delegated to external management (.dvc/git-lfs) + remaining items needing human confirmation (weak patterns / promotion candidates held back by rule-architect) + the next recommended stage (`omp-audit` re-check / `omp-learn` promotion review). User files stay in place (not absorbed into `.omp/`); states explicitly that it does not self-approve.
 </Output>
 
 <Self_Sufficiency>
-이 스킬은 자족적 진입점이다. 상위 메타-하네스(omha)가 프로젝트 관리 작업을 "omp omp-pilot에 위임" 한 줄로 부를 수 있도록, 외부 컨텍스트 없이 프로젝트 root 경로만으로 `.omp/` 부트스트랩(init 흡수)부터 관리 루프 전 단계를 게이트와 함께 완주한다.
+This skill is a self-sufficient entry point. So that a higher meta-harness (omha) can call it with a single line — "delegate to omp omp-pilot" — for project-management work, it runs the full management loop, gates and all, from `.omp/` bootstrap (init absorption) onward with nothing but the project root path and no external context.
 </Self_Sufficiency>

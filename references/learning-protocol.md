@@ -60,7 +60,7 @@ gated path:
    never drift (per `output-layout.md`).
 
 `rule-architect` **proposes only** — it never writes `rules.json` itself in the learn flow;
-the human gate plus `omp-codify` perform the write. (Design §3: "규칙은 제안만, 강제는 사람.")
+the human gate plus `omp-codify` perform the write. (Design §3: "규칙은 제안만, 강제는 사람." — rules are only proposed; only a human enforces.)
 
 ### Light channel — PATTERNS / DECISIONS (`wiki/*.md` auto-append, grep recall, no gate)
 
@@ -162,7 +162,7 @@ Worked example:
     value:
       applies_to: "**/*.pkl"
       path_constraint: { must_be_under: "data/processed" }
-      description: ".pkl 파일은 data/processed/ 아래에만 둔다 (관찰 4회 → 승격)"
+      description: ".pkl files live only under data/processed/ (observed 4 times → promoted)"
       origin: learned
       severity: warn
 - evidence_count: 4
@@ -184,7 +184,7 @@ Rules for the ledger:
   duplicate block.
 - **Evidence is concrete.** `evidence[]` lists real paths/events. An observation with no
   enumerable evidence is not an observation — it is a guess, and guesses do not enter
-  `learned.md` (Constraints: "추측 금지, 실제 트리만").
+  `learned.md` (Constraints: "추측 금지, 실제 트리만" — no guessing; only the real tree).
 - **Counter-examples are tracked honestly.** The moment a file violating the pattern is
   seen, `counter_examples` increments. This is what makes promotion safe (§3).
 - **Status is a lifecycle, not a delete.** Promoted/rejected/superseded entries stay in the
@@ -199,7 +199,7 @@ against **all** of the following. A candidate is promotable to the human gate **
 every condition holds** — this is an AND, not a score:
 
 1. **Repetition.** `evidence_count ≥ 3` across **distinct** files/events. Three is the
-   minimum that distinguishes a convention from a coincidence. (Design §4: "관찰 3회 반복".)
+   minimum that distinguishes a convention from a coincidence. (Design §4: "관찰 3회 반복" — observed 3 times.)
 2. **No counter-examples.** `counter_examples == 0`. A single file that breaks the pattern
    means it is not yet a rule — it is a tendency. Counter-examples block promotion outright;
    they are not outweighed by a high evidence count.
@@ -270,8 +270,9 @@ silently lower it.)
   `learned` (or adds a new `learned` rule), then recomputes — so the number rises toward 1.
 - **`omp-codify`** recomputes whenever the rule set changes.
 
-This is the "기술적 정의" from Design §4 made operational: *"specificity 0(순수 프리셋)→1(완전
-고유). learn 승격마다 프리셋 규칙이 프로젝트 규칙으로 대체·확장."* The number is not cosmetic —
+This is the "기술적 정의" (technical definition) from Design §4 made operational: *"specificity 0(순수 프리셋)→1(완전
+고유). learn 승격마다 프리셋 규칙이 프로젝트 규칙으로 대체·확장."* (specificity 0 = pure preset → 1 = fully unique;
+each learn promotion replaces/extends a preset rule with a project rule.) The number is not cosmetic —
 it lets a human (and `omp-audit`) see at a glance whether `.omp/` still mostly speaks
 generic-preset or has genuinely learned this project.
 
@@ -329,7 +330,7 @@ Rationale: embedding recall can surface a note that does not literally support t
 silently rank a fabrication above a fact — the same hallucination/citation-unsafe failure
 mode that bans parallel generation on citation-bound work elsewhere in this household. omp
 recalls *exactly and only* what was written, found by literal match. (This mirrors oms/omd's
-"citation 안전" principle, applied to project memory: a recalled note is a citation to
+"citation 안전" (citation-safety) principle, applied to project memory: a recalled note is a citation to
 something that exists on disk.)
 
 ### B. No auto-promotion without the human gate
@@ -355,7 +356,7 @@ both the evidence test (§3) and the human gate (§B). To enforce, escalate to `
 ### E. (Corollary) No fabricated evidence
 An entry in `learned.md` MUST cite real, enumerable paths/events in `evidence[]`. omp does
 not invent supporting files to reach the `≥ 3` threshold, and does not "round up" a count.
-If the evidence is not on disk, the observation does not exist. (Constraints §3: "추측 금지.")
+If the evidence is not on disk, the observation does not exist. (Constraints §3: "추측 금지." — no guessing.)
 
 ---
 

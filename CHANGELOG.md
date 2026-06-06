@@ -7,36 +7,41 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ### Changed
 
-- **dataset 정의를 포맷-무관(role-based)으로 명확화 — "dataset = ML 입력 파일" 오독 차단 (코드/스키마 불변, 프롬프트만).**
-  실사용에서 ROS bag·실험 데이터를 등록하려는데, 스킬·agent의 *모든 예시*가 `train.parquet`/`rows`/`.csv`
-  같은 정형 ML 파이프라인 하나로만 채워져 있어 "dataset = tabular ML 입력"으로 좁게 귀납되는 구멍을 메움.
-  schema(`manifest.schema.json`)는 이미 `rows`/`split`/`lineage`가 전부 optional이라 비정형 데이터도
-  수용 가능 — 문제는 *규칙*이 아니라 *편향된 예시 분포*였으므로 schema·코드 로직은 불변, 정의·예시 문구만 강화:
-  - `skills/omp-dataset/SKILL.md`: `<Use_When>`·`<Steps>` 에서 확장자 나열을 *예시*로 격하하고
-    비정형(`.bag`/`.db3`/`.png`/`.mp4`/`.pcd`)을 나란히 추가. "dataset 판별 기준 = 포맷이 아니라 역할
-    (고정·추적 가치 있는 입력·수집 데이터인가)" 한 줄 명시 — `.npy` 매-런 출력=run artifact(비대상),
-    `.bag` 일회수집=dataset(대상).
-  - `agents/dataset-curator.md`: Role 진원지에 "What counts as a dataset is defined by ROLE, not format"
-    단락 신설(로보틱스·센서·미디어 명시). Investigation_Protocol 의 확장자를 whitelist→hint 로,
-    `rows` tabular 한정 문구에 "비정형은 생략이 정상" 보강, Good/Bad 예시에 ROS bag 등록 1쌍 추가
-    (포맷 이유로 `.bag` 스킵 = Bad). 47 tests pass(문서 변경, 회귀 0).
-- **organize 후 인덱스 drift 방지 — "구조를 바꾼 이동은 `.omp/` 인덱스 동기화까지가 한 작업" 명문화 (hook contract 변경).**
-  실사용에서 폴더 리네임·평탄화(`12_Theses_Defense` → `12_Masters_Thesis` + 중간 계층 폐지)를 한 뒤
-  `.omp/STRUCTURE.md`·`rules.json`·`DATASETS.md` 가 옛 경로를 가리킨 채 남아, 사용자가 직접 "인덱스도
-  갱신하라"고 지시해야 했던 구멍을 메움. 세 곳을 지침·문구 레벨로만 강화(코드 로직 불변):
-  - `skills/omp-organize/SKILL.md`: Step 8(인덱스 동기화) 신설 — 옮긴 폴더가 rules.json·STRUCTURE.md 에
-    이름으로 적혀 있으면 동기화가 organize 완료 정의의 일부(단순 path 치환=직접 Edit, 규칙 의미 변경=codify
-    게이트). 구조 불변이면 no-op. "순서 불변"·Output 에도 반영.
-  - `hooks/omp_route_emit.py`: CHECKPOINT 에 "⚠️ 인덱스 정합" 한 줄 추가 — 구조 영향 이동·맨손 mv 후
-    `.omp/` 갱신을 같은 작업 안에서 끝내라(drift 금지). 기존 STAGE/NO_OMP 마커 불변.
-  - `hooks/omp_verify_emit.py`: PostToolUse 리마인더에 "구조를 바꾼 이동이면 인덱스 갱신은 이 작업의 일부"
-    한 줄 추가. freeze 유발 문구("fix before continuing")는 쓰지 않음(권유→완료조건 톤만 강화). 49 tests pass.
-- **`references/omc-backport-analysis.md` §5 신설 — 0.2.0 신규의 형제 전파 검토(전파 0).**
-  0.2.0 이 추가한 5종(content_conventions·content audit·dead-link·CONVENTIONS.md·specificity
-  content 항)을 oms/omd/omx 로 전파할지 적대 검증(15쌍) → 전부 REJECT. 5종 모두 omp 의 "살아있는
-  `.omp/` 관리 루프" 정체성에 종속돼 생성-파이프라인 형제엔 자리가 없음(의도된 부재). "전파할 게
-  없다"는 결론을 영속 기록해 재검토 반복 방지. 형제별 동형 판정은 oms/omd `omc-backport-analysis.md`
-  §4 에 기록(omx 는 self-contained·문서 부재라 형제 기록에만). 코드 변경 0 — 문서만.
+- **Clarified the dataset definition to be format-agnostic (role-based) — blocks the "dataset = ML input file" misreading (code/schema unchanged, prompts only).**
+  In real use, when trying to register a ROS bag or experiment data, *every example* across the skills/agents was filled
+  with a single structured ML pipeline like `train.parquet`/`rows`/`.csv`, leaving a gap where "dataset = tabular ML input"
+  got narrowly induced; this fills that gap. The schema (`manifest.schema.json`) already makes `rows`/`split`/`lineage`
+  all optional, so it can already accommodate unstructured data — the problem was not the *rules* but the *biased example
+  distribution*, so the schema/code logic stays unchanged and only the definition/example wording was strengthened:
+  - `skills/omp-dataset/SKILL.md`: in `<Use_When>` and `<Steps>`, demoted the extension enumeration to *examples* and
+    added unstructured ones (`.bag`/`.db3`/`.png`/`.mp4`/`.pcd`) alongside. Added a one-liner: "dataset discrimination
+    criterion = role, not format (is it a fixed, tracking-worthy input/collected data?)" — `.npy` produced every run = run
+    artifact (out of scope), `.bag` one-time collection = dataset (in scope).
+  - `agents/dataset-curator.md`: added a new paragraph at the Role source point — "What counts as a dataset is defined by
+    ROLE, not format" (explicitly naming robotics/sensor/media). Changed the extensions in the Investigation_Protocol from
+    a whitelist to a hint, reinforced the `rows` tabular-only wording with "omission is normal for unstructured data," and
+    added a ROS bag registration pair to the Good/Bad examples (skipping `.bag` for format reasons = Bad). 47 tests pass
+    (documentation change, 0 regressions).
+- **Prevent index drift after organize — codified that "a move that changes structure is one task that includes syncing the `.omp/` index" (hook contract change).**
+  In real use, after a folder rename/flattening (`12_Theses_Defense` → `12_Masters_Thesis` + abolishing the intermediate
+  layer), `.omp/STRUCTURE.md`/`rules.json`/`DATASETS.md` were left pointing at the old paths, forcing the user to explicitly
+  instruct "update the index too"; this fills that gap. Strengthened three places at the guidance/wording level only (code
+  logic unchanged):
+  - `skills/omp-organize/SKILL.md`: added Step 8 (index sync) — if a moved folder is written by name in rules.json/STRUCTURE.md,
+    syncing is part of the definition of organize completion (simple path substitution = direct Edit, changing rule meaning =
+    codify gate). No-op if structure is unchanged. Reflected in "order unchanged" and Output as well.
+  - `hooks/omp_route_emit.py`: added a one-liner to CHECKPOINT — "⚠️ index consistency" — finish the `.omp/` update within
+    the same task after a structure-affecting move or a bare-hand mv (no drift). Existing STAGE/NO_OMP markers unchanged.
+  - `hooks/omp_verify_emit.py`: added a one-liner to the PostToolUse reminder — "if it's a move that changed structure, the
+    index update is part of this task." Avoids freeze-inducing wording ("fix before continuing") (suggestion → completion-condition
+    tone only). 49 tests pass.
+- **Added `references/omc-backport-analysis.md` §5 — sibling propagation review of 0.2.0 additions (propagation 0).**
+  Adversarially verified (15 pairs) whether the 5 items 0.2.0 added (content_conventions, content audit, dead-link,
+  CONVENTIONS.md, the specificity content term) should propagate to oms/omd/omx → all REJECT. All 5 depend on omp's
+  "living `.omp/` management loop" identity and have no place in the generation-pipeline siblings (intended absence).
+  Permanently recorded the "nothing to propagate" conclusion to prevent repeated re-review. The per-sibling isomorphism
+  verdict is recorded in oms/omd `omc-backport-analysis.md` §4 (omx is self-contained/has no docs, so only in the sibling
+  record). 0 code changes — docs only.
 
 ## [0.2.1] — 2026-05-31
 
@@ -75,7 +80,7 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 - `omp-codify` / `omp-learn` / `rule-architect` handle the new type; `auditor` / `omp-audit`
   gained the content + wikilink axes.
 - **`learning-protocol.md` §5 — wiki append-only discipline made explicit.** The light
-  channel (`.omp/wiki/`) always *intended* accumulation ("쓸수록 특화", "accrue freely"),
+  channel (`.omp/wiki/`) always *intended* accumulation ("more specialized the more you write", "accrue freely"),
   but never wrote the binding rule that a revisited `wiki/<topic>.md` is *appended* (not
   rewritten/truncated) and that whole-file overwrite is reserved for the paired SSOT docs
   (PROJECT/STRUCTURE/NAMING/DATASETS), never for a wiki note. Adjacent in `omp-doc`, the

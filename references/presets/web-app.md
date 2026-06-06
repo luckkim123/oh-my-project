@@ -1,147 +1,155 @@
 # Preset — `web-app`
 
-> 범용 시드 규칙 카드. `omp-init`/`rule-architect`가 **실제 폴더 귀납 스캔**과 이 카드를
-> **합성**해 초안 `rules.json`을 만든다. 이 카드 자체는 모든 사용자에게 동일하게 배포되는
-> 범용물(specificity 출발점 = 0). 특화는 init 합성 이후 `omp-learn`이 올린다.
+> Generic seed rule card. `omp-init`/`rule-architect` **synthesizes** this card with an
+> **inductive scan of the actual folder** to produce a draft `rules.json`. This card itself is a
+> generic artifact distributed identically to every user (specificity starting point = 0).
+> Specialization is raised by `omp-learn` after init synthesis.
 >
-> `preset_origin` 값: **`web-app`**
-> 대상 스키마: `references/schemas/rules.schema.json` (이 카드의 모든 항목은 그 스키마의
-> `structure.directories[]` / `naming.patterns[]` / `ignore[]` 로 직역된다.)
+> `preset_origin` value: **`web-app`**
+> Target schema: `references/schemas/rules.schema.json` (every item in this card is translated
+> literally into that schema's `structure.directories[]` / `naming.patterns[]` / `ignore[]`.)
 
 ---
 
-## 0. 언제 이 프리셋이 매칭되나 (rule-architect 판별 신호)
+## 0. When this preset matches (rule-architect detection signals)
 
-`project-scanner`의 귀납 결과가 아래 신호를 충분히 가지면 `web-app`을 최적 매칭으로 본다.
-하나만으로 단정하지 말고 **2개 이상**의 동시 출현으로 판별한다.
+When `project-scanner`'s inductive result has enough of the signals below, treat `web-app` as the
+best match. Don't decide on a single signal alone — judge by the **co-occurrence of 2 or more**.
 
-- **루트 manifest**: `package.json`이 루트에 존재 (가장 강한 신호)
-- **프레임워크 흔적**: `next.config.*` / `vite.config.*` / `vue.config.*` / `svelte.config.*` /
-  `angular.json` / `remix.config.*` / `astro.config.*` 중 하나
-- **소스 디렉토리**: `src/`가 있고 그 안에 `components/`·`pages/`(또는 `routes/`)·`lib/`·`api/`
-  중 둘 이상
-- **정적 자산**: `public/`(또는 `static/`, `assets/`) 디렉토리
-- **테스트 디렉토리**: `tests/`·`__tests__/`·`*.test.*`·`*.spec.*` 파일군
-- **확장자 분포**: `.ts`/`.tsx`/`.js`/`.jsx`/`.vue`/`.svelte`가 우세
+- **Root manifest**: `package.json` exists at the root (strongest signal)
+- **Framework traces**: one of `next.config.*` / `vite.config.*` / `vue.config.*` / `svelte.config.*` /
+  `angular.json` / `remix.config.*` / `astro.config.*`
+- **Source directory**: `src/` exists and contains two or more of `components/`·`pages/`(or `routes/`)·`lib/`·`api/`
+- **Static assets**: a `public/` (or `static/`, `assets/`) directory
+- **Test directory**: a group of `tests/`·`__tests__/`·`*.test.*`·`*.spec.*` files
+- **Extension distribution**: `.ts`/`.tsx`/`.js`/`.jsx`/`.vue`/`.svelte` predominate
 
-**오분류 가드** — 다음이면 다른 프리셋을 우선 검토:
-- `pyproject.toml`/`requirements.txt` + `.ipynb`/`.parquet` 우세 → `python-ml`
-- 루트에 여러 `package.json`(워크스페이스) + `packages/`·`apps/` → `monorepo`
-- 두 자리 ID(`10-19_*`, `11_*`) 폴더 체계 → `johnny-decimal`
-- 위 신호가 모두 약하면 → `generic`
+**Misclassification guard** — review another preset first when:
+- `pyproject.toml`/`requirements.txt` + `.ipynb`/`.parquet` predominate → `python-ml`
+- multiple `package.json` at the root (workspaces) + `packages/`·`apps/` → `monorepo`
+- a two-digit ID (`10-19_*`, `11_*`) folder system → `johnny-decimal`
+- all of the above signals are weak → `generic`
 
-> **단일 신호 한계**: `package.json` 하나만 있고 `src/`도 프레임워크 흔적도 없으면 web-app으로
-> 단정하지 말 것. CLI 도구·라이브러리 패키지일 수 있다. 그 경우 `generic` + 귀납 우세.
+> **Single-signal limit**: if only `package.json` exists with no `src/` and no framework trace, do
+> not conclude web-app. It may be a CLI tool or a library package. In that case use `generic` +
+> inductive predominance.
 
 ---
 
-## 1. 정규 디렉토리 레이아웃 (→ `structure.directories[]`)
+## 1. Canonical directory layout (→ `structure.directories[]`)
 
-웹 애플리케이션의 실세계 관례. 생태계(Next.js/Vite/SvelteKit 등)마다 이름이 갈리므로
-**역할(role)은 고정, 경로(path)는 스캔이 확정**한다. 아래는 시드 기본값이며, 실제 폴더에
-존재하는 디렉토리만 `directories[]`에 넣는다(존재하지 않는 경로를 강제하지 말 것).
+Real-world convention for web applications. Names diverge by ecosystem (Next.js/Vite/SvelteKit etc.),
+so **roles are fixed, paths are confirmed by the scan**. The below are seed defaults; put only
+directories that actually exist in the folder into `directories[]` (do not force paths that do not exist).
 
-`structure.convention` = `"src-layout"` (소스를 `src/` 아래에 모으는 관례. 실제 폴더가 루트
-직배치면 `"flat"`로 교정).
+`structure.convention` = `"src-layout"` (the convention of gathering source under `src/`. If the
+actual folder places source directly at the root, correct to `"flat"`).
 
-| path (시드) | role | enforced | 비고 |
+| path (seed) | role | enforced | notes |
 |:---|:---|:---:|:---|
-| `src/` | 애플리케이션 소스의 루트. 빌드 대상 코드는 모두 여기. | true | 프레임워크별 위치(`app/` 등)면 그 경로로 치환 |
-| `src/components/` | 재사용 UI 컴포넌트. 라우트에 묶이지 않은 표현 단위. | true | |
-| `src/pages/` 또는 `src/routes/` | 라우팅 진입점(페이지/뷰). Next=`pages/`·`app/`, SvelteKit=`routes/`. | true | 둘 중 실재하는 쪽만 등록 |
-| `src/lib/` | 프레임워크 비종속 도메인 로직·유틸·클라이언트. UI가 아닌 재사용 코드. | true | |
-| `src/api/` | API 라우트·서버 핸들러·백엔드 엔드포인트. | false(warn) | 프레임워크에 따라 `app/api/`·`server/`로 이동 가능 |
-| `public/` | 빌드 없이 그대로 서빙되는 정적 자산(파비콘·이미지·`robots.txt`). | true | Vite는 `public/`, 일부는 `static/`·`assets/` |
-| `tests/` | 테스트. 또는 소스 옆 동거(`*.test.tsx`)일 수 있음. | false(warn) | 동거 패턴이면 디렉토리 강제 X, naming으로 관리 |
-| (루트) | 설정 파일은 루트에 평탄 배치(아래 §1.1). | n/a | 디렉토리 아닌 파일군 — `directories[]`에 넣지 않음 |
+| `src/` | Root of the application source. All build-target code lives here. | true | If the framework-specific location is `app/` etc., substitute that path |
+| `src/components/` | Reusable UI components. Presentation units not tied to a route. | true | |
+| `src/pages/` or `src/routes/` | Routing entry points (pages/views). Next=`pages/`·`app/`, SvelteKit=`routes/`. | true | Register only whichever of the two actually exists |
+| `src/lib/` | Framework-agnostic domain logic·utilities·client. Reusable code that is not UI. | true | |
+| `src/api/` | API routes·server handlers·backend endpoints. | false(warn) | May move to `app/api/`·`server/` depending on framework |
+| `public/` | Static assets served as-is without a build (favicons·images·`robots.txt`). | true | Vite uses `public/`, some use `static/`·`assets/` |
+| `tests/` | Tests. Or may co-locate beside the source (`*.test.tsx`). | false(warn) | If co-located, don't force a directory; manage via naming |
+| (root) | Config files are placed flat at the root (§1.1 below). | n/a | A group of files, not a directory — not put into `directories[]` |
 
-**역할 경계(audit가 위반으로 보는 것):**
-- `components/`에 라우트·서버 전용 코드 → 위반(역할 혼입)
-- `lib/`에 React/Vue 컴포넌트(`.tsx` UI) → `components/`로 가야 함(warn)
-- `public/`에 소스 코드(`.ts`/`.js`) → 위반(정적 자산만 와야 함)
-- 비즈니스 로직이 `pages/`에 직접 → `lib/`로 추출 권고(info)
+**Role boundaries (what audit treats as a violation):**
+- route·server-only code in `components/` → violation (role mixing)
+- React/Vue components (`.tsx` UI) in `lib/` → must go to `components/` (warn)
+- source code (`.ts`/`.js`) in `public/` → violation (only static assets should appear)
+- business logic directly in `pages/` → recommend extracting to `lib/` (info)
 
-### 1.1 루트 설정 파일 (디렉토리 아님 — naming/ignore로만 다룸)
+### 1.1 Root config files (not a directory — handled only by naming/ignore)
 
-웹앱 관례상 설정은 **루트 평탄 배치**가 정상이다(이를 위반으로 잡지 말 것).
-`package.json`, `package-lock.json`/`pnpm-lock.yaml`/`yarn.lock`,
+By web-app convention, configs are normally placed **flat at the root** (do not flag this as a
+violation). `package.json`, `package-lock.json`/`pnpm-lock.yaml`/`yarn.lock`,
 `tsconfig.json`, `.eslintrc.*`/`eslint.config.*`, `.prettierrc.*`,
-`vite.config.*`/`next.config.*` 등, `.env*`, `Dockerfile`, `README.md`.
-→ 이들은 `structure.directories[]`가 아니라, 루트 허용 목록으로 audit가 "루트 잡동사니"를
-판별할 때의 화이트리스트로 쓴다.
+`vite.config.*`/`next.config.*` etc., `.env*`, `Dockerfile`, `README.md`.
+→ These are not `structure.directories[]`; they are used as a root allow-list — a whitelist for audit
+when it judges "root clutter".
 
 ---
 
-## 2. 명명 규칙 (→ `naming.patterns[]`, regex = Python `re`)
+## 2. Naming rules (→ `naming.patterns[]`, regex = Python `re`)
 
-웹 생태계는 **단일 표준이 없다**. 같은 프로젝트도 React=컴포넌트 PascalCase,
-SvelteKit/파일라우팅=kebab-case가 공존한다. 따라서 시드는 **충돌하지 않는 보수적 규칙**만
-깔고, 실제 우세 패턴은 스캔이 측정해 교정한다. severity는 대부분 `warn`(생태계 편차 존중).
+The web ecosystem has **no single standard**. Even within one project, React=component PascalCase
+and SvelteKit/file-routing=kebab-case coexist. So the seed lays down only **conservative
+non-conflicting rules**, and the scan measures the actual predominant pattern and corrects it. Most
+severities are `warn` (respecting ecosystem variance).
 
-| applies_to (시드 glob) | regex (basename) | description | severity |
+| applies_to (seed glob) | regex (basename) | description | severity |
 |:---|:---|:---|:---|
-| `src/components/**/*.{tsx,jsx,vue}` | `^[A-Z][A-Za-z0-9]*\.(tsx\|jsx\|vue)$` | React/Vue 컴포넌트 파일은 PascalCase. | warn |
-| `src/{lib,api,utils}/**/*.{ts,js}` | `^[a-z][a-z0-9]*([-.][a-z0-9]+)*\.(ts\|js)$` | 비컴포넌트 모듈은 kebab-case(또는 dotted). | warn |
-| `src/pages/**/*` 또는 `src/routes/**/*` | `^[a-z0-9\[\]._-]+$` | 파일라우팅 경로는 소문자 kebab + 동적 세그먼트 `[id]`. | warn |
-| `public/**/*` | `^[a-z0-9._-]+$` | 정적 자산은 소문자 kebab(URL 안전). | warn |
-| `**/*.{test,spec}.{ts,tsx,js,jsx}` | `^[A-Za-z0-9.-]+\.(test\|spec)\.(ts\|tsx\|js\|jsx)$` | 테스트는 `<name>.test.*`/`.spec.*` 접미사. | info |
-| (env) `.env*` | `^\.env(\.[a-z]+)?$` | 환경파일은 `.env`·`.env.local`·`.env.production` 형태. | info |
+| `src/components/**/*.{tsx,jsx,vue}` | `^[A-Z][A-Za-z0-9]*\.(tsx\|jsx\|vue)$` | React/Vue component files are PascalCase. | warn |
+| `src/{lib,api,utils}/**/*.{ts,js}` | `^[a-z][a-z0-9]*([-.][a-z0-9]+)*\.(ts\|js)$` | Non-component modules are kebab-case (or dotted). | warn |
+| `src/pages/**/*` or `src/routes/**/*` | `^[a-z0-9\[\]._-]+$` | File-routing paths are lowercase kebab + dynamic segment `[id]`. | warn |
+| `public/**/*` | `^[a-z0-9._-]+$` | Static assets are lowercase kebab (URL-safe). | warn |
+| `**/*.{test,spec}.{ts,tsx,js,jsx}` | `^[A-Za-z0-9.-]+\.(test\|spec)\.(ts\|tsx\|js\|jsx)$` | Tests use the `<name>.test.*`/`.spec.*` suffix. | info |
+| (env) `.env*` | `^\.env(\.[a-z]+)?$` | Env files take the form `.env`·`.env.local`·`.env.production`. | info |
 
-**규칙 합성 지침 (rule-architect에게):**
-- 스캔이 **컴포넌트 우세 케이스(PascalCase vs kebab)** 를 측정하면 그 우세를 따라 regex를 교정.
-  예: 파일라우팅 프레임워크라 컴포넌트도 kebab이면 PascalCase 규칙을 강등/삭제.
-- 두 케이스가 **혼재**하면(흔함) regex로 강제하지 말고 `severity: info`로 관찰만 남기고,
-  반복 관찰을 `omp-learn`이 승격하도록 둔다(섣부른 error 금지).
-- `index.{ts,tsx}` 같은 배럴 파일, `_app`/`_document`/`+page`/`+layout` 같은 프레임워크
-  예약 파일명은 **예외**로 두고 PascalCase/kebab 검사에서 제외.
-
----
-
-## 3. Dataset 관례 (web-app = 경량)
-
-웹앱은 ML 프로젝트가 아니다. **dataset 추적은 가벼움**이 기본.
-
-- 대부분의 web-app은 추적할 "dataset"이 없다 → `omp-dataset`는 보통 **비활성** 권고.
-- 추적할 가치가 있는 경우: 시드 데이터(`prisma/seed.*`, `db/seeds/`), 픽스처
-  (`tests/fixtures/`, `__fixtures__/`), 정적 콘텐츠 데이터(`content/`·`data/*.json`/`*.md`).
-  → 이들은 **메타데이터-only**(manifest.json에 SHA256·크기·lineage)로만 등록. 실제 파일 불이동.
-- `public/`의 이미지/미디어 번들은 dataset이 아니라 **정적 자산**(STRUCTURE 영역). manifest에
-  넣지 말 것.
-- DVC/git-lfs 흔적은 web-app에서 드물지만 `.dvc/`·`.gitattributes`(lfs) 감지 시 위임 원칙 동일
-  (manifest는 메타만 미러).
-
-> 요약: web-app 프리셋은 dataset 슬롯을 **열어두되 기본 OFF**. 시드/픽스처가 실재할 때만 켠다.
+**Rule synthesis guidance (for rule-architect):**
+- If the scan measures a **component-predominant case (PascalCase vs kebab)**, correct the regex to
+  follow that predominance. E.g., if it's a file-routing framework so components are also kebab,
+  demote/remove the PascalCase rule.
+- If the two cases are **mixed** (common), don't enforce via regex; leave only an observation at
+  `severity: info` and let `omp-learn` promote it from repeated observations (no premature error).
+- Treat barrel files like `index.{ts,tsx}` and framework-reserved filenames like
+  `_app`/`_document`/`+page`/`+layout` as **exceptions** and exclude them from PascalCase/kebab checks.
 
 ---
 
-## 4. omp-init이 이 프리셋을 스캔에 매핑하는 법 (합성 절차)
+## 3. Dataset convention (web-app = lightweight)
 
-`omp-init`은 이 카드를 **그대로 쓰지 않는다.** 아래 합성을 거쳐 초안 `rules.json`을 만든다.
+A web app is not an ML project. **Lightweight dataset tracking** is the default.
 
-1. **존재 교집합** — 이 카드의 시드 디렉토리 중 **실제 폴더에 존재하는 것만**
-   `structure.directories[]`에 넣는다. 존재하지 않는 `api/`·`tests/`는 넣지 않거나
-   `enforced:false`로 둔다(아직 없을 뿐 위반은 아님).
-2. **경로 치환** — 프레임워크 신호로 시드 경로를 실제 경로에 맞춘다.
-   Next.js App Router → `pages/`를 `app/`로, `api/`를 `app/api/`로. SvelteKit → `pages/`를
-   `routes/`로. Vite 순수 → `pages/` 없을 수 있음(제거).
-3. **convention 확정** — `src/`가 있으면 `"src-layout"`, 소스가 루트 직배치면 `"flat"`.
-4. **naming 측정 교정** — §2 시드 regex를 스캔이 잰 우세 케이스로 교정. 혼재면 `info`로 강등.
-5. **ignore 시드** — 아래 §5를 `ignore[]`에 주입.
-6. **specificity = 0** — 합성 직후엔 프리셋 출발점. `project.preset_origin = "web-app"`.
-   `project.name`은 `package.json`의 `name` 필드 또는 루트 폴더명.
-7. **사람 게이트** — 초안 `rules.json` + STRUCTURE.md/NAMING.md를 사람에게 보여주고 승인받는다.
-   자동 강제 없음.
+- Most web-apps have no "dataset" to track → `omp-dataset` is usually recommended **inactive**.
+- Cases worth tracking: seed data (`prisma/seed.*`, `db/seeds/`), fixtures
+  (`tests/fixtures/`, `__fixtures__/`), static content data (`content/`·`data/*.json`/`*.md`).
+  → Register these as **metadata-only** (SHA256·size·lineage in manifest.json) only. The actual files
+  are not moved.
+- Image/media bundles in `public/` are not datasets but **static assets** (STRUCTURE domain). Do not
+  put them in the manifest.
+- DVC/git-lfs traces are rare in web-app, but on detecting `.dvc/`·`.gitattributes`(lfs) the
+  delegation principle is the same (the manifest mirrors metadata only).
 
-**스캔 ↔ 프리셋 충돌 처리:** 실제 폴더가 프리셋과 다르면(예: `src/` 없이 루트 직배치, 또는
-`features/` 기반 구조) **스캔이 이긴다.** 프리셋은 *이름·역할 어휘*를 제공할 뿐, 실재하지 않는
-구조를 강요하지 않는다. 충돌은 STRUCTURE.md에 한 줄로 기록("프리셋 기본 `src/pages/` 대신
-이 프로젝트는 `app/` 라우터 사용").
+> Summary: the web-app preset **keeps the dataset slot open but OFF by default**. Turn it on only when
+> seeds/fixtures actually exist.
 
 ---
 
-## 5. ignore 시드 (→ `rules.json.ignore[]`)
+## 4. How omp-init maps this preset onto the scan (synthesis procedure)
 
-web-app에서 audit가 항상 건너뛰어야 하는 글롭(노이즈 억제):
+`omp-init` **does not use this card as-is.** It goes through the synthesis below to produce a draft
+`rules.json`.
+
+1. **Existence intersection** — among this card's seed directories, put **only those that actually
+   exist in the folder** into `structure.directories[]`. Do not include nonexistent `api/`·`tests/`,
+   or leave them at `enforced:false` (merely not there yet, not a violation).
+2. **Path substitution** — match seed paths to actual paths via framework signals.
+   Next.js App Router → `pages/` to `app/`, `api/` to `app/api/`. SvelteKit → `pages/` to
+   `routes/`. Plain Vite → `pages/` may not exist (remove).
+3. **Confirm convention** — `"src-layout"` if `src/` exists, `"flat"` if source is placed directly at the root.
+4. **Naming measurement correction** — correct the §2 seed regexes by the predominant case the scan
+   measured. If mixed, demote to `info`.
+5. **ignore seed** — inject §5 below into `ignore[]`.
+6. **specificity = 0** — right after synthesis it's the preset starting point. `project.preset_origin = "web-app"`.
+   `project.name` is the `name` field of `package.json` or the root folder name.
+7. **Human gate** — show the draft `rules.json` + STRUCTURE.md/NAMING.md to the human and get
+   approval. No automatic enforcement.
+
+**Handling scan ↔ preset conflicts:** if the actual folder differs from the preset (e.g., root-direct
+placement without `src/`, or a `features/`-based structure), **the scan wins.** The preset only
+provides a *naming·role vocabulary*; it does not force a structure that does not exist. Record the
+conflict in STRUCTURE.md in one line ("this project uses the `app/` router instead of the preset
+default `src/pages/`").
+
+---
+
+## 5. ignore seed (→ `rules.json.ignore[]`)
+
+Globs that audit should always skip in web-app (noise suppression):
 
 ```
 node_modules/**
@@ -161,33 +169,36 @@ coverage/**
 .omp/**
 ```
 
-> `.env*`는 ignore이자 §2의 naming 관찰 대상(이중 등재 의도적 — 비밀은 스캔하되 audit
-> 잡동사니 판정에선 제외).
+> `.env*` is both an ignore and a §2 naming observation target (the double listing is intentional —
+> scan secrets but exclude them from the audit clutter judgment).
 
 ---
 
-## 6. omp-learn이 web-app에서 전형적으로 특화하는 것
+## 6. What omp-learn typically specializes in web-app
 
-운영하며 `learned.md`에 쌓이고 승격되는 전형 관찰(specificity를 0→1로 올리는 후보):
+Typical observations that accumulate in `learned.md` during operation and get promoted (candidates
+that raise specificity 0→1):
 
-- **컴포넌트 위치 규칙 확정** — "이 프로젝트는 컴포넌트를 `src/components/<feature>/`로
-  feature-grouped한다" → 시드의 평탄 `components/`를 feature 디렉토리 규칙으로 대체.
-- **명명 케이스 확정** — 혼재였던 PascalCase/kebab이 한쪽으로 수렴하면 `info`→`warn`/`error`로
-  승격하고 regex를 고정.
-- **라우터 종류 고정** — `pages/` vs `app/` vs `routes/` 중 실제 쓰는 하나만 enforced로 남기고
-  나머지 시드 후보 제거.
-- **테스트 배치 규칙** — "테스트는 항상 소스 옆 `*.test.tsx` 동거" vs "항상 `tests/` 분리"가
-  3회 이상 일관되면 둘 중 하나를 프로젝트 규칙으로 고정.
-- **공유 코드 경계** — `lib/` vs `utils/` vs `shared/` 중 이 팀이 쓰는 어휘로 통일.
-- **자산 경로** — `public/` vs `static/` vs `assets/` 실제 사용 경로로 고정.
+- **Fix the component location rule** — "this project feature-groups components into
+  `src/components/<feature>/`" → replace the seed's flat `components/` with a feature-directory rule.
+- **Fix the naming case** — when a previously mixed PascalCase/kebab converges to one side, promote
+  `info`→`warn`/`error` and fix the regex.
+- **Fix the router kind** — among `pages/` vs `app/` vs `routes/`, leave only the one actually used as
+  enforced and remove the remaining seed candidates.
+- **Test placement rule** — if "tests always co-locate beside the source as `*.test.tsx`" vs "always
+  separated in `tests/`" is consistent 3+ times, fix one of the two as the project rule.
+- **Shared code boundary** — unify on whichever of `lib/` vs `utils/` vs `shared/` this team uses.
+- **Asset path** — fix to the actually-used path among `public/` vs `static/` vs `assets/`.
 
-각 승격은 사람 승인 게이트를 거치며, 승격 시 `learned_refs[]`에 출처 관찰 ID를 남겨 추적한다.
+Each promotion goes through a human approval gate, and on promotion leaves the source observation ID
+in `learned_refs[]` for traceability.
 
 ---
 
-## 7. 합성 결과 예시 (초안 rules.json 골격 — 참고용)
+## 7. Synthesis result example (draft rules.json skeleton — for reference)
 
-스캔이 Next.js App Router + TypeScript + `src/` 레이아웃을 발견했을 때의 합성 초안(축약):
+A synthesized draft (abbreviated) for when the scan finds Next.js App Router + TypeScript + `src/`
+layout:
 
 ```json
 {
@@ -197,27 +208,27 @@ coverage/**
   "structure": {
     "convention": "src-layout",
     "directories": [
-      { "path": "src", "role": "애플리케이션 소스 루트", "enforced": true },
-      { "path": "src/components", "role": "재사용 UI 컴포넌트", "enforced": true },
-      { "path": "src/app", "role": "App Router 라우트 진입점", "enforced": true },
-      { "path": "src/app/api", "role": "서버 API 라우트 핸들러", "enforced": false },
-      { "path": "src/lib", "role": "프레임워크 비종속 도메인 로직·유틸", "enforced": true },
-      { "path": "public", "role": "그대로 서빙되는 정적 자산", "enforced": true }
+      { "path": "src", "role": "Application source root", "enforced": true },
+      { "path": "src/components", "role": "Reusable UI components", "enforced": true },
+      { "path": "src/app", "role": "App Router route entry points", "enforced": true },
+      { "path": "src/app/api", "role": "Server API route handlers", "enforced": false },
+      { "path": "src/lib", "role": "Framework-agnostic domain logic·utilities", "enforced": true },
+      { "path": "public", "role": "Static assets served as-is", "enforced": true }
     ]
   },
   "naming": {
     "patterns": [
       { "applies_to": "src/components/**/*.tsx",
         "regex": "^[A-Z][A-Za-z0-9]*\\.tsx$",
-        "description": "컴포넌트는 PascalCase", "severity": "warn" },
+        "description": "Components are PascalCase", "severity": "warn" },
       { "applies_to": "src/lib/**/*.ts",
         "regex": "^[a-z][a-z0-9]*([-.][a-z0-9]+)*\\.ts$",
-        "description": "lib 모듈은 kebab-case", "severity": "warn" }
+        "description": "lib modules are kebab-case", "severity": "warn" }
     ]
   },
   "ignore": ["node_modules/**", ".next/**", "dist/**", ".env*", ".git/**", ".omp/**"]
 }
 ```
 
-> 이 예시는 **참고용 골격**이다. 실제 init은 위 §4 합성 절차로 스캔 결과에 맞춰 경로·regex·
-> 등재 디렉토리를 확정한다. 절대 이 예시를 그대로 복사하지 말 것.
+> This example is a **reference skeleton**. The actual init confirms paths·regex·listed directories
+> against the scan result via the §4 synthesis procedure above. Never copy this example verbatim.

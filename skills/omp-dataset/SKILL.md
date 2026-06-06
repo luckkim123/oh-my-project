@@ -1,59 +1,59 @@
 ---
 name: omp-dataset
 description: |
-  dataset 등록·추적 — 데이터 파일의 SHA-256(hashlib)·size·rows·split·lineage를 `.omp/manifest.json`에
-  기록하고 사람용 `.omp/DATASETS.md` 카탈로그를 갱신한다. 메타데이터-only: 실제 데이터는 절대 복사·이동·push
-  하지 않고 "바뀌었나/어디서 왔나/누수 없나"만 추적한다. DVC/git-lfs 감지 시 소유권을 주장하지 않고 위임(메타만 미러).
+  dataset registration and tracking — records each data file's SHA-256 (hashlib), size, rows, split, and lineage in `.omp/manifest.json`
+  and refreshes the human-readable `.omp/DATASETS.md` catalog. Metadata-only: never copies, moves, or pushes the actual data; it only
+  tracks "has it changed / where did it come from / is there leakage". On detecting DVC/git-lfs it does not claim ownership but delegates (mirrors metadata only).
   Triggers: dataset 등록, 데이터셋 추적, 체크섬, SHA256, manifest 갱신, split 추적, lineage,
   register dataset, track dataset, data inventory, train val leakage, 데이터 카탈로그
 ---
 
-# omp-dataset — dataset 등록·추적 (메타데이터-only 인벤토리)
+# omp-dataset — dataset registration and tracking (metadata-only inventory)
 
 <Purpose>
-프로젝트의 데이터 파일을 `.omp/manifest.json`에 **순수 메타데이터**로 등록한다 — SHA-256 체크섬·바이트 크기·행수·train/val/test split 멤버십·lineage(어디서 왔고 무엇이 만들었나)·source. 등록 후 페어인 사람용 `.omp/DATASETS.md` 카탈로그를 같은 패스에서 재생성한다. 코드의 "인벤토리 대장" — 실제 데이터는 한 바이트도 안 옮기고, 오직 *기술*만 해서 "이 파일 바뀌었나?", "train/val 누수 없나?", "이거 어디서 왔나?"를 답할 수 있게 만든다. dataset-curator agent에게 단일 위임한다.
+Registers the project's data files into `.omp/manifest.json` as **pure metadata** — SHA-256 checksum, byte size, row count, train/val/test split membership, lineage (where it came from and what produced it), and source. After registration it regenerates the paired human-readable `.omp/DATASETS.md` catalog in the same pass. It is the "inventory ledger" of the code — it moves not a single byte of the actual data, only *describes* it, so it can answer "has this file changed?", "is there train/val leakage?", "where did this come from?". It delegates singly to the dataset-curator agent.
 </Purpose>
 
 <Use_When>
-- 데이터 파일을 `.omp/manifest.json`에 처음 등록할 때 — **포맷은 무관**. 정형 ML 입력(`.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord`)뿐 아니라 로보틱스·센서·미디어 데이터도 모두 dataset이다: ROS bag(`.bag`/`.db3` + `metadata.yaml`), 이미지·비디오(`.png`/`.jpg`/`.mp4`), 포인트클라우드(`.pcd`/`.las`), 오디오, 체크포인트·임베딩 등 "한 번 만들어지면 고정돼야 하고 추적할 가치가 있는" 모든 데이터.
-- 데이터가 바뀌었는지(SHA-256 drift) 추적·갱신하고 싶을 때
-- train/val/test split 그룹을 묶어 누수 점검 기반을 만들고 싶을 때
-- lineage(원본 → 생성 스크립트 → 산출물)를 기록해 provenance를 남기고 싶을 때
-- `.omp/DATASETS.md` 사람용 데이터 카탈로그를 manifest와 동기화하고 싶을 때
+- When first registering a data file into `.omp/manifest.json` — **format is irrelevant**. Not only structured ML inputs (`.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord`) but also robotics, sensor, and media data are all datasets: ROS bags (`.bag`/`.db3` + `metadata.yaml`), images and video (`.png`/`.jpg`/`.mp4`), point clouds (`.pcd`/`.las`), audio, checkpoints, embeddings, etc. — any data that "must stay fixed once produced and is worth tracking".
+- When you want to track and refresh whether the data has changed (SHA-256 drift)
+- When you want to group train/val/test splits to build a basis for leakage checks
+- When you want to record lineage (source → generation script → output) to leave provenance behind
+- When you want to keep the `.omp/DATASETS.md` human-readable data catalog in sync with the manifest
 
-> **dataset 판별 기준 = 포맷이 아니라 *역할*.** "이 바이트가 바뀌었는지 추적하고 싶은, 고정돼야 하는 입력·수집 데이터인가?"가 기준이다. `.npy`라도 매 런 새로 덮어쓰는 *출력*이면 dataset이 아니고(→ run artifact), `.bag`이라도 한 번 수집되면 불변인 *입력*이면 dataset이다. 확장자 화이트리스트가 정의를 좁히지 않게 할 것 — `rows`처럼 정형데이터 전용 필드는 그냥 생략하면 비정형 데이터도 그대로 등록된다.
+> **The criterion for what counts as a dataset = *role*, not format.** The test is "is this an input/collected data that must stay fixed and whose byte-level changes you want to track?". Even a `.npy` that is overwritten fresh every run is an *output*, not a dataset (→ run artifact); even a `.bag` is a dataset if it is an immutable *input* once collected. Do not let the extension whitelist narrow the definition — fields like `rows` that are specific to structured data can simply be omitted, so unstructured data registers fine as-is.
 </Use_When>
 
 <Do_Not_Use_When>
-- 실제 데이터 파일을 **옮겨야** 하면 → 이건 dataset 레인이 전혀 아님. 파일 재배치는 `omp-organize`(organizer + `references/safe-fileops.md`)
-- 폴더 구조·확장자 패턴을 **귀납·분류**하는 거라면 → `omp-init`/project-scanner (manifest는 dataset만 다룸)
-- 구조·명명 **규칙**을 만들거나 바꾸는 거라면 → `omp-codify`/rule-architect (`rules.json`)
-- 규칙 준수 PASS/FAIL **판정**이 필요하면 → `omp-audit`/auditor (dataset-curator는 self-audit 안 함)
-- 데이터가 이미 **DVC/git-lfs로 관리**되고 그걸 omp가 인수해야 한다고 느낄 때 → 인수 금지. 감지 시 위임(메타만 미러)이 정책
+- If you need to **move** actual data files → this is not the dataset lane at all. File relocation is `omp-organize` (organizer + `references/safe-fileops.md`)
+- If you are **inducing/classifying** folder structure or extension patterns → `omp-init`/project-scanner (the manifest handles datasets only)
+- If you are creating or changing structure/naming **rules** → `omp-codify`/rule-architect (`rules.json`)
+- If you need a PASS/FAIL **verdict** on rule compliance → `omp-audit`/auditor (dataset-curator does not self-audit)
+- When the data is already **managed by DVC/git-lfs** and you feel omp should take it over → do not take it over. On detection, the policy is to delegate (mirror metadata only)
 </Do_Not_Use_When>
 
 <Execution_Policy>
-- ⚠️ **메타데이터-only, 절대 원칙**: dataset-curator는 데이터 파일을 `mv`/`cp`/`rm`/symlink/`dvc push`/`git lfs push`/업로드 **절대 안 함**. 해시하려고 바이트를 *읽는* 것이 데이터 파일과의 유일한 접촉. 데이터 이동은 dataset 레인 밖(`omp-organize`의 organizer 소관). "등록하면서 옮기는" 것이 이 도메인의 1순위 실패 모드 — citation 날조의 dataset판.
-- ⚠️ **SHA-256은 stdlib `hashlib`로 결정적**: raw 파일 바이트를 청크 스트리밍(예: 1 MiB)해서 lowercase 64-hex. OS별 CLI(`shasum`/`sha256sum`/`certutil`)를 진실의 출처로 쓰지 않음(hashlib은 macOS/Linux/Windows 동일). 해시가 비결정적이면 "바뀌었나?" 신호 자체가 무의미. 너무 큰 파일은 정직하게 `"sha256": "UNHASHED"`(스키마 허용) + size/mtime로 대체 — **가짜 해시 절대 날조 금지**.
-- ⚠️ **메타데이터 발명 금지**: 안 센 `rows`, 그럴듯한 `lineage`, 지어낸 `source` 금지. 모르면 optional 필드 **생략**. 틀렸지만 그럴듯한 lineage가 없는 것보다 나쁨. 모호하면(split 배정/lineage/이게 정말 dataset인가) 추측 말고 사람에게 surface.
-- ⚠️ **DVC/git-lfs는 경쟁이 아니라 위임**: `.dvc/`·`*.dvc`·`.gitattributes`의 `filter=lfs` 감지 시 `manifest.json.managed_by_external`(`tool: "dvc"` 또는 `"git-lfs"`) 설정 + 메타만 미러 + `DATASETS.md`에 "외부 관리 중" 명시. 재-해시로 "검증"하거나 push 금지.
-- **페어 재생성은 강제·동일 패스**: `manifest.json.datasets[]`가 바뀌면 같은 런에서 `DATASETS.md` 재생성(`references/output-layout.md`: 사람 .md ↔ 기계 .json은 절대 drift 금지).
-- **결정적 출력**: `datasets[]`를 안정 키(`id`)로 정렬 + 안정 JSON 포맷(정렬 키·고정 들여쓰기) → 안 바뀐 폴더는 byte-identical manifest. 경로는 `pathlib.Path`로, dataset `path`는 **프로젝트 루트 상대경로**(머신/OS 이식성).
-- **self-approval 금지**: dataset-curator는 등록만 함. dataset 상태 "audited/compliant" 선언은 `omp-audit`(auditor) 별도 레인. 핸드오프는 "registered — ready for audit", 절대 "registered and verified-clean" 아님.
-- 생성은 단일 신중(citation-safe 철학의 dataset판) — dataset-curator를 병렬로 여러 개 띄우지 않음.
+- ⚠️ **Metadata-only, absolute rule**: the dataset-curator **never** does `mv`/`cp`/`rm`/symlink/`dvc push`/`git lfs push`/upload on data files. *Reading* bytes to hash them is the only contact with a data file. Moving data is outside the dataset lane (it belongs to `omp-organize`'s organizer). "Moving while registering" is the #1 failure mode of this domain — the dataset equivalent of citation fabrication.
+- ⚠️ **SHA-256 is deterministic via the stdlib `hashlib`**: stream the raw file bytes in chunks (e.g. 1 MiB) to a lowercase 64-hex digest. Do not use per-OS CLIs (`shasum`/`sha256sum`/`certutil`) as the source of truth (hashlib is identical on macOS/Linux/Windows). If the hash is nondeterministic, the "has it changed?" signal itself becomes meaningless. For files too large, honestly substitute `"sha256": "UNHASHED"` (the schema allows it) + size/mtime — **never fabricate a fake hash**.
+- ⚠️ **Do not invent metadata**: no uncounted `rows`, no plausible-looking `lineage`, no made-up `source`. If you don't know, **omit** the optional field. A wrong-but-plausible lineage is worse than none. If ambiguous (split assignment / lineage / whether this is even a dataset), don't guess — surface it to the human.
+- ⚠️ **DVC/git-lfs is delegation, not competition**: on detecting `.dvc/`, `*.dvc`, or `filter=lfs` in `.gitattributes`, set `manifest.json.managed_by_external` (`tool: "dvc"` or `"git-lfs"`) + mirror metadata only + note "managed externally" in `DATASETS.md`. Do not re-hash to "verify" or push.
+- **Paired regeneration is mandatory and in the same pass**: when `manifest.json.datasets[]` changes, regenerate `DATASETS.md` in the same run (`references/output-layout.md`: the human .md and machine .json must never drift).
+- **Deterministic output**: sort `datasets[]` by a stable key (`id`) + a stable JSON format (sorted keys, fixed indentation) → an unchanged folder yields a byte-identical manifest. Paths use `pathlib.Path`, and a dataset `path` is **a project-root-relative path** (machine/OS portability).
+- **No self-approval**: the dataset-curator only registers. Declaring dataset state "audited/compliant" is the separate `omp-audit` (auditor) lane. The handoff is "registered — ready for audit", never "registered and verified-clean".
+- Generation is single and careful (the dataset equivalent of the citation-safe philosophy) — do not spin up multiple dataset-curators in parallel.
 </Execution_Policy>
 
 <Steps>
-1. **`.omp/` 존재 확인**: `<project>/.omp/`가 없으면 dataset 등록 불가 — 먼저 `omp-init`을 돌려 부트스트랩해야 함을 알리고 중단. 있으면 기존 `manifest.json`(갱신 대상, clobber 금지)과 계약(`references/schemas/manifest.schema.json`)을 로드.
-2. **등록 범위 확인**: 사용자가 명시한 경로 또는 데이터 위치(`data/`/`datasets/`/`raw/`/`processed/` + 정형 `.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord` *또는* 비정형 `.bag`/`.db3`/`.png`/`.mp4`/`.pcd` 등 — 확장자는 예시일 뿐, 판별은 위 "역할" 기준). split 멤버십·lineage·source를 사용자가 알면 받아두되, 모르는 건 비워두고 dataset-curator가 증거 기반으로만 채우게 함.
-3. **외부 버저닝 먼저 감지**(해시 전): `.dvc/`·`*.dvc`·`.gitattributes`의 `filter=lfs`. 발견 시 위임 정책 — `managed_by_external` 설정 + 메타만 미러, 인수·push 금지를 진행 방침으로 확정.
-4. **dataset-curator에게 단일 위임** — `Task(subagent_type="oh-my-project:dataset-curator", ...)`:
-   - **입력**: (a) 등록 범위 데이터 파일 경로(있으면), (b) 알려진 split/lineage/source 힌트(있으면 — 없으면 생략), (c) 프로젝트 루트, (d) 계약 카드 `references/schemas/manifest.schema.json`, (e) 출력 경로 규약 `references/output-layout.md`, (f) 데이터-이동 경계 참조 `references/safe-fileops.md`(이동은 organizer 소관임을 명시), (g) 자가학습 채널 `references/learning-protocol.md`(반복 관찰은 `.omp/learned.md`/`.omp/wiki/`로 — 규칙 승격은 `omp-learn`).
-   - **지시**: `.omp/manifest.json`과 `.omp/DATASETS.md` **두 파일만** 쓴다. SHA-256은 stdlib `hashlib`로 raw 바이트 스트리밍(결정적, lowercase 64-hex), 너무 크면 정직한 `UNHASHED`. `rows`는 실제로 셌을 때만, `lineage`는 실재하는 스크립트·원본 증거가 있을 때만, `split.group`으로 형제 split 묶기. 데이터 파일 `mv`/`cp`/`rm`/push **절대 금지**. DVC/git-lfs 감지 시 `managed_by_external` + 메타만 미러. 스키마 검증 후 쓰기 — `manifest.json` 쓰기는 부분쓰기로 기존 인벤토리가 손상되지 않도록 `hooks/omp_atomic.py`의 atomic write를 경유한다(T20). `datasets[]`는 `id`로 정렬, 모호하면 발명 말고 surface, self-approve 금지("registered — ready for audit" 핸드오프).
-5. dataset-curator 산출 받아 정리: 등록된 dataset 목록(id·경로·sha256·size·rows·split·source) + 외부 버저닝 감지/조치 + 쓴 파일 2개 + 증거 기반 lineage/split 노트 + 사람 결정 필요한 모호 항목(발명 안 함) + "메타데이터-only 확인(데이터 0개 이동) + ready for omp-audit" 핸드오프.
-6. 사람 결정 필요 항목(모호한 split/lineage, `UNHASHED` 처리)이 있으면 사용자에게 확인 요청 후 dataset-curator 재위임으로 manifest 갱신. 규칙으로 굳힐 가치가 있는 반복 패턴(예: "이 폴더의 .pkl은 항상 processed split")은 `omp-learn`으로 승격(사람 게이트) — dataset-curator가 직접 규칙화하지 않음.
+1. **Confirm `.omp/` exists**: if `<project>/.omp/` is absent, dataset registration is impossible — announce that `omp-init` must be run first to bootstrap, and stop. If it exists, load the existing `manifest.json` (the update target, do not clobber) and the contract (`references/schemas/manifest.schema.json`).
+2. **Confirm registration scope**: the user-specified paths or data locations (`data/`/`datasets/`/`raw/`/`processed/` + structured `.parquet`/`.csv`/`.npy`/`.pkl`/`.h5`/`.tfrecord` *or* unstructured `.bag`/`.db3`/`.png`/`.mp4`/`.pcd` etc. — extensions are only examples; the determination follows the "role" criterion above). Take split membership/lineage/source from the user if they know them, but leave unknowns empty and let the dataset-curator fill them only on the basis of evidence.
+3. **Detect external versioning first** (before hashing): `.dvc/`, `*.dvc`, `filter=lfs` in `.gitattributes`. If found, the delegation policy — set `managed_by_external` + mirror metadata only, confirm as the working policy that takeover/push is forbidden.
+4. **Delegate singly to the dataset-curator** — `Task(subagent_type="oh-my-project:dataset-curator", ...)`:
+   - **Inputs**: (a) the in-scope data file paths (if any), (b) known split/lineage/source hints (if any — otherwise omit), (c) the project root, (d) the contract card `references/schemas/manifest.schema.json`, (e) the output-path convention `references/output-layout.md`, (f) the data-movement boundary reference `references/safe-fileops.md` (stating that movement is the organizer's responsibility), (g) the self-learning channel `references/learning-protocol.md` (recurring observations go to `.omp/learned.md`/`.omp/wiki/` — rule promotion is `omp-learn`).
+   - **Instructions**: write **only the two files** `.omp/manifest.json` and `.omp/DATASETS.md`. SHA-256 via stdlib `hashlib` streaming raw bytes (deterministic, lowercase 64-hex); if too large, an honest `UNHASHED`. `rows` only when actually counted, `lineage` only when there is evidence of a real script/source, group sibling splits via `split.group`. **Never** `mv`/`cp`/`rm`/push a data file. On detecting DVC/git-lfs, `managed_by_external` + mirror metadata only. Write after schema validation — writing `manifest.json` goes through the atomic write in `hooks/omp_atomic.py` so a partial write cannot corrupt the existing inventory (T20). Sort `datasets[]` by `id`, surface rather than invent when ambiguous, no self-approval ("registered — ready for audit" handoff).
+5. Take the dataset-curator's output and consolidate: the list of registered datasets (id, path, sha256, size, rows, split, source) + external-versioning detection/action + the 2 files written + evidence-based lineage/split notes + ambiguous items requiring a human decision (not invented) + the "metadata-only confirmation (0 data files moved) + ready for omp-audit" handoff.
+6. If there are items requiring a human decision (ambiguous split/lineage, `UNHASHED` handling), ask the user to confirm, then re-delegate to the dataset-curator to update the manifest. Recurring patterns worth solidifying into a rule (e.g. "the .pkl in this folder is always the processed split") are promoted via `omp-learn` (human gate) — the dataset-curator does not turn them into rules directly.
 </Steps>
 
 <Output>
-등록된 dataset 목록(id → 상대경로 · sha256(64hex 또는 UNHASHED) · size_bytes · rows · split role/ratio/group · source) + 외부 버저닝 감지 결과 및 조치(DVC/git-lfs → `managed_by_external` 미러 / none) + 쓴 파일 2개(`<project>/.omp/manifest.json`·`<project>/.omp/DATASETS.md`, 같은 패스 재생성으로 drift 0) + 증거 기반 lineage/split 노트 + 사람 확인 필요 잔여(모호한 split·lineage·`UNHASHED` — 발명 안 함) + "메타데이터-only: 데이터 파일 0개 이동/복사/push, 결정적 재실행 = byte-identical manifest, self-approve 안 함 → ready for omp-audit(별도 패스)". 경로·페어링 규약은 `references/output-layout.md`, 스키마는 `references/schemas/manifest.schema.json`가 SSOT.
+The list of registered datasets (id → relative path · sha256 (64hex or UNHASHED) · size_bytes · rows · split role/ratio/group · source) + external-versioning detection result and action (DVC/git-lfs → `managed_by_external` mirror / none) + the 2 files written (`<project>/.omp/manifest.json`·`<project>/.omp/DATASETS.md`, regenerated in the same pass for 0 drift) + evidence-based lineage/split notes + remaining items needing human confirmation (ambiguous split/lineage/`UNHASHED` — not invented) + "metadata-only: 0 data files moved/copied/pushed, deterministic re-run = byte-identical manifest, no self-approval → ready for omp-audit (a separate pass)". The path/pairing convention is the SSOT in `references/output-layout.md`, the schema in `references/schemas/manifest.schema.json`.
 </Output>

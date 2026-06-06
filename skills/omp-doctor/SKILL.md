@@ -1,68 +1,85 @@
 ---
 name: omp-doctor
 description: |
-  omp 설치·전제 자가진단 — hooks 등록·python3 가용성·reference 카드 존재를 점검해
-  "omp 가 이 환경에서 작동할 준비가 됐나"를 PASS/WARN/FAIL 로 보고한다. omp-audit 이
-  *.omp 가 이미 있다고 가정하고* 규칙 준수를 보는 것과 달리, doctor 는 그 이전의 설치
-  층을 본다(audit 과 중복되는 rules.json 스키마 검증은 하지 않는다). read-only, 자동 수정 없음.
+  omp installation/prerequisite self-diagnosis — checks hook registration, python3 availability,
+  and the presence of reference cards to report "is omp ready to work in this environment" as
+  PASS/WARN/FAIL. Unlike omp-audit, which *assumes .omp already exists* and inspects rule
+  compliance, doctor looks at the installation layer that comes before that (it does NOT perform
+  the rules.json schema validation that overlaps with audit). read-only, no auto-fix.
   Triggers: omp 진단, doctor, 설치 점검, omp 작동 확인, 왜 안 되지, hooks 확인,
-  omp-doctor, 설정 점검, 환경 점검, omp 안 돼
+  omp-doctor, 설정 점검, 환경 점검, omp 안 돼,
+  omp diagnose, install check, verify omp works, why isn't it working, check hooks,
+  settings check, environment check, omp broken
 ---
 
-# omp-doctor — 설치·전제 자가진단 (read-only)
+# omp-doctor — installation/prerequisite self-diagnosis (read-only)
 
 <Purpose>
-omp 가 *작동할 준비가 됐는지*를 본다. `omp-audit` 은 `.omp/` 가 이미 있다고 전제하고
-프로젝트 폴더가 규칙을 지키는지(구조/명명/dataset)를 판정하지만, doctor 는 그 **이전 층** —
-hook 이 설치됐나, python3 이 있나, omp 자신의 reference 카드가 온전한가 — 를 점검한다.
-"omp 를 깔았는데 STAGE 줄이 안 뜬다 / 스킬이 카드를 못 찾는다" 같은 *설치* 문제를 잡는 게 목적이다.
+Checks whether omp is *ready to work*. `omp-audit` assumes `.omp/` already exists and judges
+whether the project folder follows the rules (structure/naming/dataset), but doctor inspects the
+**layer before that** — is the hook installed, is python3 present, are omp's own reference cards
+intact. The goal is to catch *installation* problems like "I installed omp but the STAGE line
+doesn't appear / a skill can't find its card."
 </Purpose>
 
 <When_To_Use>
-- omp 를 막 설치했고 제대로 붙었는지 확인하고 싶을 때
-- omp 스킬·hook 이 기대대로 동작하지 않아 원인이 *설치/환경* 인지 *규칙* 인지 가르고 싶을 때
-- 다른 머신(특히 Windows/Linux)에서 omp 가 처음 작동하는지 크로스플랫폼 점검할 때
+- When you just installed omp and want to confirm it attached correctly.
+- When omp skills/hooks aren't behaving as expected and you want to distinguish whether the cause
+  is *installation/environment* or *rules*.
+- When doing a cross-platform check of whether omp works for the first time on another machine
+  (especially Windows/Linux).
 </When_To_Use>
 
 <When_Not_To_Use>
-- 프로젝트 폴더가 `.omp/rules.json` 규칙을 지키는지 보고 싶으면 → `omp-audit` (그건 규칙 준수 게이트).
-  doctor 는 rules.json **스키마 검증을 하지 않는다** — audit 과 중복이라 의도적으로 제외(audit 소관).
-- `.omp/` 를 처음 만들고 싶으면 → `omp-init`. doctor 는 진단만 하지 `.omp/` 를 만들지 않는다.
-- 규칙을 바꾸고 싶으면 → `omp-codify`.
+- If you want to check whether the project folder follows the `.omp/rules.json` rules → `omp-audit`
+  (that's the rule-compliance gate). doctor **does not perform rules.json schema validation** — it's
+  deliberately excluded as overlap (audit's domain).
+- If you want to create `.omp/` for the first time → `omp-init`. doctor only diagnoses; it does not
+  create `.omp/`.
+- If you want to change the rules → `omp-codify`.
 </When_Not_To_Use>
 
 <Execution_Policy>
-- **read-only**: doctor 는 어떤 파일도 쓰거나 고치지 않는다. 진단 결과(PASS/WARN/FAIL + 증거 +
-  고치는 법 1줄)만 보고한다. 자동 수정 없음(설치 수정은 사용자가 의식적으로).
-- **stdlib·크로스플랫폼**: 점검은 python3 stdlib + 표준 CLI 만으로 한다(`python3 --version`,
-  `pathlib` 존재 확인). OS 분기는 `platform`/`os.name`. 절대경로·`~` 하드코딩 금지.
-- **fail-soft**: 한 항목 점검이 실패해도 다른 항목은 계속 본다(한 FAIL 이 전체 진단을 멈추지 않음).
-- **audit 중복 제외**: rules.json/manifest.json *스키마 유효성·specificity 정합* 은 doctor 가 보지
-  않는다(omp-audit Step 1·2 소관). doctor 의 .omp 관련 점검은 "파일이 존재하는가" 수준까지만.
+- **read-only**: doctor does not write or fix any file. It only reports the diagnostic result
+  (PASS/WARN/FAIL + evidence + a one-line fix). No auto-fix (installation fixes are made
+  deliberately by the user).
+- **stdlib/cross-platform**: checks use only python3 stdlib + standard CLI (`python3 --version`,
+  checking for `pathlib` existence). OS branching uses `platform`/`os.name`. No hardcoding of
+  absolute paths or `~`.
+- **fail-soft**: if one item's check fails, the other items still run (one FAIL does not stop the
+  whole diagnosis).
+- **audit-overlap excluded**: doctor does NOT inspect rules.json/manifest.json *schema validity or
+  specificity consistency* (that's the domain of omp-audit Step 1·2). doctor's .omp-related checks
+  go only as far as "does the file exist."
 </Execution_Policy>
 
 <Steps>
-1. **hooks 설치 점검**:
-   - `hooks/omp_route_emit.py`·`hooks/omp_verify_emit.py` 파일이 존재하는가.
-   - `.claude-plugin/plugin.json`(또는 설치 환경의 hooks 등록)에 두 hook 이 UserPromptSubmit /
-     PostToolUse 로 등록돼 있는가. (등록 안 됐으면 STAGE 줄·integrity 리마인더가 안 뜬다 → WARN.)
-   - 실제 동작 확인(선택): `echo '{"prompt":"x"}' | python3 hooks/omp_route_emit.py` 가 exit 0 +
-     `STAGE(project)` 를 담은 JSON 을 내는가.
-2. **python3 가용성 점검**:
-   - `python3 --version` 이 성공하는가(hook·헬퍼의 런타임 전제). 3.x 인가.
-   - `hooks/omp_atomic.py` 의 atomic write 가 동작하는지(SSOT 쓰기 안전 전제, T20) — import 가능 여부.
-3. **reference 카드 온전성 점검**:
-   - `references/` 의 4 카드(`safe-fileops.md`·`output-layout.md`·`omc-backport-analysis.md`·
-     `learning-protocol.md`) 가 모두 존재하는가.
-   - `references/presets/` 에 6 프리셋, `references/schemas/` 에 2 스키마(`rules.schema.json`·
-     `manifest.schema.json`) 가 존재하는가. (스키마 *내용 검증* 은 안 함 — 존재 여부만, audit 중복 제외.)
-4. **종합 판정 보고**: 각 항목을 PASS / WARN / FAIL + 증거(무엇이 없거나 실패했나) + 고치는 법
-   1줄로 보고한다. 전체 한 줄 요약("omp 설치 OK" / "hook 미등록 — 재설치 필요" 등)으로 끝낸다.
-   ⚠️ 어떤 항목도 자동으로 고치지 않는다 — 사용자가 고칠 수 있게 *알려주는* 것이 doctor 의 역할.
+1. **hook installation check**:
+   - Do the `hooks/omp_route_emit.py`·`hooks/omp_verify_emit.py` files exist?
+   - Are the two hooks registered in `.claude-plugin/plugin.json` (or the installation environment's
+     hook registration) as UserPromptSubmit / PostToolUse? (If not registered, the STAGE line and
+     integrity reminder won't appear → WARN.)
+   - Live behavior check (optional): does `echo '{"prompt":"x"}' | python3 hooks/omp_route_emit.py`
+     exit 0 and emit JSON containing `STAGE(project)`?
+2. **python3 availability check**:
+   - Does `python3 --version` succeed (the runtime prerequisite for hooks/helpers)? Is it 3.x?
+   - Does the atomic write in `hooks/omp_atomic.py` work (the safety prerequisite for SSOT writes,
+     T20) — is it importable?
+3. **reference card integrity check**:
+   - Do all 4 cards in `references/` (`safe-fileops.md`·`output-layout.md`·`omc-backport-analysis.md`·
+     `learning-protocol.md`) exist?
+   - Do the 6 presets in `references/presets/` and the 2 schemas in `references/schemas/`
+     (`rules.schema.json`·`manifest.schema.json`) exist? (Schema *content validation* is not done —
+     existence only, audit-overlap excluded.)
+4. **summary judgment report**: report each item as PASS / WARN / FAIL + evidence (what is missing or
+   failed) + a one-line fix. End with a single-line overall summary ("omp install OK" / "hook not
+   registered — reinstall needed", etc.).
+   ⚠️ No item is fixed automatically — doctor's role is to *tell* the user so they can fix it.
 </Steps>
 
 <Output>
-- 3개 축(hooks / python3 / reference 카드) 각각 PASS|WARN|FAIL + 증거 + 1줄 fix.
-- 전체 한 줄 요약(작동 준비 됐나 / 무엇을 고쳐야 하나).
-- ⚠️ rules.json 규칙 준수는 이 보고에 없음 — 그건 `omp-audit` 로 (역할 분리 명시).
+- For each of the 3 axes (hooks / python3 / reference cards): PASS|WARN|FAIL + evidence + 1-line fix.
+- A single-line overall summary (is it ready to work / what needs fixing).
+- ⚠️ rules.json rule compliance is not in this report — that goes through `omp-audit` (role
+  separation stated explicitly).
 </Output>
