@@ -56,12 +56,16 @@ container builds and configs. Each rule is data-driven: a **`rule_id`** entry in
 `traces_to` pointing to a standards-registry entry, and `severity` derived from the normative word
 (MUST→error, SHOULD→warn, MAY→info).
 
-| rule_id | check | rationale | traces_to | severity |
-|:---|:---|:---|:---|:---|
-| `DL3007` | Base image must be pinned to a digest (not `:latest` or floating tags) | Ensures reproducible, auditable builds. Digest pinning (SHA-256) is the strongest guarantee. | DL3007 | warn |
-| `secret-in-env` | No secrets/credentials in `ENV` or `ARG` Dockerfile directives (history visibility) | BuildKit secrets or runtime-mounted secrets prevent secrets from leaking into image history. | BUILDKIT-SECRETS | error |
-| `compose-version` | Remove deprecated `version:` top-level key in Compose files | Modern Compose spec discourages the version field; reliance on compose CLI version is the standard. | COMPOSE-SPEC | warn |
-| `oci-annotations` | Container labels include recommended OCI image annotations (`org.opencontainers.image.*`) | Standardized metadata (authors, source, description, licenses) improves container discoverability and compliance. | OCI-IMAGE-1.1.1 | warn |
+The **enforced** column marks whether `hooks/omp_docker_audit.py` mechanically checks the rule today.
+Enforced rules emit violations during `omp-audit`/`omp-env`; advisory rules are documented best-practice
+seeds that a project may codify but the harness does not yet check automatically.
+
+| rule_id | check | rationale | traces_to | severity | enforced |
+|:---|:---|:---|:---|:---|:---|
+| `DL3007` | Base image must be pinned to a digest (not `:latest` or floating tags) | Ensures reproducible, auditable builds. Digest pinning (SHA-256) is the strongest guarantee. | DL3007 | warn | ✅ yes |
+| `secret-in-env` | No secrets/credentials in `ENV` or `ARG` Dockerfile directives (history visibility) | BuildKit secrets or runtime-mounted secrets prevent secrets from leaking into image history. | BUILDKIT-SECRETS | error | ✅ yes |
+| `compose-version` | Remove deprecated `version:` top-level key in Compose files | Modern Compose spec discourages the version field; reliance on compose CLI version is the standard. | COMPOSE-SPEC | warn | ✅ yes |
+| `oci-annotations` | Container labels include recommended OCI image annotations (`org.opencontainers.image.*`) | Standardized metadata (authors, source, description, licenses) improves container discoverability and compliance. | OCI-IMAGE-1.1.1 | warn | ⚠️ advisory (not yet checked by `omp_docker_audit.py`) |
 
 > **Severity assignment**: `warn` is the default for audit rules (suggests best practice but does not block
 > build). `error` is reserved for security-critical violations (e.g., secrets in history). `info` is rarely
