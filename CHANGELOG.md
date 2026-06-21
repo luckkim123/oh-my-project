@@ -5,7 +5,32 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-21
+
+### Added
+
+- **omp-env stage** — environment assets (Dockerfile/compose) canonical into `.omp/env/`; generation gate (dry-run → approval → verification), personal-value resolver, in-place invariant preserved.
+- **docker environment governance** — `rules.json` `docker_naming` (optional), `manifest.json` `docker_images[]` (optional, external ref), `omp-audit` docker axis (`hooks/omp_docker_audit.py`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version).
+- **provenance tracking** — rule `origin:standard` + `provenance` object (OCI/CIS/SemVer and other external standards; MUST→error / SHOULD→warn) + `standards_registry`. New data file: `references/standards-registry.seed.json`.
+- **docker preset** (`references/presets/docker.md`) + **`docker-mechanisms` reference card** (`references/docker-mechanisms.md`) — scaffold/inventory methodology, multi-user server patterns, pitfalls, remote-training knowledge (absorbed from claudebase docker-env skill, personal values removed).
+
 ### Changed
+
+- omp identity: "folder governance" → "project environment + structure governance" (output-layout.md constitution fence: `.omp/env/` SSOT, root holds build-tool view only).
+- `omp-codify` (docker_naming + provenance), `omp-dataset` (docker_images[]), `omp-audit` / `auditor` (docker axis, image-drift exception handling).
+
+### Notes
+
+- claudebase `docker-env` skill is absorbed into omp and scheduled for removal (single ownership).
+- All new schema sections (`docker_naming`, `docker_images[]`, `provenance`, `standards_registry`) are optional — existing `.omp/*.json` files remain fully backward-compatible.
+
+### Verification
+
+- `python3 -m pytest -q` — 67 passed (18 new tests covering docker audit axis, docker_images schema, provenance schema, standards_registry, omp-env generation gate).
+
+---
+
+### Changed (Unreleased pre-0.3.0 carry-in)
 
 - **Clarified the dataset definition to be format-agnostic (role-based) — blocks the "dataset = ML input file" misreading (code/schema unchanged, prompts only).**
   In real use, when trying to register a ROS bag or experiment data, *every example* across the skills/agents was filled

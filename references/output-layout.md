@@ -24,6 +24,8 @@ codify* them, not to absorb them.
     ├── rules.json               # machine: enforceable rules (audit reads this)
     ├── manifest.json            # machine: file + dataset inventory (checksum/split/lineage)
     ├── learned.md               # observations awaiting promotion (learn gate)
+    ├── env/                     # environment assets SSOT (omp-env): Dockerfile/compose/config
+    │   └── *.Dockerfile, *.yml  #   root holds only a build-tool view (symlink or sync copy)
     ├── wiki/                    # auto-accumulated patterns/decisions (grep-recalled)
     │   └── *.md
     │
@@ -73,6 +75,7 @@ in the same pass that writes the file. `tmp/` is exempt (always safe to wipe who
 | STRUCTURE.md, NAMING.md | rules.json | The .md is the readable narrative; rules.json is the enforceable form. codify writes both; they must agree. |
 | CONVENTIONS.md | rules.json (content_conventions[]) | The readable narrative of note-body conventions; rules.json.content_conventions[] is the enforceable form. Paired only when content_conventions exist; codify writes both together. |
 | DATASETS.md | manifest.json (datasets[]) | DATASETS.md is a generated human view of the manifest. |
+| DATASETS.md (docker section) or DOCKER.md | manifest.json (docker_images[]) | Human view of the docker image inventory; machine truth is docker_images[]. |
 
 Rule: when codify or dataset changes a .json, it regenerates the paired .md in the same
 pass so they never drift. audit reads the .json (machine truth); humans read the .md.
@@ -96,3 +99,4 @@ team (recommended); `wiki/` may be personal. omp-init asks once and records the 
 - Never moves user files into `.omp/`.
 - Never deletes user files without the safe-fileops.md protocol + human approval.
 - Never copies/moves dataset *contents* (manifest is metadata-only; see manifest.schema.json).
+- Never writes a canonical environment asset (Dockerfile/compose/.env) outside `.omp/env/` — the root holds only a build-tool view (symlink or sync copy). The "no canonical file outside `.omp/`" invariant is preserved.

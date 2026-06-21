@@ -53,7 +53,7 @@
               "id": { "type": "string", "description": "Optional ID, e.g. Johnny-Decimal '11'." },
               "origin": {
                 "type": "string",
-                "enum": ["preset", "inductive", "learned"],
+                "enum": ["preset", "inductive", "learned", "standard"],
                 "default": "preset",
                 "description": "Provenance for the specificity computation (see learning-protocol.md §4): 'preset' weight 0, 'inductive'/'learned' weight 1."
               },
@@ -61,6 +61,21 @@
                 "type": "boolean",
                 "default": true,
                 "description": "If true, omp-audit flags files that violate this dir's role."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Optional: traces this rule to an external standard. severity should follow normative_word (MUST→error, SHOULD→warn, MAY→info).",
+                "additionalProperties": false,
+                "properties": {
+                  "standard": { "type": "string", "description": "Human name, e.g. 'OCI Distribution Specification'." },
+                  "id": { "type": "string", "description": "Stable id, references standards_registry key, e.g. 'OCI-DIST-1.1.1'." },
+                  "authority": { "type": "string", "description": "Maintainer, e.g. 'Open Container Initiative'." },
+                  "url": { "type": "string" },
+                  "version": { "type": "string" },
+                  "clause": { "type": "string", "description": "The specific provision." },
+                  "normative_word": { "type": "string", "enum": ["MUST", "SHOULD", "MAY"], "description": "Drives severity." },
+                  "verified": { "type": "string", "description": "Last-verified date." }
+                }
               }
             }
           }
@@ -100,7 +115,7 @@
               "description": { "type": "string", "description": "Human explanation of the rule." },
               "origin": {
                 "type": "string",
-                "enum": ["preset", "inductive", "learned"],
+                "enum": ["preset", "inductive", "learned", "standard"],
                 "default": "preset",
                 "description": "Provenance for the specificity computation: 'preset' (weight 0, shipped generic), 'inductive' (weight 1, observed at init scan), 'learned' (weight 1, promoted via omp-learn gate). See learning-protocol.md §4."
               },
@@ -108,6 +123,21 @@
                 "type": "string",
                 "enum": ["error", "warn", "info"],
                 "default": "warn"
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Optional: traces this rule to an external standard. severity should follow normative_word (MUST→error, SHOULD→warn, MAY→info).",
+                "additionalProperties": false,
+                "properties": {
+                  "standard": { "type": "string", "description": "Human name, e.g. 'OCI Distribution Specification'." },
+                  "id": { "type": "string", "description": "Stable id, references standards_registry key, e.g. 'OCI-DIST-1.1.1'." },
+                  "authority": { "type": "string", "description": "Maintainer, e.g. 'Open Container Initiative'." },
+                  "url": { "type": "string" },
+                  "version": { "type": "string" },
+                  "clause": { "type": "string", "description": "The specific provision." },
+                  "normative_word": { "type": "string", "enum": ["MUST", "SHOULD", "MAY"], "description": "Drives severity." },
+                  "verified": { "type": "string", "description": "Last-verified date." }
+                }
               }
             }
           }
@@ -134,8 +164,23 @@
             }
           },
           "description": { "type": "string" },
-          "origin": { "type": "string", "enum": ["preset", "inductive", "learned"], "default": "preset", "description": "Provenance for specificity (learning-protocol.md §4): 'preset' weight 0, 'inductive'/'learned' weight 1." },
-          "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "warn" }
+          "origin": { "type": "string", "enum": ["preset", "inductive", "learned", "standard"], "default": "preset", "description": "Provenance for specificity (learning-protocol.md §4): 'preset' weight 0, 'inductive'/'learned' weight 1." },
+          "severity": { "type": "string", "enum": ["error", "warn", "info"], "default": "warn" },
+          "provenance": {
+            "type": "object",
+            "description": "Optional: traces this rule to an external standard. severity should follow normative_word (MUST→error, SHOULD→warn, MAY→info).",
+            "additionalProperties": false,
+            "properties": {
+              "standard": { "type": "string", "description": "Human name, e.g. 'OCI Distribution Specification'." },
+              "id": { "type": "string", "description": "Stable id, references standards_registry key, e.g. 'OCI-DIST-1.1.1'." },
+              "authority": { "type": "string", "description": "Maintainer, e.g. 'Open Container Initiative'." },
+              "url": { "type": "string" },
+              "version": { "type": "string" },
+              "clause": { "type": "string", "description": "The specific provision." },
+              "normative_word": { "type": "string", "enum": ["MUST", "SHOULD", "MAY"], "description": "Drives severity." },
+              "verified": { "type": "string", "description": "Last-verified date." }
+            }
+          }
         }
       }
     },
@@ -148,6 +193,32 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "IDs of learned.md observations that were promoted into the rules above (provenance)."
+    },
+    "docker_naming": {
+      "type": "object",
+      "description": "Docker/OCI naming + versioning convention as a template-string contract (NOT a basename regex — an image ref is neither a path nor a basename). Codified by omp-codify, checked by the docker audit axis. Optional.",
+      "additionalProperties": false,
+      "properties": {
+        "image_ref_template": { "type": "string", "description": "e.g. '${REGISTRY}/${NAMESPACE}/<purpose>-<base>:<semver>'. Templated — no hardcoded registry/host." },
+        "container_name_template": { "type": "string", "description": "e.g. '<purpose>-<base>'." },
+        "service_name_template": { "type": "string", "description": "e.g. '<purpose>-<platform>'." },
+        "version_scheme": { "type": "string", "default": "semver-2.0.0", "description": "Version scheme for tags." }
+      }
+    },
+    "standards_registry": {
+      "type": "object",
+      "description": "Optional dedup map of external standards keyed by provenance.id (e.g. 'OCI-DIST-1.1.1'). A rule references a standard once via provenance.id; the registry holds url/version/verified centrally so a re-verification pass can walk it. Rule-id-as-data pattern.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "standard": { "type": "string" },
+          "authority": { "type": "string" },
+          "url": { "type": "string" },
+          "version": { "type": "string" },
+          "verified": { "type": "string" }
+        }
+      }
     }
   }
 }

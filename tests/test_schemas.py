@@ -45,7 +45,7 @@ def test_rules_schema_has_content_conventions():
     assert chk["properties"]["expect"]["enum"] == ["present", "absent"]
     assert chk["properties"]["scope"]["enum"] == ["body", "frontmatter"]
     assert chk["properties"]["scope"]["default"] == "body"
-    assert item["properties"]["origin"]["enum"] == ["preset", "inductive", "learned"]
+    assert set(item["properties"]["origin"]["enum"]) == {"preset", "inductive", "learned", "standard"}
     assert item["properties"]["severity"]["enum"] == ["error", "warn", "info"]
     assert "content_conventions" not in s["required"]
 
@@ -103,6 +103,12 @@ REPRESENTATIVE_MANIFEST = {
         "lineage": {"derived_from": "raw/dump.csv", "by": "scripts/clean.py", "at": "2026-05-30"},
         "source": "internal", "added": "2026-05-30",
     }],
+    "docker_images": [{
+        "ref": "${REGISTRY}/sensor-dev-ros2-humble", "tag": "1.0.0",
+        "dockerfile": ".omp/env/sensor-dev-ros2-humble.Dockerfile",
+        "compose": ".omp/env/sensor-dev-ros2-humble.yml",
+        "backup": "registry", "size": None, "digest": None,
+    }],
 }
 
 
@@ -130,3 +136,61 @@ def test_sha256_pattern_matches_schema():
     real = hashlib.sha256(b"x").hexdigest()
     assert re.match(pat, real)
     assert re.match(pat, "UNHASHED")  # 대용량 파일용 sentinel 도 허용
+
+
+def test_rules_schema_has_docker_naming():
+    """docker_naming: optional template-string section (NOT a basename regex)."""
+    s = load(RULES_SCHEMA)
+    dn = s["properties"]["docker_naming"]
+    assert dn["type"] == "object"
+    props = dn["properties"]
+    assert "image_ref_template" in props
+    assert "container_name_template" in props
+    assert "service_name_template" in props
+    assert "version_scheme" in props
+    assert "docker_naming" not in s["required"]          # optional — 하위호환
+
+
+def test_origin_enum_includes_standard():
+    """naming.patterns[].origin gains 'standard' for externally-justified rules."""
+    s = load(RULES_SCHEMA)
+    origin = s["properties"]["naming"]["properties"]["patterns"]["items"]["properties"]["origin"]
+    assert set(origin["enum"]) == {"preset", "inductive", "learned", "standard"}
+
+
+def test_provenance_object_shape():
+    """provenance traces a rule to an external standard (rule-id-as-data)."""
+    s = load(RULES_SCHEMA)
+    prov = s["properties"]["naming"]["properties"]["patterns"]["items"]["properties"]["provenance"]
+    p = prov["properties"]
+    for k in ("standard", "id", "authority", "url", "normative_word"):
+        assert k in p
+    assert p["normative_word"]["enum"] == ["MUST", "SHOULD", "MAY"]
+
+
+def test_standards_registry_optional():
+    """standards_registry: top-level dedup map of standards by id (optional)."""
+    s = load(RULES_SCHEMA)
+    assert "standards_registry" in s["properties"]
+    assert "standards_registry" not in s["required"]
+
+
+def test_manifest_schema_has_docker_images():
+    """docker_images[]: out-of-tree runtime image refs (NOT datasets[] — no in-tree path/sha256)."""
+    s = load(MANIFEST_SCHEMA)
+    di = s["properties"]["docker_images"]
+    assert di["type"] == "array"
+    item = di["items"]["properties"]
+    assert "ref" in item and "tag" in item
+    assert "dockerfile" in item and "compose" in item
+    # daemon 필드는 nullable (offline-impossible)
+    assert "size" in item and "digest" in item
+    assert "docker_images" not in s["required"]          # optional
+
+
+def test_docker_images_separate_from_datasets():
+    """docker_images must NOT require sha256/path (an image has neither)."""
+    s = load(MANIFEST_SCHEMA)
+    item = s["properties"]["docker_images"]["items"]
+    req = item.get("required", [])
+    assert "sha256" not in req and "path" not in req

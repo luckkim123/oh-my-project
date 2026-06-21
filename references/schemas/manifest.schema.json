@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/luckkim123/oh-my-project/schemas/manifest.schema.json",
   "title": "omp manifest.json",
-  "description": "File & dataset inventory for a project folder. Metadata-only: omp NEVER copies/moves/pushes the actual data — it records checksum, size, split, and lineage so changes are detectable and provenance is traceable. If DVC/git-lfs manages the data, omp defers and mirrors metadata only.",
+  "description": "File & dataset inventory for a project folder. Metadata-only: omp NEVER copies/moves/pushes the actual data — it records checksum, size, split, and lineage so changes are detectable and provenance is traceable. If DVC/git-lfs manages the data, omp defers and mirrors metadata only. omp NEVER claims ownership of out-of-tree runtime artifacts (Docker images, registry tags); those are referenced via docker_images (external reference) only, not datasets[].",
   "type": "object",
   "required": ["omp_version", "generated", "datasets"],
   "additionalProperties": false,
@@ -59,6 +59,24 @@
             "description": "Origin, e.g. 'internal', 'kaggle:titanic', 'vendor-X'."
           },
           "added": { "type": "string", "description": "ISO date registered into the manifest." }
+        }
+      }
+    },
+    "docker_images": {
+      "type": "array",
+      "description": "Optional inventory of Docker images this project builds. NOT datasets[] — an image has no in-tree path and no file-content SHA-256, so it is recorded as an external reference. omp NEVER claims ownership of out-of-tree runtime artifacts; size/digest are daemon-dependent and nullable. audit does NOT assert drift on these (a remote digest is un-rehashable).",
+      "items": {
+        "type": "object",
+        "required": ["ref", "tag"],
+        "additionalProperties": false,
+        "properties": {
+          "ref": { "type": "string", "description": "Image reference w/o tag, e.g. '${REGISTRY}/sensor-dev-ros2-humble'. Templated — no hardcoded registry." },
+          "tag": { "type": "string", "description": "Tag, e.g. '1.0.0'." },
+          "dockerfile": { "type": "string", "description": "Relative path to the Dockerfile (.omp/env/...)." },
+          "compose": { "type": "string", "description": "Relative path to the compose file." },
+          "backup": { "type": "string", "description": "Backup location variable or 'registry'." },
+          "size": { "type": ["integer", "null"], "description": "Daemon-read size; null if not queried." },
+          "digest": { "type": ["string", "null"], "description": "Daemon-read digest; null if not queried." }
         }
       }
     }

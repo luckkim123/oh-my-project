@@ -49,6 +49,7 @@ CHECKPOINT = (
     "초기화, .omp 관리)이면, 행동 전에 한 줄로 판정하라:\n"
     "- 단계: init(1회 부트스트랩·.omp 생성) / codify(구조·명명 규칙 성문화) / "
     "organize(규칙 위반 탐지→안전 재배치) / dataset(등록·체크섬·split·lineage) / "
+    "env(환경 자산 Dockerfile/compose 정본을 .omp/env/에 생성·관리) / "
     "doc(사람용 문서 생성·갱신) / learn(관찰→규칙 승격, 승인 게이트) / "
     "audit(규칙 준수 검증, read-only PASS/FAIL), 또는 omp-pilot(통째) / "
     "omp-doctor(설치·전제 자가진단).\n"
@@ -60,7 +61,7 @@ CHECKPOINT = (
     "끝낸다 — 옛 경로가 인덱스에 남는 drift 금지(사용자가 다시 지시하게 만들지 말 것).\n\n"
     "프로젝트 관리 작업이면, 판정을 응답 맨 앞 omha ROUTE 줄 바로 다음에 이 한 줄로 "
     "출력하라(누락 금지):\n"
-    "STAGE(project) → <init|codify|organize|dataset|doc|learn|audit|omp-pilot|omp-doctor> · <한 줄 근거>\n"
+    "STAGE(project) → <init|codify|organize|dataset|env|doc|learn|audit|omp-pilot|omp-doctor> · <한 줄 근거>\n"
     "프로젝트 관리 작업이 아니면 이 블록 전체 무시(STAGE 줄도 출력하지 말 것).\n"
     "</omp-routing>"
 )

@@ -17,7 +17,7 @@ HOOK = ROOT / "hooks" / "omp_route_emit.py"
 # route 카탈로그의 STAGE 이름 ↔ skills/omp-<name>/ 폴더 매핑.
 # (omp-pilot·omp-doctor 는 'omp-' 접두 그대로, 나머지는 omp-<stage>.)
 ROUTE_STAGES = (
-    "init", "codify", "organize", "dataset", "doc", "learn", "audit",
+    "init", "codify", "organize", "dataset", "env", "doc", "learn", "audit",
     "omp-pilot", "omp-doctor",
 )
 
@@ -57,3 +57,16 @@ def test_route_catalog_maps_to_real_skill_dirs():
         assert (ROOT / "skills" / name).is_dir(), \
             f"카탈로그 stage '{stage}' → skills/{name}/ 폴더 없음(죽은 라우팅)"
         assert stage in ctx, f"stage '{stage}' 가 route 카탈로그에 없음"
+
+
+def test_omp_env_skill_registered():
+    """omp-env stage skill exists with valid frontmatter."""
+    skill = Path(__file__).parent.parent / "skills" / "omp-env" / "SKILL.md"
+    assert skill.exists()
+    text = skill.read_text(encoding="utf-8")
+    assert text.startswith("---")
+    assert "name: omp-env" in text
+    # 생성 게이트·정본 위치 불변계약이 본문에 명시되어야 함
+    assert ".omp/env/" in text
+    assert "dry-run" in text.lower()
+    assert "not-a-build-runner" in text.lower() or "not a build runner" in text.lower()
