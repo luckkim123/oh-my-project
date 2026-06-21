@@ -1,0 +1,51 @@
+{
+  "OCI-DIST-1.1.1": {
+    "standard": "OCI Distribution Specification",
+    "authority": "Open Container Initiative",
+    "url": "https://github.com/opencontainers/distribution-spec/blob/main/spec.md",
+    "version": "v1.1.1 (2025-01)",
+    "verified": "2026-06"
+  },
+  "OCI-IMAGE-1.1.1": {
+    "standard": "OCI Image Format Specification",
+    "authority": "Open Container Initiative",
+    "url": "https://github.com/opencontainers/image-spec/blob/main/annotations.md",
+    "version": "v1.1.1 (2025-03-03)",
+    "verified": "2026-06"
+  },
+  "SEMVER-2.0.0": {
+    "standard": "Semantic Versioning 2.0.0",
+    "authority": "Tom Preston-Werner",
+    "url": "https://semver.org/",
+    "version": "2.0.0",
+    "verified": "2026-06"
+  },
+  "DL3007": {
+    "standard": "hadolint Dockerfile linter",
+    "authority": "hadolint project",
+    "url": "https://github.com/hadolint/hadolint",
+    "version": "rule DL3007",
+    "verified": "2026-06"
+  },
+  "COMPOSE-SPEC": {
+    "standard": "Compose Specification (version-and-name)",
+    "authority": "Docker / compose-spec",
+    "url": "https://docs.docker.com/reference/compose-file/version-and-name/",
+    "version": "current",
+    "verified": "2026-06"
+  },
+  "BUILDKIT-SECRETS": {
+    "standard": "Docker BuildKit build-time secrets",
+    "authority": "Docker Inc.",
+    "url": "https://docs.docker.com/build/building/secrets/",
+    "version": "current",
+    "verified": "2026-06"
+  },
+  "12FACTOR-III": {
+    "standard": "The Twelve-Factor App — Factor III: Config",
+    "authority": "Adam Wiggins (frozen since 2017)",
+    "url": "https://12factor.net/config",
+    "version": "frozen",
+    "verified": "2026-06"
+  }
+}
