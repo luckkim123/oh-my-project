@@ -44,7 +44,7 @@ Codifies and updates a project's structure rules (which folder holds what) and n
 
 <Steps>
 1. **Load current rules.** Read `.omp/rules.json` (schema: `references/schemas/rules.schema.json`), and read the paired `.omp/STRUCTURE.md`/`.omp/NAMING.md` to grasp the current state and specificity/preset_origin/learned_refs. If `.omp/` is absent, stop immediately and direct to "omp-init first" (codify is the update stage).
-2. **Confirm the change intent.** What is being added/modified/removed — a new directory role, naming pattern (regex), severity adjustment, note-body convention (content_conventions[]), convention change, etc. If it came from an omp-learn promotion, include that observation ID and its rationale in the input.
+2. **Confirm the change intent.** What is being added/modified/removed — a new directory role, naming pattern (regex), severity adjustment, note-body convention (content_conventions[]), docker_naming rule (image_ref_template/container_name_template/service_name_template/version_scheme), provenance entry (origin:standard, standards-registry id), convention change, etc. If it came from an omp-learn promotion, include that observation ID and its rationale in the input.
 3. **Delegate the proposed change to rule-architect** (Task dispatch below). Input: current rules.json/STRUCTURE.md/NAMING.md, the change intent, the relevant preset (`references/presets/<preset_origin>.md`), and (if a promotion) the learned.md observation. Output: ① the updated rules.json **draft** (schema-compliant), ② the STRUCTURE.md/NAMING.md body that corresponds exactly to it (plus the CONVENTIONS.md body if content_conventions exist), ③ a diff summary (which rules were added/changed/deleted, how specificity changes, and a rough outline of affected files).
 4. ━━━ **GATE — Rule change approval (human).** Present rule-architect's diff summary to the human: proceed / revise / abort. No auto-pass. No file is written before approval. ━━━
 5. **Write together (drift prevention).** Once approved, **first** snapshot the existing `.omp/rules.json` to `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json` (a pre-edit rollback point — `references/output-layout.md` work layer). Then write the three together in the same pass: `.omp/rules.json` (+ update `project.last_codified`, and update `specificity`/`learned_refs` if needed) **and** `.omp/STRUCTURE.md`/`.omp/NAMING.md` (also include `.omp/CONVENTIONS.md` in the same pass if you touched content_conventions — only when content_conventions exist; not every project has them). If any one of the set is missing, it is incomplete. (Snapshot and rules.json writes go through the atomic write of `hooks/omp_atomic.py` to prevent partial-write corruption — T20.) **After writing the snapshot,** apply retention cleanup to `.omp/work/versions/` (`output-layout.md`): keep only the latest N=10 and prune older snapshots via trash (no permanent `rm`), reporting one line "pruned X old snapshots". This trim is performed by this skill — the one that wrote the snapshot — on its own subfolder in the same pass.
@@ -71,7 +71,12 @@ Task(
   Requirements:
   1) Updated rules.json draft — satisfies rules.schema.json (required fields, additionalProperties:false,
      regex is Python re, severity∈{error,warn,info}). The proposable rule kinds also include content_conventions[]
-     (note-body conventions: applies_to glob × check.pattern/expect/scope, optional type — only when observed).
+     (note-body conventions: applies_to glob × check.pattern/expect/scope, optional type — only when observed)
+     and docker_naming (image_ref_template / container_name_template / service_name_template / version_scheme)
+     with provenance (origin:standard, referencing a `references/standards-registry.seed.json` id). Severity
+     for docker rules follows the normative word in the seed: MUST→error, SHOULD→warn, MAY→info. Docker rule
+     seeds come from `references/presets/docker.md`. **Do NOT generate Dockerfiles or compose files** — file
+     generation is omp-env's job; codify writes only rule text in rules.json/.md.
      Record the change source in learned_refs[].
   2) STRUCTURE.md/NAMING.md body that *exactly matches* that rules.json (drift 0; if content_conventions
      exist, the CONVENTIONS.md body too — only when content_conventions exist).

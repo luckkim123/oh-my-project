@@ -24,6 +24,10 @@ Registers the project's data files into `.omp/manifest.json` as **pure metadata*
 > **The criterion for what counts as a dataset = *role*, not format.** The test is "is this an input/collected data that must stay fixed and whose byte-level changes you want to track?". Even a `.npy` that is overwritten fresh every run is an *output*, not a dataset (→ run artifact); even a `.bag` is a dataset if it is an immutable *input* once collected. Do not let the extension whitelist narrow the definition — fields like `rows` that are specific to structured data can simply be omitted, so unstructured data registers fine as-is.
 </Use_When>
 
+<Docker_Images_Inventory>
+`docker_images[]` inventory is also dataset-stage territory — but **metadata-only**: record `ref` (fully-qualified image reference), `tag`, `dockerfile` (project-relative path to the Dockerfile, if any), and `compose` (project-relative path to the compose file, if any). `size` and `digest` are opt-in daemon reads (`docker inspect`) and may be `null`. Images go in `docker_images[]` in `manifest.json`, **never in `datasets[]`** — an image has no in-tree file path and no file-content SHA-256 to compute. Do **not** drift-check images: a remote digest cannot be re-hashed with `hashlib` (the file is not on disk). The paired human view is a `## Docker Images` section appended to `DATASETS.md` **or** a separate `DOCKER.md` — the implementer picks one at build time and states the choice.
+</Docker_Images_Inventory>
+
 <Do_Not_Use_When>
 - If you need to **move** actual data files → this is not the dataset lane at all. File relocation is `omp-organize` (organizer + `references/safe-fileops.md`)
 - If you are **inducing/classifying** folder structure or extension patterns → `omp-init`/project-scanner (the manifest handles datasets only)
