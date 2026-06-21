@@ -32,6 +32,7 @@ The logic stays fixed and generic; only the artifact (`.omp/`) diverges per proj
   omp-codify    Codify structure·naming rules (rules.json + STRUCTURE/NAMING.md)
   omp-organize  Detect rule violations → safe relocation (mv→verify→delete, via trash)
   omp-dataset   Register datasets·SHA256·split·lineage (manifest.json) — metadata-only
+  omp-env       Environment assets (Dockerfile/compose) canonical into .omp/env/; generation gate, in-place preserved
   omp-doc       Generate·update human-facing docs (PROJECT.md etc.)
   omp-learn     Observation → rule promotion (human approval gate) ← the core of evolution
   omp-audit     Rule-compliance verification (read-only PASS/FAIL)
@@ -79,4 +80,4 @@ Mac / Linux / Windows. Every hook is **python3 stdlib only + fail-open** (errors
 
 ## Status
 
-v0.2.1 — 9 skills + 5 agents + 6 presets + 4 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `__init__`) + schema implementation. 0.2.0 added the `content_conventions[]` rule type (note-body conventions: present/absent × body/frontmatter) plus content/wikilink audit axes. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Hooks, schema, and the content/link pure functions are verified with pytest (49 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.
+v0.3.0 — 10 skills + 5 agents + 8 presets + 5 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `omp_docker_audit` docker axis + `__init__`) + schema implementation. 0.3.0 adds **docker environment governance**: the new `omp-env` stage canonicalizes Dockerfile/compose assets into `.omp/env/` (generation gate, in-place preserved); a docker audit axis (`omp_docker_audit`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version); provenance tracking (`origin:standard` + `standards_registry`, OCI/CIS/SemVer); docker preset + `docker-mechanisms.md` reference card. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Verified with pytest (67 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.
