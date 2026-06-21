@@ -103,6 +103,12 @@ REPRESENTATIVE_MANIFEST = {
         "lineage": {"derived_from": "raw/dump.csv", "by": "scripts/clean.py", "at": "2026-05-30"},
         "source": "internal", "added": "2026-05-30",
     }],
+    "docker_images": [{
+        "ref": "${REGISTRY}/sensor-dev-ros2-humble", "tag": "1.0.0",
+        "dockerfile": ".omp/env/sensor-dev-ros2-humble.Dockerfile",
+        "compose": ".omp/env/sensor-dev-ros2-humble.yml",
+        "backup": "registry", "size": None, "digest": None,
+    }],
 }
 
 
@@ -167,3 +173,24 @@ def test_standards_registry_optional():
     s = load(RULES_SCHEMA)
     assert "standards_registry" in s["properties"]
     assert "standards_registry" not in s["required"]
+
+
+def test_manifest_schema_has_docker_images():
+    """docker_images[]: out-of-tree runtime image refs (NOT datasets[] — no in-tree path/sha256)."""
+    s = load(MANIFEST_SCHEMA)
+    di = s["properties"]["docker_images"]
+    assert di["type"] == "array"
+    item = di["items"]["properties"]
+    assert "ref" in item and "tag" in item
+    assert "dockerfile" in item and "compose" in item
+    # daemon 필드는 nullable (offline-impossible)
+    assert "size" in item and "digest" in item
+    assert "docker_images" not in s["required"]          # optional
+
+
+def test_docker_images_separate_from_datasets():
+    """docker_images must NOT require sha256/path (an image has neither)."""
+    s = load(MANIFEST_SCHEMA)
+    item = s["properties"]["docker_images"]["items"]
+    req = item.get("required", [])
+    assert "sha256" not in req and "path" not in req
