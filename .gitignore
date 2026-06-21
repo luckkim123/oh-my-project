@@ -12,3 +12,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# scratch — superpowers design/plan artifacts & sdd progress ledger
+.sp/
+.superpowers/
