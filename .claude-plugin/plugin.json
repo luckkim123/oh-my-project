@@ -9,6 +9,7 @@
     "./skills/omp-codify/",
     "./skills/omp-organize/",
     "./skills/omp-dataset/",
+    "./skills/omp-env/",
     "./skills/omp-doc/",
     "./skills/omp-learn/",
     "./skills/omp-audit/",
