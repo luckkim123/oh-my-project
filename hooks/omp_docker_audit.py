@@ -56,10 +56,16 @@ def check_dockerfile(text: str, rules: Optional[dict] = None) -> list[dict]:
             # DL3007: base pinned, not :latest and not untagged (digest is fine)
             ref = args.split()[0] if args else ""
             if "@sha256:" not in ref:
-                tag = ref.split(":")[-1] if ":" in ref else ""
-                if tag == "latest" or ":" not in ref:
+                # Isolate the final path component (image name + optional tag).
+                # A colon BEFORE the last "/" is a registry port, not a tag separator.
+                # e.g. "registry.example.com:5000/myimage" → final_component="myimage" (no tag)
+                #      "registry.example.com:5000/myimage:1.2.3" → final_component="myimage:1.2.3"
+                final_component = ref.rsplit("/", 1)[-1]  # "" if ref is empty
+                tag = final_component.split(":")[-1] if ":" in final_component else ""
+                if tag == "latest" or ":" not in final_component:
                     violations.append({"rule_id": "DL3007", "severity": sev("DL3007"),
-                                       "line": idx, "message": f"base image not pinned ({ref or 'untagged'}); avoid :latest"})
+                                       "line": idx,  # line = instruction index, not source line number
+                                       "message": f"base image not pinned ({ref or 'untagged'}); avoid :latest"})
         if instr in ("ENV", "ARG"):
             if _SECRET_KEY.search(args):
                 violations.append({"rule_id": "secret-in-env", "severity": sev("secret-in-env"),

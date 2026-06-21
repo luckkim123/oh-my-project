@@ -58,3 +58,33 @@ def test_clean_dockerfile_no_violations():
     df = "FROM python:3.12-slim@sha256:" + "a" * 64 + "\nRUN pip install x\nCMD [\"python\"]\n"
     v = da.check_dockerfile(df)
     assert v == []
+
+
+# Finding 2: bare untagged FROM must be flagged
+def test_dl3007_bare_untagged_from_flagged():
+    """FROM ubuntu (no tag, no digest) must trigger DL3007."""
+    v = da.check_dockerfile("FROM ubuntu\n")
+    assert "DL3007" in [x["rule_id"] for x in v]
+
+
+# Finding 3: severity-override path
+def test_dl3007_severity_override():
+    """docker_severity_overrides raises DL3007 from warn to error."""
+    rules = {"docker_severity_overrides": {"DL3007": "error"}}
+    v = da.check_dockerfile("FROM python:latest\n", rules=rules)
+    dl = [x for x in v if x["rule_id"] == "DL3007"]
+    assert dl, "DL3007 violation expected"
+    assert dl[0]["severity"] == "error"
+
+
+# Finding 4: registry-port case — must flag untagged, must NOT flag real-tagged
+def test_dl3007_registry_port_untagged_flagged():
+    """registry.example.com:5000/myimage has no image tag — DL3007 must fire."""
+    v = da.check_dockerfile("FROM registry.example.com:5000/myimage\n")
+    assert "DL3007" in [x["rule_id"] for x in v]
+
+
+def test_dl3007_registry_port_with_tag_not_flagged():
+    """registry.example.com:5000/myimage:1.2.3 has a real tag — DL3007 must NOT fire."""
+    v = da.check_dockerfile("FROM registry.example.com:5000/myimage:1.2.3\n")
+    assert "DL3007" not in [x["rule_id"] for x in v]
