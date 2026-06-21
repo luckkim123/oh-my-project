@@ -5,7 +5,7 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-06-21
+## [0.3.0] — 2026-06-21
 
 ### Added
 
