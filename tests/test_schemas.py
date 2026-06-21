@@ -45,7 +45,7 @@ def test_rules_schema_has_content_conventions():
     assert chk["properties"]["expect"]["enum"] == ["present", "absent"]
     assert chk["properties"]["scope"]["enum"] == ["body", "frontmatter"]
     assert chk["properties"]["scope"]["default"] == "body"
-    assert item["properties"]["origin"]["enum"] == ["preset", "inductive", "learned"]
+    assert set(item["properties"]["origin"]["enum"]) == {"preset", "inductive", "learned", "standard"}
     assert item["properties"]["severity"]["enum"] == ["error", "warn", "info"]
     assert "content_conventions" not in s["required"]
 
@@ -130,3 +130,40 @@ def test_sha256_pattern_matches_schema():
     real = hashlib.sha256(b"x").hexdigest()
     assert re.match(pat, real)
     assert re.match(pat, "UNHASHED")  # 대용량 파일용 sentinel 도 허용
+
+
+def test_rules_schema_has_docker_naming():
+    """docker_naming: optional template-string section (NOT a basename regex)."""
+    s = load(RULES_SCHEMA)
+    dn = s["properties"]["docker_naming"]
+    assert dn["type"] == "object"
+    props = dn["properties"]
+    assert "image_ref_template" in props
+    assert "container_name_template" in props
+    assert "service_name_template" in props
+    assert "version_scheme" in props
+    assert "docker_naming" not in s["required"]          # optional — 하위호환
+
+
+def test_origin_enum_includes_standard():
+    """naming.patterns[].origin gains 'standard' for externally-justified rules."""
+    s = load(RULES_SCHEMA)
+    origin = s["properties"]["naming"]["properties"]["patterns"]["items"]["properties"]["origin"]
+    assert set(origin["enum"]) == {"preset", "inductive", "learned", "standard"}
+
+
+def test_provenance_object_shape():
+    """provenance traces a rule to an external standard (rule-id-as-data)."""
+    s = load(RULES_SCHEMA)
+    prov = s["properties"]["naming"]["properties"]["patterns"]["items"]["properties"]["provenance"]
+    p = prov["properties"]
+    for k in ("standard", "id", "authority", "url", "normative_word"):
+        assert k in p
+    assert p["normative_word"]["enum"] == ["MUST", "SHOULD", "MAY"]
+
+
+def test_standards_registry_optional():
+    """standards_registry: top-level dedup map of standards by id (optional)."""
+    s = load(RULES_SCHEMA)
+    assert "standards_registry" in s["properties"]
+    assert "standards_registry" not in s["required"]
