@@ -57,6 +57,7 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
 - Single `chronicler` dispatch (D7) — chronicler generates and writes `BRIEF.md`; this skill does
   not hand-roll the write itself. `chronicler` is the generator here, not an auditor: this is
   synthesis, not a PASS/FAIL verdict.
+- **read-map (Release 2)**: `derive_status` 결과의 `sources`가 비어 있지 않으면 State-of-play 아래에 `읽을 곳: <path> (<kind>, open N) — <convention>` 줄을 최대 4줄 추가한다. 수치는 `derive_status`가 계산한 `open` 값만 인용(D8) — 직접 세지 않는다. 캡 초과 시 이 줄들을 기존 truncation 우선순위보다 먼저 버린다.
 </Execution_Policy>
 
 <Steps>

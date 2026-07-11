@@ -118,6 +118,31 @@ tags as candidates `omp-review` *presents* for wiki promotion — tagging never 
 
 ---
 
+## Registered sources (`rules.json` `secretary.sources[]`)
+
+Release 2 (design Part II §10.2). Existing state surfaces the user already keeps —
+`Kanban.md`, daily-note task lists, README status tables — are registered as **read**
+targets in `rules.json`:
+
+```json
+{"secretary": {"sources": [
+  {"path": "Kanban.md", "kind": "todo", "convention": "unchecked boxes = open milestones"}
+]}}
+```
+
+- Registration happens **only via the omp-codify human gate** (D14 read-don't-replace;
+  never auto-registered — surfaces are *proposed*, a human approves).
+- `kind` ∈ `todo | journal | status | schedule`. `todo`/`schedule` are parsed for open-item
+  counts (`*.txt` → todo.txt grammar; otherwise markdown `- [ ]` checkboxes) and aggregate
+  into `derive_status` open-task counts and the traffic light. `journal`/`status` contribute
+  no numbers — they are read-map pointers: BRIEF tells the reader *where to look*.
+- Fail-open: a missing file or corrupt `rules.json` never crashes status derivation.
+- BRIEF may render the read-map as `읽을 곳: <path> (<kind>) — <convention>` lines (≤4).
+  When over the BRIEF cap, read-map lines are dropped **before** the existing truncation
+  priority list (they are pointers, reconstructible from rules.json).
+
+---
+
 ## BRIEF contract
 
 - **Double cap: ≤30 lines AND ≤2000 characters.** Both bounds apply — line count alone
