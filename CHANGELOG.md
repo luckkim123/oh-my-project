@@ -5,6 +5,39 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-11
+
+### Added
+
+- **Secretary axis (time)** — a second axis alongside the existing governance axis (space), sharing the same `.omp/` SSOT, hook layer, and generic→specialized loop. Adds session journal, todo/RAID, decisions, and pull-style briefing under `.omp/secretary/`.
+- **3 new stage skills** (`skills/omp-log`, `skills/omp-brief`, `skills/omp-review`):
+  - `omp-log` — universal capture router, one entry point / five destinations (journal, todo.txt, raid.md, decisions/ ADR, rule observation).
+  - `omp-brief` — pull-style briefing; regenerates `.omp/secretary/BRIEF.md` from ledger/todo/raid/journal state (traffic light, state-of-play, top-5 tasks, open blockers, next-session goal, decision paths) — every number is `derive_status(root)` output quoted verbatim, never an LLM estimate (D8).
+  - `omp-review` — weekly (or on-demand) re-evaluation: BuJo-style migration for every open `todo.txt` task (migrate/strike/done, human-judged per item, never auto-carried-over), a `scan_stale` sweep, `raid.md` re-triage.
+- **1 new agent** (`agents/chronicler.md`, sonnet) — the sole LLM writer of `.omp/secretary/**` (journal narrative, `decisions/`, `todo.txt`, `raid.md`, `BRIEF.md`). Never writes `ledger.jsonl` or the hook's session-stub lines (D7, disjoint at the line level); never closes a task/blocker (D9); never writes a progress percentage (D8).
+- **`hooks/omp_secretary.py`** — pure-function core (stdlib only) for the secretary axis: ledger append/parse, `derive_status(root, sources=None)`, `scan_stale`, `redact_secrets`, journal tag extraction, session-stub construction. `sources=None` keeps Part I behavior unchanged and opens the signature for a future `secretary.sources[]` extension (design v3 footnote) without rework.
+- **2 new session hooks**: `omp_session_brief.py` (SessionStart) — advisory-only injection of `.omp/secretary/BRIEF.md` (≤30 lines) when present, silent otherwise, never auto-resumes work; `omp_session_capture.py` (SessionEnd) — appends a machine-only journal session-stub once per session, no LLM involved, ascends to find `.omp/` root, redacts before write.
+- **`.omp/secretary/` layout** (`references/secretary-protocol.md`, new; `references/output-layout.md` §addition) — `ledger.jsonl` (append-only event log: `task_added|task_done|blocker_opened|blocker_closed|decision_recorded|gate_passed|session_start|session_end`), `journal/YYYY-MM-DD.md`, `todo.txt`, `raid.md`, `decisions/`, `BRIEF.md`.
+- **Secretary hygiene audit axis** (warn-default, in `omp_content_audit.py`/`auditor`) — reuses `scan_stale`/`brief_hash_check` to flag stale tasks/blockers, BRIEF drift, and sync-conflict copies (e.g. `ledger 2.jsonl`) under `.omp/secretary/**`.
+- **Governance-side wiki/learned.md lint** (warn-default) — 6 mechanical checks (orphan, stale, broken-ref, oversized, stuck-candidate, structural-contradiction) plus a `scan_structure_drift` sweep, both reusing secretary pure functions; no auto-promotion or auto-deletion.
+- **Route/hook wiring** — `omp_route_emit.py` STAGE catalog gains `log|brief|review` (13 stages total); `OMP_SKIP_HOOKS` kill-switch unified across all four hooks; `omp_verify_emit.py` gains a content-hash advisory throttle (`.omp/state/verify-throttle.json`) so repeated organizer batch-moves don't re-fire the same reminder.
+- **Existing-stage integration** — `omp-init` creates the `.omp/secretary/` skeleton by default (GATE 1 note), `omp-pilot` runs `omp-brief` once at the end, `omp-doc`/`omp-codify` cross-reference secretary sources, `omp-doctor` checks the two new hooks are registered.
+
+### Changed
+
+- `.claude-plugin/plugin.json`: `version` 0.3.0 → 0.4.0; `skills[]` gains `omp-log`/`omp-brief`/`omp-review` (10 → 13); `hooks` gains `SessionStart` (`omp_session_brief.py`) and `SessionEnd` (`omp_session_capture.py`) entries alongside the existing `UserPromptSubmit`/`PostToolUse`; description now names the secretary axis.
+- README.md: skill table 10 → 13 rows, agent table 5 → 6 rows (adds `chronicler`), roster summary line, new "Time — secretary skeleton" section alongside the existing "Space — stage skeleton" section.
+
+### Notes
+
+- Secretary content is strictly human/hook-authored, never LLM-estimated: `chronicler` writes narrative and judgment only; every status figure traces to `derive_status`; no task/blocker auto-closes (D9); journal/ledger are append-only, never truncated (D6).
+- Sibling propagation reviewed and rejected — oms/omd are output-per-artifact generation pipelines with no daybook/session-journal concept; the secretary axis is unique to omp's "living folder, revisited over many sessions" identity (recorded in `references/omc-backport-analysis.md` §6 and `learning-protocol.md`'s "Secretary-axis boundary" section).
+- `omha` `cards/omp.json` route-catalog sync (log/brief/review verbs) is a separate commit in the `oh-my-heroacademia` repo, out of scope for this release.
+
+### Verification
+
+- `python3 -m pytest -q` — 107 passed (40 new tests over 0.3.0's 67: secretary pure-function core, ledger schema round-trip, `derive_status`/`scan_stale`, redaction, chronicler write-scope contract, session hook fail-open/once-per-session/advisory-only, route STAGE 12-way enumeration, plugin skill/hook registration round-trip, governance lint axis).
+
 ## [0.3.0] — 2026-06-21
 
 ### Added
