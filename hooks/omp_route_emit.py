@@ -23,6 +23,7 @@ Fail-open: any error returns 0 so the session is never blocked. Cross-platform:
 pure stdlib, pathlib only.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -51,7 +52,9 @@ CHECKPOINT = (
     "organize(규칙 위반 탐지→안전 재배치) / dataset(등록·체크섬·split·lineage) / "
     "env(환경 자산 Dockerfile/compose 정본을 .omp/env/에 생성·관리) / "
     "doc(사람용 문서 생성·갱신) / learn(관찰→규칙 승격, 승인 게이트) / "
-    "audit(규칙 준수 검증, read-only PASS/FAIL), 또는 omp-pilot(통째) / "
+    "audit(규칙 준수 검증, read-only PASS/FAIL) / "
+    "log(비서 캡처 — 사건·할일·막힘·결정 기록) / brief(현황 브리핑 — 어디까지 왔고 "
+    "다음 뭐 할지) / review(주간 재평가 — migration·stale 정리), 또는 omp-pilot(통째) / "
     "omp-doctor(설치·전제 자가진단).\n"
     "단일 단계면 그 스킬 직접, 폴더 통째 정리·진화면 omp-pilot, "
     "설치/작동 문제 진단이면 omp-doctor.\n"
@@ -61,14 +64,20 @@ CHECKPOINT = (
     "끝낸다 — 옛 경로가 인덱스에 남는 drift 금지(사용자가 다시 지시하게 만들지 말 것).\n\n"
     "프로젝트 관리 작업이면, 판정을 응답 맨 앞 omha ROUTE 줄 바로 다음에 이 한 줄로 "
     "출력하라(누락 금지):\n"
-    "STAGE(project) → <init|codify|organize|dataset|env|doc|learn|audit|omp-pilot|omp-doctor> · <한 줄 근거>\n"
+    "STAGE(project) → <init|codify|organize|dataset|env|doc|learn|audit|log|brief|review|omp-pilot|omp-doctor> · <한 줄 근거>\n"
     "프로젝트 관리 작업이 아니면 이 블록 전체 무시(STAGE 줄도 출력하지 말 것).\n"
     "</omp-routing>"
 )
 
 
+def _skipped(token):
+    return token in {t.strip() for t in os.environ.get("OMP_SKIP_HOOKS", "").split(",") if t.strip()}
+
+
 def main() -> int:
     try:
+        if _skipped("route"):
+            return 0
         context = CHECKPOINT + (NO_OMP_HINT if _omp_missing() else "")
         out = {
             "hookSpecificOutput": {
