@@ -132,6 +132,9 @@ targets in `rules.json`:
 
 - Registration happens **only via the omp-codify human gate** (D14 read-don't-replace;
   never auto-registered — surfaces are *proposed*, a human approves).
+- `path` may be a **file or a directory** (design Part II §14.1, e.g. a daily-notes dir
+  like `3_Archive/calendar/daily_notes`). A directory is summed **non-recursively** over
+  `sorted(*.md)` — same per-file counting rule as below, applied to each file.
 - `kind` ∈ `todo | journal | status | schedule`. `todo`/`schedule` are parsed for open-item
   counts (`*.txt` → todo.txt grammar; otherwise markdown `- [ ]` checkboxes) and aggregate
   into `derive_status` open-task counts and the traffic light. `journal`/`status` contribute

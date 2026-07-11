@@ -193,6 +193,15 @@ def test_count_source_open_todotxt_lines(tmp_path):
     assert n == 2
 
 
+def test_count_source_open_directory_sums_md_files(tmp_path):
+    d = tmp_path / "daily"
+    d.mkdir()
+    (d / "2026-07-10.md").write_text("## Tasks\n- [ ] a\n- [x] b\n", encoding="utf-8")
+    (d / "2026-07-11.md").write_text("## Tasks\n- [ ] c\n", encoding="utf-8")
+    n = count_source_open(tmp_path, {"path": "daily", "kind": "todo"})
+    assert n == 2
+
+
 def test_count_source_open_readmap_kinds_are_zero(tmp_path):
     (tmp_path / "Dashboard.md").write_text("- [ ] looks like a task\n", encoding="utf-8")
     assert count_source_open(tmp_path, {"path": "Dashboard.md", "kind": "status"}) == 0

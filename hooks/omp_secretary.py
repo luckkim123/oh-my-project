@@ -130,21 +130,29 @@ def load_secretary_sources(root):
         return []
 
 
+def _count_open_in_file(p):
+    lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    if p.suffix == ".txt":
+        tasks = [t for t in map(parse_todo_line, lines) if t]
+        return sum(1 for t in tasks if not t["done"])
+    return sum(1 for ln in lines if OPEN_CHECKBOX_RE.match(ln))
+
+
 def count_source_open(root, source):
     """Open-item count for one registered source. Only kinds todo|schedule count
-    (journal|status are read-map pointers -> 0). *.txt parses as todo.txt lines;
-    anything else counts open markdown checkboxes. Fail-open -> 0."""
+    (journal|status are read-map pointers -> 0). A file: *.txt parses as todo.txt
+    lines, anything else counts open markdown checkboxes. A directory: non-recursive
+    sum of the same per-file count across sorted(*.md) (design Part II §14.1 — e.g.
+    a daily-notes dir). Fail-open -> 0."""
     if source.get("kind") not in ("todo", "schedule"):
         return 0
     try:
         p = Path(root) / source["path"]
-        if not p.is_file():
-            return 0
-        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
-        if p.suffix == ".txt":
-            tasks = [t for t in map(parse_todo_line, lines) if t]
-            return sum(1 for t in tasks if not t["done"])
-        return sum(1 for ln in lines if OPEN_CHECKBOX_RE.match(ln))
+        if p.is_file():
+            return _count_open_in_file(p)
+        if p.is_dir():
+            return sum(_count_open_in_file(f) for f in sorted(p.glob("*.md")))
+        return 0
     except Exception:
         return 0
 
