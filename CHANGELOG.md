@@ -5,6 +5,35 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-11
+
+### Added
+
+- **`secretary.sources[]` read-map** (`references/schemas/rules.schema.json`, `references/secretary-protocol.md`) — registers existing project state surfaces (Kanban board, daily-notes dir, status table) as counted sources rather than duplicating them under `.omp/secretary/`. Kinds: `todo`/`schedule` are count-parsed (todo.txt lines / markdown checkboxes; `path` may be a file or a directory — directory sums non-recursive `*.md` open-counts), `journal`/`status` are read-map only (no count). `derive_status(root)` return gains a `"sources"` key. Registration only through the `omp-codify` human gate (D14) — never auto-discovered or auto-registered.
+- **`omp-organize` para preset — §7 source proposal table** (`references/presets/para.md`) — when running the `para` preset, dry-run move plans now propose known state surfaces as `secretary.sources[]` codify candidates (a table the human reviews at the codify gate, not an auto-write).
+- **`omp-organize` wikilink inbound counts** — para dry-run move plans now show each note's wikilink inbound count alongside the move, surfacing orphan/hub notes before relocation.
+- **`omp-handoff` skill** (`skills/omp-handoff/SKILL.md`) — a delegation-briefing assembler run once immediately before handing work to a sibling harness (oms/omd/omx/omc/superpowers). Assembles an Anthropic multi-agent 4-element knowledge packet (Objective / Output format / Tool·source guidance / Boundaries) from existing omp state (`todo.txt`/`raid.md`, `output-layout.md`, PROJECT.md + wiki grep-by-topic + `derive_status(root)["sources"]`, rules.json + open raid blockers) — references only, never inlines full source documents. Produces three artifacts in one pass: a session-consumed briefing block, an audit copy under `.omp/work/handoffs/YYYY-MM-DD-<target>.md` (retention 10, self-trimmed), and a ledger `handoff_prepared {target, topic}` event. `omp_route_emit.py` STAGE catalog gains `handoff` (13 → 14 stages); does not decide the delegation lane (omha's role, unchanged, §11.3).
+- **`omp-log` handoff-return absorption** — a sibling harness's compressed return digest (1–2k tokens) is absorbed into `omp-log`'s existing five destinations rather than a new sixth one; not enforced (R5).
+
+### Changed
+
+- `.claude-plugin/plugin.json`: `version` 0.4.0 → 0.5.0; `skills[]` gains `omp-handoff` (13 → 14); description gains the two 0.5.0 capabilities.
+- `hooks/omp_route_emit.py` **CHECKPOINT text changed** (hook contract — siblings oms/omd treat this as versioned): STAGE catalog line now enumerates `...|log|brief|review|handoff|omp-pilot|omp-doctor` (13-way → 14-way).
+- README.md: skill table 13 → 14 rows (adds `omp-handoff` under the secretary skeleton), "13 skills" status line → "14 skills", secretary axis section gains a sources read-map / delegation-handoff / wikilink-inbound-counts summary.
+
+### Notes
+
+- D8 (derived-only status, no LLM estimate) extends to `secretary.sources[]`: counts come from `count_source_open`, never an LLM guess.
+- D12 (handoff is same-context consumption, not IPC) — the session-in briefing block is the primary artifact; the `work/handoffs/` copy is audit-only.
+- D14 (registration is human-gated) — `secretary.sources[]` entries are proposed by presets/organize but only written through `omp-codify`'s approval gate, same as structure/naming rules.
+- §11.3 (omp does not pick the delegation lane) is unchanged by `omp-handoff` — it assembles the packet strictly after omha has already decided the target lane.
+- R6 (registering the vault's own `secretary.sources[]` against this feature) is a human-gated operational act performed in the vault's own `.omp/`, not part of this repo's release.
+- `omha` `cards/omp.json` route-catalog sync (the `handoff` STAGE) is a separate commit in the `oh-my-heroacademia` repo (R7), out of scope for this release.
+
+### Verification
+
+- `python3 -m pytest -q` — 122 passed (15 new tests over 0.4.0's 107: secretary sources schema + `derive_status` aggregation + directory-source support, para preset/organize content, omp-handoff integrity/contract sync).
+
 ## [0.4.0] — 2026-07-11
 
 ### Added
