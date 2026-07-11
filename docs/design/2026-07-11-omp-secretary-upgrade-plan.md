@@ -1,4 +1,4 @@
-# OMP 2.0 — Secretary-Axis Upgrade Plan (OMC v4.15.2 흡수 + 외부 조사)
+# OMP 2.0 — Secretary Upgrade Plan (Part I: 시간축·OMC 흡수 / Part II: vault 정박·위임 브리핑·omha 판정)
 
 | Field | Value |
 |:--|:--|
@@ -8,8 +8,9 @@
 | Prior decisions honored | `references/omc-backport-analysis.md` — T1–T25 채택, 재분석에서 반박된 45후보, §5 형제전파 0건. **본 문서는 이를 재논의하지 않는다**; 단 하나의 개정(T24)만 §4.3에서 명시적으로 논증한다. |
 | External research | 2026-07-11 웹 조사 2계통: (a) AI-PM assistant 지형 2025–26, (b) 지식노동 방법론 + agentic-memory 아키텍처. 출처는 본문 인라인. |
 | Date | 2026-07-11 |
-| Status | **PLAN v2** — ultracode 심층분석 반영판, 구현 착수 전 사람 승인 게이트 대기 |
+| Status | **PLAN v3** — Part I(시간축, §0–§8)=v2 ultracode 검증분 그대로 + Part II(비서 재규정, §9–§14) 신규. 구현 착수 전 사람 승인 게이트 대기 |
 | Deep analysis (v2) | 2026-07-11 ultracode 2-workflow(50 agents): ① 계획 5렌즈 감사(OMC 커버리지·omp 코드 정합·기존 결정 준수·설계 비판·웹 인용 검증 — 24 findings 중 19 생존), ② OMC 24문서 8클러스터 import 감사(검증 생존 후보 11). 적대 검증 생존분만 반영; 잠긴 결정을 건드리는 것은 §1.1 개정 대기 블록으로 분리(자동 반영 금지). |
+| v3 revision | 2026-07-11 사용자 방향 3건(① Obsidian vault=두 번째 뇌 타겟, ② omp=omha 생태계의 "비서" 역할 재규정, ③ omha 통합 검토) 반영. 재료: repo 실측 3계통(omha 아키텍처, vault `.omp/` 실물 대조, omp 갭 전수 grep — 병렬 explore) + 웹 조사 4계통(Obsidian-AI 도구 지형, second-brain 방법론×LLM 실패 모드, 오케스트레이션 handoff 패턴, Claude Code 비서 사례). 출처는 Part II 인라인. Part I은 무변경(§6 v3 각주 1건만). |
 
 이 문서는 세 입력을 합성한다: OMC 심층분석(메커니즘 카탈로그), omp 현재 상태 인벤토리(부재 확인 포함), 외부 조사(도구 지형 + 방법론). 판정 어휘는 omx 선례를 따른다 — 상태축 `HAS / PARTIAL / ABSENT / NA_JUSTIFIED`, 채택축 `ADOPT / ADAPT / REJECT / DEFER`.
 
@@ -22,6 +23,8 @@
 **새 메커니즘은 전부 기존 4대 불변식과 정합하도록 설계했다** — 결정론적 grep(임베딩 영구 금지), 사람 게이트 승격, 도메인별 single-writer, fail-open python3-stdlib. 이전 backport에서 영구 REJECT된 것(Stop-hook 강제 루프, 임베딩, 자동 승격, 데이터 실물 이동)은 하나도 되살리지 않는다. 유일한 개정은 T24(훅 추가 억제)로, SessionStart/SessionEnd 2개 훅에 한해 §4.3에서 논증한다.
 
 **외부 조사의 한 줄 결론: 비서는 "묻지 않고 추론하되, 끼어들지 않고 준비해 둔다."** 상용 AI-PM 도구의 실패 모드(수동 업데이트 이탈, 알림 피로, hallucinated status)와 interruption-cost 문헌이 가리키는 설계는 push가 아니라 pull — 세션 시작 시 2분 스캔 가능한 브리핑을 *미리 준비*해 두고, 사용자 개입은 "새로 입력"이 아니라 "자동 초안의 확인/수정"으로 좁힌다.
+
+**(v3) 이 문서는 이제 두 부(部)로 구성된다.** Part I(§0–§8)은 시간축(비서의 수첩) 계획으로 v2에서 검증 완료된 그대로다. Part II(§9–§14)는 omp의 역할 재규정 — 두 번째 뇌(Obsidian vault) 정박, 형제 하네스 위임 브리핑, omha 통합 판정 — 을 담는다. Part II는 Part I을 전제하되 별도 릴리스(§13, 0.5.0)로 분리된다.
 
 ### Scorecard — 비서 5기능 × omp 현황
 
@@ -271,6 +274,8 @@ scan_journal_tags(root) -> list[TagRef]        # journal 인라인 태그([BLOCK
 
 **기존 항목 편승(신규 항목 아님):** `OMP_SKIP_HOOKS` 4훅 통일은 #4·#6의 plugin.json 훅 작업에 3~4줄로, verify_emit content-hash throttle은 그 verify_emit 편집에 함께 편승한다(§2.6).
 
+**v3 각주(§13 연동):** #0의 `derive_status`는 읽을 소스 목록을 인자로 받는 시그니처로 설계한다(기본값 = `.omp/secretary/`만 — Part I 동작 불변, 분기 0). Release 2의 `secretary.sources[]`(§13-R1)가 이 인자에 꽂힌다 — 지금 시그니처만 열어두면 vault 정박 시 재작업이 0이 된다.
+
 전 항목이 skill prose·agent .md·python3-stdlib 순수함수·훅 2개·읽기전용 감사 검사·pytest·문서이며 — **CLI 바이너리, MCP 서버, 임베딩, Node 런타임, 자동 승격, 데이터 이동을 하나도 만들지 않는다.** 신규 훅 2개는 세션당 1회 실행으로 T24 개정 범위 안이고, §2.6 항목은 전부 감사 finding·테스트라 훅 수를 늘리지 않는다.
 
 구현 방식 권장: 항목이 독립적이고 spec이 이 문서로 명확하므로 subagent-driven-development(태스크별 fresh implementer + spec-compliance/quality reviewer)가 적합 — release-grade 변경의 기존 관례.
@@ -299,3 +304,126 @@ scan_journal_tags(root) -> list[TagRef]        # journal 인라인 태그([BLOCK
 5. **journal 인라인 태그 vs ledger 이벤트 확장**: §3은 journal 서사에 선택적 grep 태그(`[BLOCKER:]`/`[LESSON:]`/`[DECISION:]`)를 채택했지만, 같은 목적을 이미 계획된 `append_ledger`에 `lesson_recorded` 등 이벤트 타입을 추가하는 쪽으로 흡수하면 파서가 하나 줄고 "지표 파생 SSOT=ledger" 원칙(D4·§4.1 페어링)과 더 정합적이다. 태그(서사 친화, 파서 +1) vs ledger 확장(SSOT 단일, 캡처 시 명시 이벤트 필요) 중 택일 — 본문은 태그를 가정하되 구현 착수 전 확정 요망.
 6. **PreToolUse 경로-스코프 게이트 (§2.3 검토 항목)**: chronicler write-scope의 하네스 강제 vs 훅 경량성(per-tool-use는 T24 원 논거의 정중앙) — 채택하려면 별도 T24 개정 논증이 선행돼야 한다. 이 저울(무결성 강제 vs 경량성)은 사용자 승인 사항.
 7. **§1.1 잠긴 결정 개정 대기**: D7 문구 재정의(훅=기계 append 소유 명시)와 D2/D3/D9 인용 정정 — 승인 시 D-표에 반영.
+
+---
+
+# Part II — v3 확장: 비서 하네스 재규정
+
+> Part I(§0–§8)이 "시간축 추가"라는 기능 계획이라면, Part II는 omp의 **역할**을 재규정한다: **omp는 omha 생태계의 "비서" 하네스다 — 사용자의 두 번째 뇌(Obsidian vault)를 관장하고, 프로젝트 상태를 관리하며, 다른 하네스에 일을 맡길 때 관련 지식을 전수한다.** Part I이 비서의 수첩이라면, §10은 비서의 서재, §11은 비서의 인수인계 서류, §12는 조직도 질문(라우터를 비서가 소유하나)이다.
+> 근거 조사(2026-07-11, 병렬 7에이전트): omha repo 실측, vault `.omp/` 실물 대조, omp 갭 전수 grep, 웹 4계통. 이하 "실측"은 이 조사분을 가리킨다.
+
+## 9. 재프레이밍 — "비서"는 새 기능이 아니라 세 축을 합친 이름이다
+
+| 축 | 비서의 직무 | 상태 (실측) |
+|:--|:--|:--|
+| 공간축 (0.1.0–0.3.0) | 서류함 관리 — 무엇이 어디 있어야 하나 | HAS — 현행 10 skill 전부 여기 속함 |
+| 시간축 (Part I → 0.4.0) | 수첩 — 무엇이 어디까지 왔고 다음은 무엇인가 | 계획 완료, 승인 대기 |
+| vault 정박 (§10 → 0.5.0) | 서재 사서 — 주인의 지식이 어디 사는지 알고 상태 질의에 답한다 | PARTIAL — 실사용은 자생 중, 스킬·스키마 레벨 부재 |
+| 위임 브리핑 (§11 → 0.5.0) | 인수인계 — 전문가(형제 하네스)에게 맡길 때 서류 준비 | ABSENT — 전수 grep 0건 |
+
+재규정이 요구하는 신규 코드는 적다. omha 캐스케이드에서 omp는 이미 0순위(거버넌스 직교축 — 매 턴 가장 먼저 판정)라 "모든 요청을 비서가 먼저 본다"는 위치가 라우팅 설계에 잠재해 있었고, vault의 `.omp/`는 실물 설치 대조(workspace specificity 0.55·wiki 0페이지 vs vault 0.75·wiki 2페이지·유일한 content_conventions)에서 최성숙 인스턴스다.
+
+### 9.1 v3 잠금 결정 (D10–D14 — Part I D1–D9와 같은 지위)
+
+| # | 결정 | 근거 |
+|:--|:--|:--|
+| D10 | **vault는 omp의 대표 배치처(flagship deployment)다 — 단 플러그인은 범용을 유지한다.** vault 고유 경로·관례는 vault의 `.omp/rules.json`에만 산다(이미 그런 상태). 플러그인 코드·preset에 개인 경로 하드코딩 영구 금지. | 배포물에 개인값 금지는 계열 공통 불변식. vault `.omp/`가 이미 `role` 필드로 이 패턴을 실증(wiki `schedule-system.md` — 일정 3계층을 rules.json에 성문화하고 조회 규칙을 wiki에 누적하는 자생 루프). |
+| D11 | **두 번째 뇌의 본체는 vault 노트 자체다 — omp는 사서(비서)이지 검색엔진이 아니다.** 노트 내용 인덱싱, 지식그래프 엔진, 임베딩, 자체 MCP 서버를 만들지 않는다. 회상 = Claude Code Read/Grep + rules.json read-map(어디를 읽으면 답이 나오는지). | grep 회상의 정량 실증: [arXiv:2605.15184](https://arxiv.org/abs/2605.15184) (LongMemEval) — 개인 규모 사실 회수에서 grep이 vector를 능가(Opus 기준 93.1% vs 83.6%), 단 "하네스 설계가 검색 알고리즘만큼 중요"까지 포함해 읽어야 함. Obsidian MCP 생태계 미성숙(8+ 서버 파편화·다수 stale, 포럼 중론 "실험 단계" — heuristic). D4·T7 기존 불변식과 정합. |
+| D12 | **handoff는 같은 세션 안의 컨텍스트 주입이다 — IPC·API·A2A 서버가 아니다.** 형제 하네스는 별도 프로세스가 아니라 같은 세션의 스킬이므로, "지식 전수"는 위임 직전 브리핑 텍스트로 완결된다. | A2A는 조직 경계를 넘는 opaque 에이전트 간 프로토콜([spec](https://a2a-protocol.org/latest/specification/)) — omha 카드가 형식만 빌리고 서버를 안 만든 것과 같은 판단. 브리핑 콘텐츠 골격은 Anthropic 실증 4요소([multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)). |
+| D13 | **omha repo 병합 기각.** 라우터(전역·stateless·매 턴)와 비서(프로젝트·stateful)는 책임이 다르다. "비서=디스패처" 직관의 정당한 몫은 §11(위임 준비 소유)이 흡수하고, 실재하는 고통(카드 동기화)의 처방은 자동화다(§12.3). | §12.1 실측 4근거 + router/supervisor 역할 분리 표준([LangGraph](https://docs.langchain.com/oss/python/langchain/multi-agent/router)). 단 "병합 금지"의 명시 논증은 공식 문서에 없음 — 역할 정의의 차이에서 도출한 판단임을 정직하게 표기. |
+| D14 | **기존 표면을 대체하지 않고 읽는다(read, don't replace).** Kanban.md·daily notes 등 사용자가 이미 쓰는 상태 표면은 새 파일로 대체하지 않고 rules.json에 secretary source로 등록해 읽는 대상으로 삼는다. | D3(correction over creation)의 vault판 — 신규 표면 강요는 이탈 실패 모드의 정문(Part I D3의 Zapier 근거). vault schedule-system이 이미 이 패턴으로 자생. |
+
+## 10. Pillar 2 — vault 정박: 두 번째 뇌의 사서
+
+### 10.1 실측 현황 — 자생한 것의 정식화이지 백지 발명이 아니다
+
+vault(904 .md·17GB·PARA·git tracked)의 `.omp/`는 이미: PROJECT.md가 vault를 "PKM 워크스페이스이자 두 번째 뇌"로 자기 규정, 일정 시스템 3계층(daily notes/이벤트/Kanban)이 rules.json `role` 필드로 성문화, wiki `schedule-system.md`에 조회 규칙(미완료만 보고·4곳 전수 grep)이 사용자 교정 루프로 누적 중이다. **"vault를 비서의 대상으로"는 계획이 아니라 이미 일어난 일이고, 이 Pillar는 그것을 preset·스키마 레벨로 승격하는 것이다.**
+
+남은 갭(실측): 상태 표면이 3곳에 분산 — (a) 프로젝트별 `Kanban.md`(마일스톤·`#priority/*`), (b) root `Kanban.md`(개인 전체 TODO), (c) daily notes `## Tasks`(46개, 대부분 빈 템플릿) — 단일 진입점이 없어 "지금 뭐가 급한가"에 답하려면 3곳을 다 열어야 한다. 결정 기록은 `.sp/specs/`(gitignored scratch)에만 있어 영속 검색이 안 된다. 이것이 §0 Scorecard의 vault 실물 버전이며, Part I의 BRIEF/ledger/ADR가 정확히 이 갭을 메운다.
+
+### 10.2 메커니즘 (전부 기존 불변식 안)
+
+- **`secretary.sources[]` (rules.schema.json 신규 필드)**: `{path, kind: todo|journal|status|schedule, convention: <한 줄 서술>}`. Part I `derive_status`가 `.omp/secretary/` 기본에 이 소스들을 합산해 신호등·카운트를 파생(§6 v3 각주). 등록은 omp-codify 게이트 경유 — 사람이 승인한 read-map만 읽는다.
+- **para preset 확장**: PARA 시그널에 Kanban·daily-note·상태표 관례 감지를 추가하고 codify 후보로 *제안*한다(자동 등록 아님 — "ML 출력은 사람의 해석으로 검토될 제안으로 프레이밍", [arXiv:2307.16481](https://arxiv.org/pdf/2307.16481)).
+- **wikilink 무결성의 실행 단계 승격**: 파일시스템 rename은 Obsidian이 모르는 채 일어나 `[[link]]`가 조용히 깨진다(실무 관찰 다수, heuristic — 메커니즘 자체는 자명). para preset 프로젝트에서 omp-organize dry-run에 inbound `[[link]]` grep 카운트를 병기한다. 기존 para.md의 wikilink-integrity 감사 힌트를 organize 단계로 확장하는 것.
+- **BRIEF = consolidation layer**: 상용 AI-second-brain의 아키텍처적 실패로 "장기 저장소와 context window 사이 consolidation layer 부재 → 초기 규칙이 rolling window 밖으로 증발"이 지적된다(heuristic 다수 관찰). SessionStart BRIEF 주입(Part I #6)이 정확히 그 layer다 — vault 규모에서 Part I 메커니즘의 재정당화.
+- **journal ≠ daily notes**: `.omp/secretary/journal/`(세션 작업일지, 실패 일급)과 vault daily notes(사람의 일기)는 분리 유지. 단 daily notes `## Tasks`는 todo source로 등록 가능(D14). 통합 여부는 open item 1.
+
+### 10.3 채택하지 않는 것 (Pillar 2 스코프 경계)
+
+- **노트 자동 이동·자동 재분류** — omp-organize의 propose-then-approve 게이트 그대로. "사소한 확인 클릭 하나가 시스템 부패를 막는다"(PARA+AI 실무의 Mark-as-Reviewed 패턴, heuristic)와 같은 결론.
+- **노트 내용 요약 파일 대량 생성** — "AI가 모든 사고를 대신하고 사람이 요약만 소비하면 second brain이 아니라 인지 아웃소싱"([Stack Overflow Blog 2026-03-19](https://stackoverflow.blog/2026/03/19/ai-is-becoming-a-second-brain-at-the-expense-of-your-first-one/)). 요약은 상태(BRIEF)에 한정하고 지식은 원문 경로로 안내한다.
+- **Obsidian 플러그인 제작·의존** — omp는 파일과 grep만 안다. vault의 플러그인 36개는 vault 사정이지 omp의 계약이 아니다.
+- **"읽기 전용 second brain" 함정의 역방향 경계** — "읽기만 하는 second brain은 검색엔진일 뿐"(Vectorize, 벤더 heuristic)이 시간축(쓰기 루프)의 존재 이유지만, 그 반대극단(모든 노트에 개입)은 위 두 항목이 막는다. omp의 쓰기는 `.omp/**`와 게이트 통과한 재배치에 한정된다.
+
+## 11. Pillar 3 — 위임 브리핑: 형제에게 지식을 전수하며 맡긴다
+
+### 11.1 현황 ABSENT (전수 grep)
+
+"delegation" 히트 50+건은 전부 omp 내부 5-agent 간 위임(auditor→organizer 등)이다. 타 하네스로 향하는 유일한 지점은 research-lab preset의 `paper/**` ignore — 소극적 배제이지 전수가 아니다. wiki는 의도적으로 순수 prose(스코프 필드 없음)라 "이 지식은 oms에도 유용"을 표시할 구조 자체가 없다.
+
+### 11.2 메커니즘 — `omp-handoff` (Release 2)
+
+위임 직전 1회 실행하는 브리핑 조립기. 인자 = 대상 레인 + 임무 한 줄.
+
+| 브리핑 패킷 (Anthropic 4요소 골격) | omp가 채우는 원천 |
+|:--|:--|
+| Objective (임무 + 완료 기준 1줄) | 사용자 인자 + todo/raid의 관련 항목 |
+| Output format · 산출물 위치 계약 | output-layout + NAMING의 경계 결정(예: "manuscript는 workspace로") |
+| Tool·source guidance (어디를 읽어라) | PROJECT.md 1줄 + 관련 wiki 노트 grep-by-topic + secretary.sources read-map |
+| Boundaries (하지 말 것) | rules.json 관련 규칙 + open blocker 발췌 |
+
+- 출력: 세션 내 브리핑 블록(위임받는 스킬이 같은 컨텍스트에서 소비) + `.omp/work/handoffs/YYYY-MM-DD-<target>.md`(work layer, retention 10 — 감사용).
+- ledger 이벤트 `handoff_prepared{target, topic}` — "이 프로젝트가 어느 하네스에 뭘 맡겨왔나"가 grep 한 번(D8 파생 지표).
+- **참조만, 복붙 금지**(Part I §3 핸드오프 필드 원칙 그대로): 브리핑은 경로와 발췌 요지만 담고 원문 전체를 인라인하지 않는다. 반환도 대칭 — 위임 결과는 압축 요지(1–2천 토큰 패턴이 실증됨, [Anthropic multi-agent](https://www.anthropic.com/engineering/multi-agent-research-system))로 받아 기존 omp-log 목적지에 흡수한다(신규 메커니즘 0, 강제 아님).
+- wiki에 scope/audience 필드는 만들지 않는다 — grep-by-topic이 먼저다(반복 실패가 관측되면 open item으로 재검토).
+
+### 11.3 라우팅과의 관계 — 계층 불변
+
+omha가 LANE, 형제가 STAGE를 고르는 텍스트 계약은 그대로다. `omp-handoff`는 그 사이(위임 결정 후 ~ 형제 스킬 발동 전)에 끼는 **선택적 준비 단계**다. route hook STAGE 열거에 `handoff` 1개 추가 — Part I §4.2의 두 하드코딩 지점(CHECKPOINT 상수·`ROUTE_STAGES` 튜플) 동기 갱신 규칙 동일 적용.
+
+## 12. omha 통합 판정 — 병합 REJECT, 지식 흐름 통합 + 동기화 자동화 ADOPT
+
+### 12.1 병합 기각의 실측 4근거
+
+1. **배포 인프라 붕괴**: omha repo는 라우팅 훅일 뿐 아니라 5개 형제 플러그인 전부의 마켓플레이스 루트다(`~/.claude/settings.json` 실측 — 5개 전부 `@heroacademia` 설치, 캐시도 한 지붕). repo 해체 시 oms/omd/omx가 설치처를 잃고 known_marketplaces 재설정이 연쇄된다.
+2. **대칭 계약의 자기지시 모순**: omp/oms/omd/omx 4형제가 "omha ROUTE 줄 바로 다음에 내 STAGE 줄"이라는 계약을 훅 주석+회귀 테스트로 보유한다(`omp/hooks/omp_route_emit.py:10-13`, `omp/tests/test_omp_route_emit.py:40-43` 등 4 repo 대칭). omha가 omp 안으로 들어가면 "omp가 omp 다음 줄에 쓴다"는 자기지시가 되어 형제 3 repo의 문서·테스트 연쇄 수정이 필요하다.
+3. **정체성 충돌**: omp 카드의 자기 규정은 "governance lane — NOT a content domain, NOT a work-style"(직교축). 병합하면 6장 카드 중 1장이 나머지 5장의 레지스트리를 소유한다 — 심판이 선수를 겸직하고, omha의 확장 원칙("새 카드 파일 하나로 확장 끝")도 훼손된다.
+4. **스코프 불일치**: omha `route_emit.py`는 cwd 무관 전역 stateless(코드에 cwd 참조 0 — 프로젝트 없는 순수 대화 세션에도 매 턴 의미)다. omp는 `.omp/` 존재로 자기 활성화하는 프로젝트 스코프다. 병합하면 "프로젝트 없는 세션의 라우팅"이 omp의 예외 경로로 전락한다.
+
+외부 근거: 라우터(stateless 전처리 분류)와 supervisor(stateful 대화형 오케스트레이션)의 역할 분리가 표준 패턴([LangGraph 공식](https://docs.langchain.com/oss/python/langchain/multi-agent/router)). 단 "합치면 안 된다"는 명시 논증은 공식 문서에 없다 — 역할 정의의 차이에서 도출한 판단임을 밝혀 둔다.
+
+### 12.2 직관의 정당한 몫 — 비서는 인수인계를 소유하고, 조직도는 소유하지 않는다
+
+"비서가 곧 디스패처"라는 직관에서 옳은 부분은 §11이 전부 흡수한다: omp는 **위임 준비**(무엇을 알려주고 맡길 것인가)를 소유한다. 레인 **판정**(이 요청이 어느 전문가 몫인가)은 얇은 전역 계층으로 남는다. 비유하면 비서는 "이 건은 회계사에게 맡기시죠"라고 제안하고 서류 봉투를 준비하지만, 회사의 조직도(카드 레지스트리)와 접수 창구(매 턴 훅)는 비서 개인 소유물이 아니다. 캐스케이드 0순위라는 위치가 이미 "비서가 먼저 본다"를 구조적으로 보장한다.
+
+### 12.3 실재하는 고통의 처방 — 동기화 자동화 (omha 백로그 이관 권고)
+
+분리 유지의 실측 비용: 수동 동기화 지점 12개(형제 6카드 × `triggers.skills` 배열 + `description` 문자열), 최근 omha 커밋 20개 중 ~12개가 라우팅 텍스트/카드 동기화(이번 조사 실측). **이 고통이 "통합" 직관의 진짜 원천이라면 처방은 repo 병합이 아니라 자동 왕복 검증이다**: omha에 card-sync 검사(형제 plugin.json `skills[]` ↔ `cards/<name>.json` `triggers.skills` 대조 pytest/스크립트)를 두면 drift가 기계적으로 잡힌다. 구현은 omha repo 몫 — 본 계획의 스코프 밖이므로 백로그 이관만 기록한다(R7). omp 쪽 몫은 Part I 로드맵 #9(카드 동기 갱신)가 이미 담당하며, omha 자동화가 오면 그 수동 단계가 대체된다.
+
+### 12.4 DEFER — 마켓플레이스 루트 중립화
+
+마켓플레이스 루트를 중립 repo로 옮기고 omha를 순수 카드 레지스트리로 축소하는 안은 지금 얻는 것이 없어 보류(결정 아님, 기록만).
+
+## 13. Release 2 roadmap (0.5.0 — Part I 0.4.0 완료 후)
+
+Part I 로드맵과 같은 규율: 단일 리스트, 항목=독립 커밋, 공통 완료 조건 = pytest 추가 + 기존 테스트 무회귀.
+
+| # | Item | Idiom sketch |
+|:--|:--|:--|
+| R1 | rules.schema.json `secretary.sources[]` + derive_status 소스 합산 | Part I #0 시그니처(§6 v3 각주)에 꽂기. kind별 파서는 todo.txt 파서 재사용 + Kanban 체크박스/헤딩 grep 수준(stdlib) |
+| R2 | para preset 확장 — Kanban/daily-note/상태표 관례 감지 → codify 후보 제안 | preset prose + project-scanner 시그널 추가, 게이트 경유 |
+| R3 | omp-organize wikilink inbound 카운트 (para preset 한정 dry-run 항목) | 이동 계획서에 `[[name]]` grep 카운트 병기 |
+| R4 | `omp-handoff` skill + route STAGE `handoff` + ledger `handoff_prepared` | §11.2. 두 하드코딩 지점(CHECKPOINT·ROUTE_STAGES) 동기 갱신 + plugin.json 등록 |
+| R5 | omp-log 목적지에 handoff 반환 요약 흡수 | 문서·프롬프트만, 코드 0 |
+| R6 | vault 실전 정박 1회 — sources 등록 codify (사람 게이트) | dogfooding. 계획 문서가 아닌 운영 행위 — vault `.omp/` 커밋 |
+| R7 | omha 반영 — `cards/omp.json`에 handoff 추가 + card-sync 자동화 백로그 이관 기록 | 별도 repo 커밋 |
+| R8 | README + CHANGELOG + version 0.5.0 | 릴리스 규율 (Removed/Added/Changed/Verification/Notes) |
+
+## 14. v3 Open items (Part I §8과 같은 지위 — 계획을 막지 않음)
+
+1. **journal ↔ vault daily notes**: 분리가 기본(세션 작업일지 ≠ 사람의 일기). daily notes를 journal source로도 흡수할지.
+2. **handoff 산출 형태**: 세션 블록 + work 파일 병행이 기본. 파일 생략(세션 출력만) 옵션이 필요한지.
+3. **secretary.sources kind 열거 확정**: `todo|journal|status|schedule` 4종 가정 — R1 착수 전 확정.
+4. **버전 배분**: Pillar 2·3을 한 릴리스(0.5.0)로 묶을지 분리할지 — 본문은 묶음 가정.
+5. **omha card-sync 검사의 구현 형태**(omha 내 pytest vs 각 형제 repo CI) — omha 백로그에서 결정, 본 계획 밖.
