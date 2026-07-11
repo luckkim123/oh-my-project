@@ -202,6 +202,15 @@ def test_count_source_open_directory_sums_md_files(tmp_path):
     assert n == 2
 
 
+def test_count_source_open_dir_with_md_named_subdir_still_counts(tmp_path):
+    d = tmp_path / "daily"
+    d.mkdir()
+    (d / "a-real.md").write_text("- [ ] one\n- [ ] two\n", encoding="utf-8")
+    (d / "z-weird.md").mkdir()  # a directory named *.md must not poison the sum
+    n = count_source_open(tmp_path, {"path": "daily", "kind": "todo"})
+    assert n == 2
+
+
 def test_count_source_open_readmap_kinds_are_zero(tmp_path):
     (tmp_path / "Dashboard.md").write_text("- [ ] looks like a task\n", encoding="utf-8")
     assert count_source_open(tmp_path, {"path": "Dashboard.md", "kind": "status"}) == 0

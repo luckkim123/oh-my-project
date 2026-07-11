@@ -27,7 +27,7 @@ TODO_DONE_RE = re.compile(r"^x\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\
 TODO_OPEN_RE = re.compile(r"^(?:\((?P<pri>[A-Z])\)\s+)?(?:(?P<created>\d{4}-\d{2}-\d{2})\s+)?(?P<text>.+)$")
 STALE_TASK_DAYS, STALE_BLOCKER_DAYS = 30, 14
 SOURCE_KINDS = ("todo", "journal", "status", "schedule")
-OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")
+OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")  # simplified: line-regex, no fence awareness — a checkbox inside a ``` code block counts; add fence tracking if that ever misleads (D11 grep-level ceiling).
 
 
 def find_omp_root(start):
@@ -151,7 +151,7 @@ def count_source_open(root, source):
         if p.is_file():
             return _count_open_in_file(p)
         if p.is_dir():
-            return sum(_count_open_in_file(f) for f in sorted(p.glob("*.md")))
+            return sum(_count_open_in_file(f) for f in sorted(p.glob("*.md")) if f.is_file())
         return 0
     except Exception:
         return 0

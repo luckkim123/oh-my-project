@@ -144,6 +144,9 @@ targets in `rules.json`:
   into `derive_status` open-task counts and the traffic light. `journal`/`status` contribute
   no numbers — they are read-map pointers: BRIEF tells the reader *where to look*.
 - Fail-open: a missing file or corrupt `rules.json` never crashes status derivation.
+- `path` is trusted as root-relative once registered: it is written only through the
+  omp-codify human gate, so omp does not re-confine it — a human-approved `../` or
+  absolute path reads exactly what was approved.
 - BRIEF may render the read-map as `읽을 곳: <path> (<kind>) — <convention>` lines (≤4).
   When over the BRIEF cap, read-map lines are dropped **before** the existing truncation
   priority list (they are pointers, reconstructible from rules.json).
