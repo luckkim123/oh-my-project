@@ -9,6 +9,7 @@ description: |
   closing recommendation to run `omp-brief`.
   Triggers: 주간 리뷰, 정리하자, 리뷰 돌려, migration, weekly review, 재평가,
   이번 주 리뷰, todo 정리, stale 스캔, review todo, weekly cleanup
+next-skill: omp-brief
 ---
 
 # omp-review — weekly re-evaluation (BuJo migration, human-gated)

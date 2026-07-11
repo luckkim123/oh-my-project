@@ -65,6 +65,12 @@ to codify/dataset.
 - **In-place update + change summary.** If an existing .md is present, before overwriting it wholesale show the human a
   one-line diff summary of what changes (added/removed folders, new naming patterns, etc.) and then proceed. Human
   documents may have the user's handwriting mixed in — for large structural changes, get confirmation.
+- ⚠️ **Managed-hash check immediately before a wholesale rewrite (§2.6 governance improvement).** Right before overwriting
+  a target .md wholesale, compare its on-disk content hash against the latest snapshot recorded in `.omp/work/versions/`
+  (same `brief_hash_check`-style sha256 comparison the secretary axis uses for `BRIEF.md`). A mismatch means a human
+  hand-edited the file since the last regeneration — **STOP** and surface a one-line gate: "human-edited since last
+  regeneration — overwrite / merge / skip?" instead of silently clobbering the edit. Only a hash match (or no prior
+  snapshot on record) proceeds straight to the wholesale rewrite in step 5.
 - **Auto-accumulate to wiki (light channel).** Non-obvious patterns and decisions discovered while writing the docs
   ("in this repo `tests/` mirrors the `src/` structure", "`legacy/` is frozen") are auto-appended to `.omp/wiki/*.md` —
   no approval gate, for grep retrieval next session. ⚠️ The wiki is **append-only, no wholesale overwrite** — the

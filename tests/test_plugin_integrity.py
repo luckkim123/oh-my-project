@@ -71,3 +71,14 @@ def test_omp_env_skill_registered():
     assert ".omp/env/" in text
     assert "dry-run" in text.lower()
     assert "not-a-build-runner" in text.lower() or "not a build runner" in text.lower()
+
+
+def test_pipeline_frontmatter_resolves():
+    """선택적 next-skill frontmatter 는 실재 skill 디렉토리로 resolve 돼야 한다(§2.6)."""
+    import re
+    for skill in (ROOT / "skills").rglob("SKILL.md"):
+        fm = skill.read_text(encoding="utf-8").split("---")[1]
+        m = re.search(r"^next-skill:\s*(\S+)", fm, re.M)
+        if m:
+            assert (ROOT / "skills" / m.group(1)).is_dir(), \
+                f"{skill.parent.name}: next-skill '{m.group(1)}' 폴더 없음"
