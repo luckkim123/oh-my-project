@@ -18,7 +18,7 @@ HOOK = ROOT / "hooks" / "omp_route_emit.py"
 # (omp-pilot·omp-doctor 는 'omp-' 접두 그대로, 나머지는 omp-<stage>.)
 ROUTE_STAGES = (
     "init", "codify", "organize", "dataset", "env", "doc", "learn", "audit",
-    "log", "brief", "review",
+    "log", "brief", "review", "handoff",
     "omp-pilot", "omp-doctor",
 )
 
@@ -73,6 +73,29 @@ def test_omp_env_skill_registered():
     assert "not-a-build-runner" in text.lower() or "not a build runner" in text.lower()
 
 
+def test_omp_handoff_skill_registered():
+    """R4: delegation-briefing skill exists with the §11.2 packet contract."""
+    skill = ROOT / "skills" / "omp-handoff" / "SKILL.md"
+    assert skill.exists()
+    text = skill.read_text(encoding="utf-8")
+    assert text.startswith("---") and "name: omp-handoff" in text
+    # Anthropic 4-element packet skeleton
+    for element in ("Objective", "Output format", "guidance", "Boundaries"):
+        assert element in text, f"packet element missing: {element}"
+    assert "omx" in text          # explicit target lane (user request 2026-07-11)
+    assert "handoff_prepared" in text
+    assert ".omp/work/handoffs/" in text
+    assert "복붙" in text or "인라인하지 않는다" in text  # reference-only, never inline full docs
+
+
+def test_handoff_contracts_synced():
+    """R4: ledger enum + work layer stay in sync across the three contract docs."""
+    proto = (ROOT / "references" / "secretary-protocol.md").read_text(encoding="utf-8")
+    assert "handoff_prepared" in proto
+    layout = (ROOT / "references" / "output-layout.md").read_text(encoding="utf-8")
+    assert "handoffs/" in layout
+
+
 def test_pipeline_frontmatter_resolves():
     """선택적 next-skill frontmatter 는 실재 skill 디렉토리로 resolve 돼야 한다(§2.6)."""
     import re
@@ -82,3 +105,9 @@ def test_pipeline_frontmatter_resolves():
         if m:
             assert (ROOT / "skills" / m.group(1)).is_dir(), \
                 f"{skill.parent.name}: next-skill '{m.group(1)}' 폴더 없음"
+
+
+def test_omp_log_absorbs_handoff_returns():
+    """R5: delegation results flow back into existing omp-log destinations — no new mechanism."""
+    text = (ROOT / "skills" / "omp-log" / "SKILL.md").read_text(encoding="utf-8")
+    assert "handoff" in text.lower()

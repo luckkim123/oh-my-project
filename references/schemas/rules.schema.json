@@ -205,6 +205,26 @@
         "version_scheme": { "type": "string", "default": "semver-2.0.0", "description": "Version scheme for tags." }
       }
     },
+    "secretary": {
+      "type": "object",
+      "description": "Secretary-axis read-map (design Part II §10.2, D14 read-don't-replace): existing state surfaces (Kanban.md, daily notes, status tables) registered as READ targets. Registered only via the omp-codify human gate — never auto-registered. derive_status aggregates kinds todo|schedule into its open-task counts; journal|status entries are read-map pointers (where to look), no count contribution.",
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "kind"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string", "description": "Relative path (file or dir) of the surface, e.g. 'Kanban.md', '3_Archive/calendar/daily_notes'." },
+              "kind": { "type": "string", "enum": ["todo", "journal", "status", "schedule"], "description": "todo|schedule: parsed for open-item counts (markdown checkboxes / todo.txt lines). journal|status: read-map only." },
+              "convention": { "type": "string", "description": "One-line human note on how this surface is read, e.g. 'unchecked boxes = open milestones; report incomplete only'." }
+            }
+          }
+        }
+      }
+    },
     "standards_registry": {
       "type": "object",
       "description": "Optional dedup map of external standards keyed by provenance.id (e.g. 'OCI-DIST-1.1.1'). A rule references a standard once via provenance.id; the registry holds url/version/verified centrally so a re-verification pass can walk it. Rule-id-as-data pattern.",

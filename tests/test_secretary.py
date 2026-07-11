@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 from omp_secretary import (  # noqa: E402
     find_omp_root, sanitize_session_id, redact_secrets, parse_todo_line,
     append_ledger, derive_status, brief_hash_check, session_stub,
-    scan_stale, scan_journal_tags,
+    scan_stale, scan_journal_tags, load_secretary_sources, count_source_open,
 )
 
 
@@ -140,3 +140,101 @@ def test_scan_journal_tags(tmp_path):
     tags = scan_journal_tags(root)
     assert {t["tag"] for t in tags} == {"BLOCKER", "LESSON"}
     assert {t["ref"] for t in tags} == {"I-1", "xelatex-quirk"}
+
+
+# ---- Release 2 (0.5.0): secretary.sources[] read-map (plan §10.2 / §13-R1) ----
+
+def _write_rules_with_sources(root, sources):
+    omp = root / ".omp"
+    omp.mkdir(parents=True, exist_ok=True)
+    (omp / "rules.json").write_text(json.dumps({
+        "omp_version": "0.5.0",
+        "project": {"name": "t", "preset_origin": "para", "initialized": "2026-07-11"},
+        "specificity": 0.5,
+        "structure": {"directories": []},
+        "naming": {"patterns": []},
+        "secretary": {"sources": sources},
+    }), encoding="utf-8")
+
+
+def test_load_secretary_sources_missing_rules_is_empty(tmp_path):
+    assert load_secretary_sources(tmp_path) == []
+
+
+def test_load_secretary_sources_filters_invalid_kinds(tmp_path):
+    _write_rules_with_sources(tmp_path, [
+        {"path": "Kanban.md", "kind": "todo"},
+        {"path": "notes/", "kind": "embedding-index"},  # not a valid kind
+        {"path": "daily", "kind": "journal", "convention": "## Tasks only"},
+    ])
+    got = load_secretary_sources(tmp_path)
+    assert [s["kind"] for s in got] == ["todo", "journal"]
+
+
+def test_load_secretary_sources_corrupt_rules_fail_open(tmp_path):
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "rules.json").write_text("{not json", encoding="utf-8")
+    assert load_secretary_sources(tmp_path) == []
+
+
+def test_count_source_open_markdown_checkboxes(tmp_path):
+    (tmp_path / "Kanban.md").write_text(
+        "## Doing\n- [ ] milestone A\n- [x] shipped\n* [ ] milestone B\ntext\n",
+        encoding="utf-8")
+    n = count_source_open(tmp_path, {"path": "Kanban.md", "kind": "todo"})
+    assert n == 2
+
+
+def test_count_source_open_todotxt_lines(tmp_path):
+    (tmp_path / "backlog.txt").write_text(
+        "(A) 2026-07-01 open one\nx 2026-07-02 2026-07-01 done one\nopen two\n",
+        encoding="utf-8")
+    n = count_source_open(tmp_path, {"path": "backlog.txt", "kind": "schedule"})
+    assert n == 2
+
+
+def test_count_source_open_directory_sums_md_files(tmp_path):
+    d = tmp_path / "daily"
+    d.mkdir()
+    (d / "2026-07-10.md").write_text("## Tasks\n- [ ] a\n- [x] b\n", encoding="utf-8")
+    (d / "2026-07-11.md").write_text("## Tasks\n- [ ] c\n", encoding="utf-8")
+    n = count_source_open(tmp_path, {"path": "daily", "kind": "todo"})
+    assert n == 2
+
+
+def test_count_source_open_dir_with_md_named_subdir_still_counts(tmp_path):
+    d = tmp_path / "daily"
+    d.mkdir()
+    (d / "a-real.md").write_text("- [ ] one\n- [ ] two\n", encoding="utf-8")
+    (d / "z-weird.md").mkdir()  # a directory named *.md must not poison the sum
+    n = count_source_open(tmp_path, {"path": "daily", "kind": "todo"})
+    assert n == 2
+
+
+def test_count_source_open_readmap_kinds_are_zero(tmp_path):
+    (tmp_path / "Dashboard.md").write_text("- [ ] looks like a task\n", encoding="utf-8")
+    assert count_source_open(tmp_path, {"path": "Dashboard.md", "kind": "status"}) == 0
+    assert count_source_open(tmp_path, {"path": "missing.md", "kind": "todo"}) == 0
+
+
+def test_derive_status_aggregates_registered_sources(tmp_path):
+    sec = tmp_path / ".omp" / "secretary"
+    sec.mkdir(parents=True)
+    (sec / "todo.txt").write_text("(A) native open task\n", encoding="utf-8")
+    (tmp_path / "Kanban.md").write_text("- [ ] a\n- [ ] b\n", encoding="utf-8")
+    _write_rules_with_sources(tmp_path, [
+        {"path": "Kanban.md", "kind": "todo", "convention": "unchecked = open"},
+        {"path": "Dashboard.md", "kind": "status"},
+    ])
+    st = derive_status(tmp_path)
+    assert st["open_tasks"] == 3  # 1 native + 2 Kanban
+    assert {"path": "Kanban.md", "kind": "todo", "open": 2} in st["sources"]
+    assert {"path": "Dashboard.md", "kind": "status", "open": None} in st["sources"]
+
+
+def test_derive_status_without_sources_block_unchanged(tmp_path):
+    sec = tmp_path / ".omp" / "secretary"
+    sec.mkdir(parents=True)
+    (sec / "todo.txt").write_text("only native\n", encoding="utf-8")
+    st = derive_status(tmp_path)
+    assert st["open_tasks"] == 1 and st["sources"] == []

@@ -41,6 +41,7 @@ codify* them, not to absorb them.
         │   └── organize-{YYYY-MM-DD-HHMM}.md
         ├── audits/              # audit PASS/FAIL reports over time (drift history)
         │   └── audit-{YYYY-MM-DD-HHMM}.json
+        ├── handoffs/            # omp-handoff briefing packets — delegation provenance (YYYY-MM-DD-<target>.md)
         └── tmp/                 # transient scratch (safe to delete anytime)
 ```
 
@@ -61,14 +62,16 @@ and `auditor` are read-only and cannot write their own output):
   editing it (the rollback point), via the `hooks/omp_atomic.py` atomic write.
 - `work/plans/` ← **`omp-organize`** records its dry-run move-plan here (undo provenance) before any move.
 - `work/audits/` ← **`omp-audit`** writes each report here (the skill writes, not the read-only `auditor`).
+- `work/handoffs/` ← **`omp-handoff`** writes the briefing packet copy.
 - `work/tmp/` is transient scratch any stage may use and is always safe to wipe.
 
 Retention: keep the latest N (default 10) per subfolder; older ones are pruned into trash (never
 permanent `rm`), surfacing a one-line "pruned X old …" note. The pruning runs at the end of
 each writing skill's pass (so a skill that writes a snapshot also trims its own subfolder). This is
 wired into each writing skill, not just declared here: `omp-init` trims `scans/`, `omp-codify` and
-`omp-learn` trim `versions/`, `omp-organize` trims `plans/`, and `omp-audit` trims `audits/` — each
-in the same pass that writes the file. `tmp/` is exempt (always safe to wipe wholesale).
+`omp-learn` trim `versions/`, `omp-organize` trims `plans/`, `omp-audit` trims `audits/`, and
+`omp-handoff` trims `handoffs/` — each in the same pass that writes the file. `tmp/` is exempt
+(always safe to wipe wholesale).
 
 ## Human .md  ↔  Machine .json pairing
 

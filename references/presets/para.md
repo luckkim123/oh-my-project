@@ -162,6 +162,10 @@ The procedure by which rule-architect **synthesizes** project-scanner's inductiv
 7. **Human gate**: show the synthesized draft rules.json + STRUCTURE.md/NAMING.md to the user for approval.
    "Which is canonical for prefix notation — order-prefix or plain", "should status subs (in_progress/done) be enforced or
    advisory only", "which root notes to whitelist as operations notes" are settled here.
+8. **Secretary source proposal (Release 2)**: if the scan observed `Kanban.md` /
+   `daily_notes/` / `Dashboard.md` / a README status table, carry a `secretary.sources[]`
+   proposal into the same gate (§7 table). Approval writes it to `rules.json`; rejection
+   drops it silently.
 
 ### Draft rules.json sketch (scaffold; slots to be filled by measurement are `<…>`)
 
@@ -211,7 +215,10 @@ Patterns that learn frequently promotes the more you use a PARA workspace. All g
 - **Embedded repo location rule**: if the location / gitignore pattern of code clones inside project folders is consistent
   (e.g., "all clones live under `<project>/code/`, managed by CLONES.md"), make it a rule.
 - **Settling canonical prefix notation**: converging on one of order-prefix vs plain → promote the other to `error`.
-- **wikilink integrity**: accumulate notes with broken `[[link]]` (dead links) in wiki/ as health hints (light channel).
+- **wikilink integrity**: accumulate notes with broken `[[link]]` (dead links) in wiki/ as health hints (light channel); omp-organize's dry-run plan carries an inbound-`[[link]]` count per move candidate (Release 2) — broken-link risk is visible before approval.
+- **State-surface conventions**: if the vault repeatedly relies on a status surface omp
+  wasn't reading (a new Kanban, a README status table), promote it into
+  `secretary.sources[]` — through the same human gate as every rule change.
 
 > The above is a **general candidate list**, not enforced rules. Actual promotion enters rules.json only when observations
 > repeat in that vault and a human approves, and each time specificity rises toward 1.
@@ -235,3 +242,25 @@ Patterns that learn frequently promotes the more you use a PARA workspace. All g
   Always ignore.
 - **Do not forcibly unify prefix notation** — only `info`/`warn` until the user's canonical choice is confirmed at the gate.
   If order-prefix and plain are mixed, that's a first organize candidate (no automatic change).
+
+---
+
+## §7. Secretary source candidates (read-map — Release 2)
+
+PARA vaults already keep state surfaces omp's secretary axis can *read* (D14 — read,
+don't replace; never create competing surfaces). At init/codify time, if the scan saw any
+of the §0 signals below, **propose** them as `rules.json` `secretary.sources[]` entries at
+the human gate — this is a proposal only, **never auto-registered** (ML output framed as a
+suggestion for human review):
+
+| Observed surface | Proposed entry |
+|:---|:---|
+| `Kanban.md` (root or per-project) | `{"path": "<observed path>", "kind": "todo", "convention": "unchecked boxes = open items"}` |
+| `daily_notes/` with a `## Tasks` heading convention | `{"path": "<daily notes dir>", "kind": "todo", "convention": "## Tasks checkboxes; incomplete only"}` |
+| `Dashboard.md` / a README **status table** (a markdown table with a status/progress column, or checkbox rows used as a status board) | `{"path": "<file>", "kind": "status", "convention": "human-maintained status view"}` |
+| calendar/schedule notes (dated event lists) | `{"path": "<file or dir>", "kind": "schedule", "convention": "dated entries = upcoming"}` |
+
+`kind: todo|schedule` sources feed `derive_status` open-item counts (traffic light);
+`kind: status|journal` are read-map pointers BRIEF cites (*where to look*), no numbers.
+The vault's own notes stay the body of the second brain — omp only records where its
+state lives (librarian, not search engine — D11).

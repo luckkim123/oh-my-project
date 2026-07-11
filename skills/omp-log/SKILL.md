@@ -64,6 +64,7 @@ writing; it classifies and delegates to `chronicler` (the sole narrative writer,
   identically with no git repo present.
 - D9 unaffected: `omp-log` only ever **opens** a task/blocker/decision, never closes one — closing is
   D9-gated to a human, unchanged from chronicler's own contract.
+- **handoff 반환 흡수 (Release 2)**: `omp-handoff` 로 형제 하네스에 맡긴 일이 돌아오면, 그 결과는 **새 목적지가 아니라 기존 5목적지로** 흡수한다. 압축 요지(1–2천 토큰 수준)를 journal 서사로, 후속 할 일은 todo.txt 로, 새 막힘은 raid.md 로, 내려진 결정은 decisions/ ADR 로 기록. 신규 ledger 이벤트·파일은 만들지 않는다(위임 사실 자체는 `handoff_prepared` 가 이미 기록). 강제 아님 — 위임 결과를 기록할 가치가 있을 때의 권장 경로다.
 </Execution_Policy>
 
 <Steps>

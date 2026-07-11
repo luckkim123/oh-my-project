@@ -78,12 +78,16 @@ Append-only. One line = one complete JSON object (no multi-line records — POSI
 is atomic, a partial line is never a valid record):
 
 ```json
-{"ts":"<ISO8601>","event":"<task_added|task_done|blocker_opened|blocker_closed|decision_recorded|gate_passed|session_start|session_end>","stage":"<init|codify|organize|dataset|env|doc|null>", ...}
+{"ts":"<ISO8601>","event":"<task_added|task_done|blocker_opened|blocker_closed|decision_recorded|gate_passed|handoff_prepared|session_start|session_end>","stage":"<init|codify|organize|dataset|env|doc|null>", ...}
 ```
 
 - `ts` — **required.** ISO 8601 timestamp.
 - `event` — **required.** One of exactly: `task_added`, `task_done`, `blocker_opened`,
-  `blocker_closed`, `decision_recorded`, `gate_passed`, `session_start`, `session_end`.
+  `blocker_closed`, `decision_recorded`, `gate_passed`, `handoff_prepared`, `session_start`,
+  `session_end`.
+- `handoff_prepared` — written by `omp-handoff` at delegation-briefing time; fields
+  `target` (sibling lane, e.g. `oms|omd|omx|omc`) and `topic` (slug). Makes "what has this
+  project delegated where" a single grep (D8-derived indicator).
 - `stage` — optional. One of `init`, `codify`, `organize`, `dataset`, `env`, `doc`, or
   `null`. Present when the event correlates with a governance-axis stage (e.g.
   `gate_passed{stage: "organize", decision: ...}`).
@@ -115,6 +119,37 @@ per the OMC evidence-tag convention — grammar and extractor live in the same d
 `scan_journal_tags` greps this pattern across `journal/*.md` to surface repeated-failure
 tags as candidates `omp-review` *presents* for wiki promotion — tagging never auto-promotes
 (D9: closing/promoting is a human's call).
+
+---
+
+## Registered sources (`rules.json` `secretary.sources[]`)
+
+Release 2 (design Part II §10.2). Existing state surfaces the user already keeps —
+`Kanban.md`, daily-note task lists, README status tables — are registered as **read**
+targets in `rules.json`:
+
+```json
+{"secretary": {"sources": [
+  {"path": "Kanban.md", "kind": "todo", "convention": "unchecked boxes = open milestones"}
+]}}
+```
+
+- Registration happens **only via the omp-codify human gate** (D14 read-don't-replace;
+  never auto-registered — surfaces are *proposed*, a human approves).
+- `path` may be a **file or a directory** (design Part II §14.1, e.g. a daily-notes dir
+  like `3_Archive/calendar/daily_notes`). A directory is summed **non-recursively** over
+  `sorted(*.md)` — same per-file counting rule as below, applied to each file.
+- `kind` ∈ `todo | journal | status | schedule`. `todo`/`schedule` are parsed for open-item
+  counts (`*.txt` → todo.txt grammar; otherwise markdown `- [ ]` checkboxes) and aggregate
+  into `derive_status` open-task counts and the traffic light. `journal`/`status` contribute
+  no numbers — they are read-map pointers: BRIEF tells the reader *where to look*.
+- Fail-open: a missing file or corrupt `rules.json` never crashes status derivation.
+- `path` is trusted as root-relative once registered: it is written only through the
+  omp-codify human gate, so omp does not re-confine it — a human-approved `../` or
+  absolute path reads exactly what was approved.
+- BRIEF may render the read-map as `읽을 곳: <path> (<kind>) — <convention>` lines (≤4).
+  When over the BRIEF cap, read-map lines are dropped **before** the existing truncation
+  priority list (they are pointers, reconstructible from rules.json).
 
 ---
 

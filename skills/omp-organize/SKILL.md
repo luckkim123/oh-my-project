@@ -48,6 +48,23 @@ Find files that break the structure/naming rules codified in `.omp/rules.json`, 
    - Instructions: inspect the actual tree according to rules.json's `structure.directories[].enforced`·`naming.patterns[].regex` (Python re)·`ignore` globs. For each violation, output {violating file path, the rule it breaks (structure/naming + rule id), severity (error/warn/info), proposed destination (which rule requires it to go where)}. **Does not move files — detection only**.
 3. **Receive the violation list + draft the move plan**: take the auditor output, aggregate by severity, and organize each violation into a `from → to` move plan (with the violated rule cited). Ambiguous destinations (where no single place is pinned down by a rule) are split out as **human-question items**, not move candidates.
 4. **Present the dry-run (0 mutation)**: ask the organizer for a dry-run that outputs the full move plan + the verification commands *that will run* (`find`/`ls`/SHA-256 comparison) and delete paths (trash branch). This step does not touch the user's filesystem. The dry-run plan (from→to + violated rule cited + verification commands) is recorded to `.omp/work/plans/organize-{YYYY-MM-DD-HHMM}.md` as undo provenance (`references/output-layout.md` work layer — this record is a write to omp's own workspace, not a user file). After recording, prune `.omp/work/plans/` per retention: keep only the latest N=10 and trash-route older plans (no permanent `rm`), reporting one line "pruned X old plans" — the skill that records trims its own subfolder.
+
+#### wikilink inbound 카운트 (para preset 한정 — Release 2)
+
+`rules.json` 이 para preset(`structure.convention == "para"` 또는
+`project.preset_origin == "para"`)이면, 이동 후보에 오른 **각 `.md` 노트**에 대해
+inbound 위키링크 수를 dry-run 계획서에 병기한다 — 파일시스템 rename 은 Obsidian 이
+모르는 채 일어나 `[[link]]` 가 조용히 깨지기 때문이다.
+
+- 카운트 방법(grep 수준, 임베딩·인덱스 금지 — D11): 노트 basename(확장자 제외)을
+  `노트명`이라 할 때, 프로젝트 루트에서 `[[노트명]]`·`[[노트명|` ·`[[노트명#` 패턴을
+  `*.md` 전체에 grep 해 합산한다.
+- 계획서 표기: 각 이동 행에 `inbound [[links]]: N` 열 병기. **N > 0 인 이동은 링크
+  깨짐 경고를 명시**하고, 승인 요청 시 그 경고를 함께 보여준다(이동 자체를 막지는
+  않는다 — 판단은 사람 몫).
+- Obsidian 이 링크를 자동 갱신해 주는 앱-내 이동과 달리 omp 의 이동은 파일시스템
+  레벨임을 계획서 머리에 1줄 고지한다.
+
 5. ━━━ **GATE: move approval (human)** — show the dry-run plan to a human and take a decision: proceed (all) / select some / revise (fix destinations) / abort. **Without approval, not a single item is executed.**
 6. **Delegate the execution lane (organizer, write)**: only for the approved plan, delegate the actual moves via `Task(subagent_type="oh-my-project:organizer", ...)`.
    - Inputs: the approved move plan (from→to + rule citation), `references/safe-fileops.md` (absolute protocol), target OS info.

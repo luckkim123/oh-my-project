@@ -26,6 +26,8 @@ _SECRET_PATTERNS = (
 TODO_DONE_RE = re.compile(r"^x\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\s+(.*)$")
 TODO_OPEN_RE = re.compile(r"^(?:\((?P<pri>[A-Z])\)\s+)?(?:(?P<created>\d{4}-\d{2}-\d{2})\s+)?(?P<text>.+)$")
 STALE_TASK_DAYS, STALE_BLOCKER_DAYS = 30, 14
+SOURCE_KINDS = ("todo", "journal", "status", "schedule")
+OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")  # simplified: line-regex, no fence awareness — a checkbox inside a ``` code block counts; add fence tracking if that ever misleads (D11 grep-level ceiling).
 
 
 def find_omp_root(start):
@@ -114,22 +116,70 @@ def _open_blockers(sec):
     return sum(1 for ln in p.read_text(encoding="utf-8").splitlines() if "[open]" in ln)
 
 
+def load_secretary_sources(root):
+    """rules.json secretary.sources[] — the codify-gated read-map (D14).
+    Fail-open: missing/corrupt rules.json or malformed entries -> skipped/[]."""
+    try:
+        rules = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        out = []
+        for s in rules.get("secretary", {}).get("sources", []):
+            if isinstance(s, dict) and s.get("path") and s.get("kind") in SOURCE_KINDS:
+                out.append(s)
+        return out
+    except Exception:
+        return []
+
+
+def _count_open_in_file(p):
+    lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+    if p.suffix == ".txt":
+        tasks = [t for t in map(parse_todo_line, lines) if t]
+        return sum(1 for t in tasks if not t["done"])
+    return sum(1 for ln in lines if OPEN_CHECKBOX_RE.match(ln))
+
+
+def count_source_open(root, source):
+    """Open-item count for one registered source. Only kinds todo|schedule count
+    (journal|status are read-map pointers -> 0). A file: *.txt parses as todo.txt
+    lines, anything else counts open markdown checkboxes. A directory: non-recursive
+    sum of the same per-file count across sorted(*.md) (design Part II §14.1 — e.g.
+    a daily-notes dir). Fail-open -> 0."""
+    if source.get("kind") not in ("todo", "schedule"):
+        return 0
+    try:
+        p = Path(root) / source["path"]
+        if p.is_file():
+            return _count_open_in_file(p)
+        if p.is_dir():
+            return sum(_count_open_in_file(f) for f in sorted(p.glob("*.md")) if f.is_file())
+        return 0
+    except Exception:
+        return 0
+
+
 def derive_status(root, sources=None):
     """D8: the ONLY place progress indicators are computed. Counts, never prose.
 
-    sources: optional list of secretary-shaped dirs to aggregate. Default is
-    [.omp/secretary/] only — Part I behavior. Release 2's secretary.sources[]
-    (plan §13-R1) plugs additional dirs into this argument; kind-aware parsing
-    arrives with it.
+    sources: optional list of secretary-shaped dirs (Part I) or secretary.sources[]
+    dicts (Release 2, plan §13-R1) to aggregate. Default is [.omp/secretary/] plus
+    whatever load_secretary_sources(root) finds in rules.json — with no secretary
+    block this is byte-identical to Part I behavior (plus an empty "sources": []).
     """
     if sources is None:
-        sources = [_sec(root)]
+        sources = [_sec(root)] + load_secretary_sources(root)
     open_tasks = 0
     blockers = 0
     done_7d = 0
     last_stage = None
+    registered = []
     week_ago = datetime.now().timestamp() - 7 * 86400
     for sec in sources:
+        if isinstance(sec, dict):  # a secretary.sources[] entry (Release 2)
+            n = count_source_open(root, sec)
+            open_tasks += n
+            registered.append({"path": sec.get("path"), "kind": sec.get("kind"),
+                               "open": n if sec.get("kind") in ("todo", "schedule") else None})
+            continue
         sec = Path(sec)
         todo = sec / "todo.txt"
         if todo.is_file():
@@ -152,7 +202,8 @@ def derive_status(root, sources=None):
     else:
         light, reason = "green", "%d open tasks, no blockers" % open_tasks
     return {"light": light, "reason": reason, "open_tasks": open_tasks,
-            "open_blockers": blockers, "done_7d": done_7d, "last_stage": last_stage}
+            "open_blockers": blockers, "done_7d": done_7d, "last_stage": last_stage,
+            "sources": registered}
 
 
 def brief_hash_check(path):

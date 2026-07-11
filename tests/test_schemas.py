@@ -194,3 +194,17 @@ def test_docker_images_separate_from_datasets():
     item = s["properties"]["docker_images"]["items"]
     req = item.get("required", [])
     assert "sha256" not in req and "path" not in req
+
+
+def test_rules_schema_has_secretary_sources():
+    """Release 2: secretary.sources[] read-map — kinds enum must match omp_secretary.SOURCE_KINDS."""
+    s = load(RULES_SCHEMA)
+    sec = s["properties"]["secretary"]
+    src = sec["properties"]["sources"]["items"]
+    assert set(src["required"]) == {"path", "kind"}
+    assert src["properties"]["kind"]["enum"] == ["todo", "journal", "status", "schedule"]
+    assert "secretary" not in s["required"]  # optional — Part I projects stay valid
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
+    import omp_secretary
+    assert list(omp_secretary.SOURCE_KINDS) == src["properties"]["kind"]["enum"]
