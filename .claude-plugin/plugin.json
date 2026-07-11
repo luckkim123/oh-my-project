@@ -17,7 +17,8 @@
     "./skills/omp-doctor/",
     "./skills/omp-pilot/",
     "./skills/omp-log/",
-    "./skills/omp-brief/"
+    "./skills/omp-brief/",
+    "./skills/omp-review/"
   ],
   "hooks": {
     "SessionStart": [
