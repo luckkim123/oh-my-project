@@ -1,7 +1,7 @@
 {
   "name": "oh-my-project",
-  "version": "0.3.0",
-  "description": "Project environment & structure governance harness — knows your local directory like a second brain. Ships generic, specializes to your project the more you use it: scans structure, codifies naming/layout rules, organizes files safely, tracks datasets (checksum/split/lineage), governs Docker environment assets (generates Dockerfile/compose into .omp/env/, image naming + inventory, anti-pattern audit with external-standard provenance), and learns project-specific rules over time. SSOT lives in a hidden .omp/ folder (human .md + machine .json).",
+  "version": "0.4.0",
+  "description": "Project environment & structure governance harness — knows your local directory like a second brain. Ships generic, specializes to your project the more you use it: scans structure, codifies naming/layout rules, organizes files safely, tracks datasets (checksum/split/lineage), governs Docker environment assets (generates Dockerfile/compose into .omp/env/, image naming + inventory, anti-pattern audit with external-standard provenance), learns project-specific rules over time, and — as of 0.4.0 — adds a secretary axis (time): session journal, todo/RAID, decisions, and pull-style briefing under .omp/secretary/, written by a single scoped agent and derived-only status (no LLM-estimated progress, no auto-closed tasks). SSOT lives in a hidden .omp/ folder (human .md + machine .json).",
   "author": { "name": "kimseungmin" },
   "license": "MIT",
   "keywords": ["claude-code", "plugin", "project", "directory", "structure", "naming", "convention", "dataset", "lineage", "organize", "second-brain", "orchestration", "multi-agent"],
@@ -15,9 +15,24 @@
     "./skills/omp-learn/",
     "./skills/omp-audit/",
     "./skills/omp-doctor/",
-    "./skills/omp-pilot/"
+    "./skills/omp-pilot/",
+    "./skills/omp-log/",
+    "./skills/omp-brief/",
+    "./skills/omp-review/"
   ],
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/omp_session_brief.py"]
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "*",
@@ -38,6 +53,18 @@
             "type": "command",
             "command": "python3",
             "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/omp_verify_emit.py"]
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/omp_session_capture.py"]
           }
         ]
       }

@@ -387,6 +387,39 @@ Putting it together — the canonical lifecycle of one learned rule:
 
 ---
 
+## Secretary-axis boundary (2026-07-11)
+
+The 0.4.0 secretary axis (`ledger.jsonl`, `journal/*.md`, `todo.txt`, `raid.md`, `decisions/*.md`, `BRIEF.md`,
+`docs/design/2026-07-11-omp-secretary-upgrade-plan.md`) is a **time axis** — progress tracking and session
+handoff. It does not replace or bypass this document's two channels. Three boundary rules:
+
+**A. Secretary files are not a rules channel.** Structure/naming *observations* still route exclusively through
+this protocol's heavy channel (`learned.md` → `omp-learn` → human gate → `rules.json`) and light channel
+(`wiki/*.md` auto-append). A journal entry or a ledger event is a narrative/mechanical record of *what happened*,
+not a proposal that a rule should exist — `omp_route_emit.py` still owns routing an observation to the correct
+channel (§"Channel routing rule" above), and the secretary axis does not introduce a third path around it. Writing
+"always put .pkl under data/processed/" in a journal entry has zero effect on `rules.json`; it only becomes a rule
+candidate if it is separately staged as an `OBS-NNNN` entry in `learned.md` and clears promotion criteria (§3).
+
+**B. `BRIEF.md` and T11 Priority Context are two different mechanisms — they do not replace each other.**
+T11 (`notepad.md` Priority Context, ≤500 chars, REPLACE-on-write) is *intra-session* — it exists to survive
+context compaction during one running session. `BRIEF.md` is *inter-session* — a SessionStart-injected,
+regenerated derived view (ledger/todo/raid/journal → chronicler → `BRIEF.md`) whose purpose is handoff between
+sessions. Neither one absorbs the other's role: T11 was already adopted for the compaction-survival problem
+(§3 of `omc-backport-analysis.md`, T11 row), and the secretary plan explicitly keeps it — see
+`docs/design/2026-07-11-omp-secretary-upgrade-plan.md` line 74 ("BRIEF.md와 T11은 병존하며 목적이 다르다").
+
+**C. Journal `[LESSON:]` tag aggregation stops at *candidate presentation*, never auto-promotion.**
+Journal entries may carry an optional inline tag grammar (`[BLOCKER:<raid-id>]` / `[LESSON:<slug>]` /
+`[DECISION:<adr-id>]`, `docs/design/2026-07-11-omp-secretary-upgrade-plan.md` §3 / line 176). `scan_journal_tags`
+may grep these and a review skill may surface repeated `[LESSON:]` tags as *wiki-promotion candidates* — but this
+is presentation only. The heavy-channel gate (human approval before any `rules.json` write, §3 above and
+"6.B No auto-promotion without the human gate" below) is unchanged and unconditional; no journal tag, however
+often repeated, promotes itself. This is the same invariant as anti-pattern B applied to the new capture surface,
+not a new rule.
+
+---
+
 ## See also
 
 - `references/output-layout.md` — where `.omp/` files live; the .md ↔ .json pairing rule.

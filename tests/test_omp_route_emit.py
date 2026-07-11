@@ -4,6 +4,7 @@
 (omha 의 ROUTE 줄과 같은 방식, 단 omp 는 도메인 처리기라 LANE 이 아닌 STAGE).
 stdlib only, fail-open, cross-platform (paths 안 건드림)."""
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,11 +14,11 @@ from hooks import omp_route_emit
 HOOK = Path(__file__).parent.parent / "hooks" / "omp_route_emit.py"
 
 
-def run_hook(payload: dict, cwd=None) -> str:
+def run_hook(payload: dict, cwd=None, env=None) -> str:
     proc = subprocess.run(
         [sys.executable, str(HOOK)],
         input=json.dumps(payload),
-        capture_output=True, text=True, cwd=cwd,
+        capture_output=True, text=True, cwd=cwd, env=env,
     )
     assert proc.returncode == 0, f"hook exited {proc.returncode}: {proc.stderr}"
     return proc.stdout
@@ -44,7 +45,8 @@ def test_context_states_stage_emit_contract():
 
 
 ALL_STAGES = ("init", "codify", "organize", "dataset",
-              "doc", "learn", "audit", "omp-pilot", "omp-doctor")
+              "doc", "learn", "audit", "log", "brief", "review",
+              "omp-pilot", "omp-doctor")
 
 
 def test_context_lists_all_stages():
@@ -146,4 +148,18 @@ def test_init_hint_failure_is_fail_open(tmp_path):
     (권한/경로 에러 시 hook 이 세션을 막지 않음)"""
     # 정상 cwd 에서 최소한 STAGE contract 가 항상 나옴을 확인한다.
     out = context_of(run_hook({"prompt": "x"}, cwd=str(tmp_path)))
+    assert "STAGE(project) →" in out
+
+
+def test_route_emit_skip_gate():
+    """⑪ OMP_SKIP_HOOKS=route 로 실행 시 stdout 빈 문자열 + exit 0(4훅 공통 게이트)."""
+    env = dict(os.environ, OMP_SKIP_HOOKS="route")
+    out = run_hook({"prompt": "프로젝트 정리"}, env=env)
+    assert out.strip() == ""
+
+
+def test_route_emit_skip_gate_other_token_does_not_skip():
+    """⑫ 다른 토큰만 있으면 route 는 스킵되지 않는다(토큰별 개별 게이트)."""
+    env = dict(os.environ, OMP_SKIP_HOOKS="verify,session_brief")
+    out = context_of(run_hook({"prompt": "프로젝트 정리"}, env=env))
     assert "STAGE(project) →" in out

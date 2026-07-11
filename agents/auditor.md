@@ -22,6 +22,7 @@ The items you check (the audit axes of rules.json·manifest.json):
 - **manifest path existence**: whether `manifest.json.datasets[].path` actually exists on disk (orphan entries / missing files)
 - **specificity consistency (info)**: consistency between `rules.json.specificity` and the promotion traces of `learned_refs[]` (warning only)
 - **Docker anti-pattern (warn-default)**: run `hooks/omp_docker_audit.check_dockerfile(text, rules)` over every Dockerfile found under `.omp/env/` and the project root, and `hooks/omp_docker_audit.check_compose(text)` over every compose file in the same locations. Rule-ids carried as data: `DL3007` / `secret-in-env` / `compose-version`. Severity is `warn` by default (GUI/sim/GPU/ROS containers legitimately break non-root/privileged rules) — docker findings do **NOT** cause an overall FAIL. A project may escalate a rule-id to `error` via `rules.json.docker_severity_overrides`; only then does that rule contribute to an overall FAIL.
+- **Secretary hygiene (warn-default)**: run `hooks/omp_secretary.scan_stale(root, now)` over `.omp/secretary/` — the canonical algorithm (same idiom as the Docker axis's `omp_docker_audit` reuse). Finding kinds: `stale_task` (todo.txt item open >30d), `stale_blocker` (raid.md `[open]` item >14d), `brief_drift` (BRIEF.md managed-hash mismatch — hand-edited since last regeneration), `conflict_copy` (sync-duplicate `NAME N.ext` under `secretary/`). Severity is `warn` by default — secretary findings do **NOT** cause an overall FAIL. You do not fix these: `stale_task`/`stale_blocker` are `omp-review`'s BuJo-migration domain, `brief_drift` is `omp-brief`'s regeneration domain — you only report.
 
 > **docker_images[] drift exception**: For `manifest.json.docker_images[]`, do **NOT** assert checksum drift — an image has no in-tree file path, so `hashlib` SHA-256 re-computation is impossible (the bytes are not on disk). Only verify reference existence: confirm that the `dockerfile` and `compose` paths listed in each `docker_images[]` entry resolve to real files on disk (if present). This is the sole check permitted on docker image entries; digest comparison is out of scope.
 
@@ -71,6 +72,7 @@ omp's promise is "a living `.omp/` that becomes more specialized to the project 
 10) **External management gate**: check `manifest.managed_by_external.tool`·`.dvc/`·lfs `.gitattributes`. If externally managed, demote data content drift to a warning.
 11) **specificity consistency (info)**: light check of consistency between `rules.json.specificity` and `learned_refs[]` — warning only, not a FAIL.
 11a) **Docker anti-pattern check**: locate every `Dockerfile*` and `docker-compose*.yml`/`compose.yaml` under `.omp/env/` and the project root. For each Dockerfile, call `hooks/omp_docker_audit.check_dockerfile(text, rules)` (pass `rules.json.docker_severity_overrides` as the `rules` dict if present). For each compose file, call `hooks/omp_docker_audit.check_compose(text)`. Collect all violation dicts `{rule_id, severity, line, message}`. Tally by severity — warn findings are reported but do **not** cause overall FAIL; a rule-id escalated to `error` via `rules.json.docker_severity_overrides` does. For `manifest.json.docker_images[]`, do **not** recompute any digest — only confirm that each entry's `dockerfile` and `compose` paths (if non-null) resolve on disk.
+11b) **Secretary hygiene check (warn-default)**: call `hooks/omp_secretary.scan_stale(root, now)` — `now` is a fresh timestamp taken at check time. Collect the returned finding dicts `{kind, path, detail}` where `kind` is one of `stale_task`/`stale_blocker`/`brief_drift`/`conflict_copy`. Tally by kind and report each as `warn` — this axis never contributes to overall FAIL. Do not modify `todo.txt`/`raid.md`/`BRIEF.md`; findings are report-only.
 12) **Capture snapshot identifier**: record the content hash of `.omp/rules.json`·`.omp/manifest.json` + the SHA-256 (or size+mtime) of the dataset files checked ─ **OS-agnostic recommendation** content hash `shasum` (macOS/Linux) / `certutil -hashfile <file> SHA256` (pure Windows environment), mtime via `stat -f %m` (macOS)·`stat -c %Y` (Linux). Bundle together with the set of violation IDs this round handled.
 13) **Synthesize results**: fill the Output Format with each item's PASS/FAIL + evidence + **snapshot identifier**. Separate violations into a handoff list for organizer/dataset-curator to consume.
 </Investigation_Protocol>
@@ -121,6 +123,7 @@ external data management: [none / dvc / git-lfs]
 | manifest path existence (orphan/missing) | PASS/FAIL | orphan N, unregistered N |
 | specificity consistency | PASS/WARN | (info) |
 | docker anti-pattern (Dockerfile/compose lint) | PASS/WARN | warn N (never blocks overall PASS) |
+| secretary hygiene (scan_stale) | PASS/WARN | stale_task N, stale_blocker N, brief_drift N, conflict_copy N (never blocks overall PASS) |
 
 ---
 
@@ -195,6 +198,7 @@ train-v2  path=data/processed/train.parquet
 - Did you bind the PASS/FAIL to the verified target's snapshot identifier (rules/manifest hash + dataset SHA-256 + violation IDs) so a stale PASS cannot be reused after organize/codify?
 - Did you run `hooks/omp_docker_audit.check_dockerfile`/`check_compose` over `.omp/env/` and root Dockerfile/compose files, and report findings as warn (never blocking overall PASS unless escalated to error via `rules.json.docker_severity_overrides`)?
 - Did you refrain from asserting checksum drift on `manifest.json.docker_images[]` entries (only path-existence of `dockerfile`/`compose` fields is checked — remote digest cannot be re-hashed)?
+- Did you run `hooks/omp_secretary.scan_stale(root, now)` over `.omp/secretary/` and report `stale_task`/`stale_blocker`/`brief_drift`/`conflict_copy` findings as warn (never blocking overall PASS, never fixed directly — handed off to omp-review/omp-brief)?
 </Final_Checklist>
 
 </Agent_Prompt>

@@ -145,4 +145,46 @@ by design, so it is recorded only in the sibling notes.)
 
 ---
 
+## §6. 2026-07-11 amendments (secretary axis)
+
+The 0.4.0 secretary-axis addition (SessionStart/SessionEnd hooks, `docs/design/2026-07-11-omp-secretary-upgrade-plan.md`)
+amends two prior exclusion entries and records one propagation verdict. Silent violation is forbidden (invariant C) —
+so the amendments are logged here rather than left as an undocumented divergence from this SSOT.
+
+**① T24 amendment (§97-99 above).** T24 refused the OMC 3-hook bundle (directory-readme-injector / pre-compact /
+posttool-capture) as a single bundle because it grows the hook count 2→3, "diluting the lightweight identity."
+The substance of that argument was *per-tool-use / per-prompt hooks running at constant per-interaction cost*
+(posttool fires on every tool call, injector on every prompt). The two hooks this plan adds
+(`omp_session_brief.py` on SessionStart, a capture stub on SessionEnd) each run **exactly once per session**
+(start/end), are bounded (≤3s, ≤30 lines output), fail-open, stdlib-only. A constant per-session cost does not
+violate what T24 was protecting. This is not a reversal of the original refusal — it is a scope amendment: T24's
+"no per-tool-use/per-prompt hook bundle" holds; "no once-per-session hook" does not follow from the same argument
+and is now permitted. Design reference: `docs/design/2026-07-11-omp-secretary-upgrade-plan.md` §2.3
+("SessionEnd 캡처 스텁 훅 — ADOPT (T24 일부 개정)").
+
+**② 45-refutation table amendment — "session/compaction state" row (L127 above).** That row refused
+pre-compact checkpoint / session-end cleanup / project-memory pre-compact with the rationale "omp hooks are
+stateless (there is no session state to clean up) ... a new PreCompact/SessionEnd hook would dilute the
+lightweight identity." The row's actual target was **cleanup-purpose state-management hooks** (sibling-session
+state teardown, pre-compact checkpointing). The SessionEnd hook this plan adds performs a single machine append
+(a journal/ledger capture stub) and does no cleanup, no state teardown, no LLM step — it does not carry the
+ongoing state-management maintenance burden the row's "dilute the identity" concern was about. The row's refusal
+of *cleanup-purpose* session/compaction hooks stands; a stateless single-append SessionEnd stub is a distinct
+case the row's rationale does not reach. Design reference: `docs/design/2026-07-11-omp-secretary-upgrade-plan.md`
+§2.3 ("두 번째 기각 행도 함께 개정한다").
+
+**③ Sibling-propagation verdict (§5 format) — secretary axis → oms/omd/omx: 0 propagated.** Applying the same
+adversarial-verification format as §5: the secretary axis (ledger/journal/todo/RAID/ADR/BRIEF) is rooted in omp's
+identity as a **management loop that repeatedly re-audits one living project state over time** — a daybook/session-journal
+concept requires a subject that persists and gets revisited across sessions. oms and omd are **artifact-unit generation
+pipelines** (a paper draft, a document build) that produce a fresh output per run rather than maintaining one continuously
+re-visited project state, so the domain premise for a session journal is structurally absent there (domain asymmetry,
+not an omission) — REJECT for oms, REJECT for omd. omx already owns a time axis via its experiments tree
+(`.omx/experiments/**` as the time-axis SSOT — run history, configs, metrics over time already serve the same
+"what happened, when" role a secretary journal would) — REJECT for omx, redundant with an existing mechanism.
+Verdict: 3 siblings × 1 axis = 3 pairs, 0 propagated. Design reference:
+`docs/design/2026-07-11-omp-secretary-upgrade-plan.md` roadmap #11 (line 272).
+
+---
+
 **Analysis snapshot**: OMC 4.14.4 (not a runtime pin — auto-tracks marketplace latest, §2) · **isomorphic sibling**: oh-my-scholar `references/omc-backport-analysis.md` (paper domain) · oh-my-docs `references/omc-backport-analysis.md` (document domain) · **0.2.0 sibling propagation review**: 0 propagated (§5)

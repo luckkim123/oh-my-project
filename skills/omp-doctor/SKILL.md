@@ -61,10 +61,17 @@ doesn't appear / a skill can't find its card."
      integrity reminder won't appear → WARN.)
    - Live behavior check (optional): does `echo '{"prompt":"x"}' | python3 hooks/omp_route_emit.py`
      exit 0 and emit JSON containing `STAGE(project)`?
+   - **Secretary-axis hooks (§4.3)**: do `hooks/omp_session_brief.py`·`hooks/omp_session_capture.py`
+     exist and are they registered in `.claude-plugin/plugin.json` as SessionStart / SessionEnd
+     respectively? Not registered → WARN ("BRIEF.md won't auto-inject at session start / session
+     stubs won't be captured").
 2. **python3 availability check**:
    - Does `python3 --version` succeed (the runtime prerequisite for hooks/helpers)? Is it 3.x?
    - Does the atomic write in `hooks/omp_atomic.py` work (the safety prerequisite for SSOT writes,
      T20) — is it importable?
+   - Is `hooks/omp_secretary.py` (the secretary-axis pure-function library — `append_ledger`/
+     `derive_status`/`brief_hash_check`/`session_stub`/`scan_stale`/`redact_secrets`/
+     `scan_journal_tags`) importable?
 3. **reference card integrity check**:
    - Do all 4 cards in `references/` (`safe-fileops.md`·`output-layout.md`·`omc-backport-analysis.md`·
      `learning-protocol.md`) exist?

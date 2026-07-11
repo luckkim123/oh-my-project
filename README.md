@@ -24,7 +24,11 @@ Specialized SSOT (<project>/.omp/)   = per-project divergence (specializes the m
 
 The logic stays fixed and generic; only the artifact (`.omp/`) diverges per project. This asymmetry satisfies "deliverable + specialized" simultaneously.
 
-## Stage skeleton (management loop)
+## Two axes — space (structure) + time (secretary)
+
+omp governs two axes of the same living `.omp/`: the original **space** axis (folder structure/naming/dataset/env rules) and the 0.4.0 **secretary** axis (session journal, todo/RAID, decisions, pull-style briefing). Both share one SSOT, one hook layer, one specialization loop — the secretary is not a separate tool bolted on, it is `omp-audit`/`omp-init`/`omp-pilot` extended to also track *when* and *what happened*, not just *where things live*.
+
+### Space — stage skeleton (management loop)
 
 ```
   omp-init      One-time bootstrap — folder scan (inductive) + preset-matched synthesis → creates .omp/
@@ -35,9 +39,19 @@ The logic stays fixed and generic; only the artifact (`.omp/`) diverges per proj
   omp-env       Environment assets (Dockerfile/compose) canonical into .omp/env/; generation gate, in-place preserved
   omp-doc       Generate·update human-facing docs (PROJECT.md etc.)
   omp-learn     Observation → rule promotion (human approval gate) ← the core of evolution
-  omp-audit     Rule-compliance verification (read-only PASS/FAIL)
+  omp-audit     Rule-compliance verification (read-only PASS/FAIL, space + secretary hygiene axes)
   omp-pilot     Full orchestration (absorbs init when no .omp exists)
 ```
+
+### Time — secretary skeleton (session loop)
+
+```
+  omp-log       Universal capture router — journal/todo/raid/decisions/rule-observation, one entry, five destinations
+  omp-brief     Pull-style briefing — regenerates .omp/secretary/BRIEF.md from ledger/todo/raid/journal (derive_status-only numbers)
+  omp-review    Weekly (or on-demand) re-evaluation — BuJo-style todo migration, scan_stale sweep, raid.md re-triage
+```
+
+Mechanical appends (`ledger.jsonl`, journal session-stubs) are hook-owned (`hooks/omp_secretary.py`); narrative (journal body, `decisions/`, `todo.txt`, `raid.md`, `BRIEF.md`) is written by the single scoped agent `chronicler` — the same "one writer per domain" invariant `organizer`/`dataset-curator` already establish for the space axis. No task/blocker is ever auto-closed and no progress percentage is ever LLM-written — both stay human-gated / code-derived (`derive_status`).
 
 ## "Generic→specialized" evolution — 2 channels
 
@@ -58,7 +72,7 @@ Heavy goes through a gate, light is automatic — inheriting the wiki(automatic)
 └── wiki/                                                   ← auto-accumulated (recovered via grep)
 ```
 
-## Agents (5)
+## Agents (6)
 
 | agent | model | permissions | role |
 |:---|:---|:---|:---|
@@ -66,13 +80,14 @@ Heavy goes through a gate, light is automatic — inheriting the wiki(automatic)
 | rule-architect | opus | read-only | Rule design, preset synthesis, promotion decisions |
 | organizer | sonnet | write | **The only file-moving agent** (enforces safety protocol) |
 | dataset-curator | sonnet | write(manifest) | Checksums, splits, lineage (does not move data) |
-| auditor | opus | read-only | Rule-compliance verification (detection only, no moving) |
+| auditor | opus | read-only | Rule-compliance verification (detection only, no moving; space + secretary axes) |
+| chronicler | sonnet | write(`.omp/secretary/**`) | **The only secretary-content writer** (journal narrative, decisions, todo.txt, raid.md, BRIEF.md — never ledger.jsonl, never closes a task/blocker, never writes a progress %) |
 
 **Invariant contract**: only organizer moves files (writes are single-focused). Detection (auditor) ≠ execution (organizer) are kept separate. dataset is metadata-only (delegates when DVC/git-lfs is detected).
 
 ## Routing
 
-omp is a **domain handler** (the project-management domain). Working-mode lane (SP/OMC) judgment is handled by [`oh-my-heroacademia`](https://github.com/luckkim123/oh-my-heroacademia) (omha) — omp does not decide the lane. After omha sets the lane, omp's UserPromptSubmit hook (`omp_route_emit.py`) declares which **STAGE** (init/codify/organize…) within the project domain on each turn with a single `STAGE(project) → …` line. The PostToolUse hook (`omp_verify_emit.py`) injects an integrity reminder after `.omp/` edits or file moves (it does not auto-fix or freeze).
+omp is a **domain handler** (the project-management domain). Working-mode lane (SP/OMC) judgment is handled by [`oh-my-heroacademia`](https://github.com/luckkim123/oh-my-heroacademia) (omha) — omp does not decide the lane. After omha sets the lane, omp's UserPromptSubmit hook (`omp_route_emit.py`) declares which **STAGE** (init/codify/organize/…/log/brief/review) within the project domain on each turn with a single `STAGE(project) → …` line. The PostToolUse hook (`omp_verify_emit.py`) injects an integrity reminder after `.omp/` edits or file moves (it does not auto-fix or freeze). Two new session-scoped hooks round out the secretary axis: `omp_session_brief.py` (SessionStart) advisory-injects `.omp/secretary/BRIEF.md` when present (never auto-resumes), and `omp_session_capture.py` (SessionEnd) appends a machine-only journal stub once per session. All four hooks respect `OMP_SKIP_HOOKS` and fail open.
 
 ## Cross-platform
 
@@ -80,4 +95,4 @@ Mac / Linux / Windows. Every hook is **python3 stdlib only + fail-open** (errors
 
 ## Status
 
-v0.3.0 — 10 skills + 5 agents + 8 presets + 5 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `omp_docker_audit` docker axis + `__init__`) + schema implementation. 0.3.0 adds **docker environment governance**: the new `omp-env` stage canonicalizes Dockerfile/compose assets into `.omp/env/` (generation gate, in-place preserved); a docker audit axis (`omp_docker_audit`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version); provenance tracking (`origin:standard` + `standards_registry`, OCI/CIS/SemVer); docker preset + `docker-mechanisms.md` reference card. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Verified with pytest (67 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.
+v0.4.0 — 13 skills + 6 agents + 8 presets + 6 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_session_brief`/`omp_session_capture` session hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `omp_docker_audit` docker axis + `omp_secretary` secretary pure-function core + `__init__`) + schema implementation. 0.4.0 adds the **secretary axis (time)** alongside the existing governance axis (space): 3 new stages (`omp-log` capture router, `omp-brief` pull-style briefing, `omp-review` weekly BuJo-style re-evaluation), 1 new agent (`chronicler`, the sole `.omp/secretary/**` writer), 2 new session hooks (SessionStart advisory brief injection, SessionEnd machine-only journal stub), an append-only `ledger.jsonl` + journal/todo.txt/raid.md/decisions/BRIEF.md layout, and a secretary hygiene audit axis (warn-default) plus a governance-side wiki/learned.md 6-check lint and structure-drift scan. 0.3.0 added **docker environment governance**: the `omp-env` stage canonicalizes Dockerfile/compose assets into `.omp/env/` (generation gate, in-place preserved); a docker audit axis (`omp_docker_audit`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version); provenance tracking (`origin:standard` + `standards_registry`, OCI/CIS/SemVer); docker preset + `docker-mechanisms.md` reference card. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Verified with pytest (107 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.

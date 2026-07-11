@@ -1,5 +1,11 @@
 """Tests for omp content_conventions + wikilink audit pure functions."""
-from hooks.omp_content_audit import check_content_rule, find_dead_links, split_frontmatter
+from datetime import datetime
+from pathlib import Path
+
+from hooks.omp_content_audit import (
+    check_content_rule, find_dead_links, split_frontmatter,
+    scan_structure_drift, lint_wiki,
+)
 
 
 def test_present_rule_passes_when_section_exists(tmp_path):
@@ -103,3 +109,88 @@ def test_table_escaped_pipe_link_resolves(tmp_path):
     (tmp_path / "Perceptron.md").write_text("p\n")
     dead = find_dead_links(tmp_path)
     assert dead == []  # escaped-pipe alias resolves, not dead
+
+
+# --- scan_structure_drift (roadmap #8b) ---
+
+def test_scan_structure_drift_flags_missing_path(tmp_path):
+    (tmp_path / "exists").mkdir()
+    rules = {"structure": {"directories": [
+        {"path": "exists"}, {"path": "ghost/dir"}]}}
+    finds = scan_structure_drift(tmp_path, rules)
+    assert [f["path"] for f in finds] == ["ghost/dir"]
+
+
+def test_scan_structure_drift_reads_backtick_paths_from_structure_md(tmp_path):
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "STRUCTURE.md").write_text("Data lives under `data/raw/` per convention.\n")
+    finds = scan_structure_drift(tmp_path, {"structure": {"directories": []}})
+    assert [f["path"] for f in finds] == ["data/raw"]
+
+
+# --- lint_wiki (roadmap #8c) ---
+
+def test_wiki_lint_orphan_stale_oversized(tmp_path):
+    wiki = tmp_path / ".omp" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "orphan.md").write_text("no links here")
+    (wiki / "hub.md").write_text("see [[orphan]]")   # orphan 은 피링크됨 → hub 가 orphan
+    (wiki / "big.md").write_text("x" * 60_000)
+    kinds = {(f["kind"], Path(f["path"]).name) for f in lint_wiki(tmp_path, now=datetime(2026, 7, 11))}
+    assert ("orphan", "hub.md") in kinds and ("oversized", "big.md") in kinds
+
+
+def test_learned_stuck_candidate_flagged_below_threshold_and_stale(tmp_path):
+    (tmp_path / ".omp").mkdir()
+    learned = tmp_path / ".omp" / "learned.md"
+    learned.write_text(
+        "## OBS-0001  rare pattern seen once\n"
+        "- id: OBS-0001\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: something rare\n"
+        "- evidence_count: 1\n"
+        "- first_seen: 2026-01-01\n"
+        "- last_seen: 2026-01-01\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    stuck = [f for f in finds if f["kind"] == "stuck_candidate"]
+    assert [f["path"] for f in stuck] == ["OBS-0001"]
+
+
+def test_learned_contradiction_flagged_for_conflicting_path_constraint(tmp_path):
+    (tmp_path / ".omp").mkdir()
+    learned = tmp_path / ".omp" / "learned.md"
+    learned.write_text(
+        "## OBS-0002  pkl under data/processed\n"
+        "- id: OBS-0002\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: pkl under data/processed\n"
+        "- evidence_count: 4\n"
+        "- first_seen: 2026-06-01\n"
+        "- last_seen: 2026-06-10\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+        "- applies_to: **/*.pkl\n"
+        "- path_constraint: data/processed\n"
+        "\n"
+        "## OBS-0003  pkl under outputs\n"
+        "- id: OBS-0003\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: pkl under outputs\n"
+        "- evidence_count: 3\n"
+        "- first_seen: 2026-06-05\n"
+        "- last_seen: 2026-06-11\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+        "- applies_to: **/*.pkl\n"
+        "- path_constraint: outputs/models\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    contradictions = [f for f in finds if f["kind"] == "contradiction"]
+    assert len(contradictions) == 1
+    assert contradictions[0]["path"] == "**/*.pkl"
