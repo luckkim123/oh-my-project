@@ -18,7 +18,8 @@
     "./skills/omp-pilot/",
     "./skills/omp-log/",
     "./skills/omp-brief/",
-    "./skills/omp-review/"
+    "./skills/omp-review/",
+    "./skills/omp-handoff/"
   ],
   "hooks": {
     "SessionStart": [

@@ -78,12 +78,16 @@ Append-only. One line = one complete JSON object (no multi-line records — POSI
 is atomic, a partial line is never a valid record):
 
 ```json
-{"ts":"<ISO8601>","event":"<task_added|task_done|blocker_opened|blocker_closed|decision_recorded|gate_passed|session_start|session_end>","stage":"<init|codify|organize|dataset|env|doc|null>", ...}
+{"ts":"<ISO8601>","event":"<task_added|task_done|blocker_opened|blocker_closed|decision_recorded|gate_passed|handoff_prepared|session_start|session_end>","stage":"<init|codify|organize|dataset|env|doc|null>", ...}
 ```
 
 - `ts` — **required.** ISO 8601 timestamp.
 - `event` — **required.** One of exactly: `task_added`, `task_done`, `blocker_opened`,
-  `blocker_closed`, `decision_recorded`, `gate_passed`, `session_start`, `session_end`.
+  `blocker_closed`, `decision_recorded`, `gate_passed`, `handoff_prepared`, `session_start`,
+  `session_end`.
+- `handoff_prepared` — written by `omp-handoff` at delegation-briefing time; fields
+  `target` (sibling lane, e.g. `oms|omd|omx|omc`) and `topic` (slug). Makes "what has this
+  project delegated where" a single grep (D8-derived indicator).
 - `stage` — optional. One of `init`, `codify`, `organize`, `dataset`, `env`, `doc`, or
   `null`. Present when the event correlates with a governance-axis stage (e.g.
   `gate_passed{stage: "organize", decision: ...}`).
