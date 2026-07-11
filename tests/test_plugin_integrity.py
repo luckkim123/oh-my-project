@@ -105,3 +105,9 @@ def test_pipeline_frontmatter_resolves():
         if m:
             assert (ROOT / "skills" / m.group(1)).is_dir(), \
                 f"{skill.parent.name}: next-skill '{m.group(1)}' 폴더 없음"
+
+
+def test_omp_log_absorbs_handoff_returns():
+    """R5: delegation results flow back into existing omp-log destinations — no new mechanism."""
+    text = (ROOT / "skills" / "omp-log" / "SKILL.md").read_text(encoding="utf-8")
+    assert "handoff" in text.lower()
