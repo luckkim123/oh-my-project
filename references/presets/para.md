@@ -215,7 +215,7 @@ Patterns that learn frequently promotes the more you use a PARA workspace. All g
 - **Embedded repo location rule**: if the location / gitignore pattern of code clones inside project folders is consistent
   (e.g., "all clones live under `<project>/code/`, managed by CLONES.md"), make it a rule.
 - **Settling canonical prefix notation**: converging on one of order-prefix vs plain → promote the other to `error`.
-- **wikilink integrity**: accumulate notes with broken `[[link]]` (dead links) in wiki/ as health hints (light channel).
+- **wikilink integrity**: accumulate notes with broken `[[link]]` (dead links) in wiki/ as health hints (light channel); omp-organize's dry-run plan carries an inbound-`[[link]]` count per move candidate (Release 2) — broken-link risk is visible before approval.
 - **State-surface conventions**: if the vault repeatedly relies on a status surface omp
   wasn't reading (a new Kanban, a README status table), promote it into
   `secretary.sources[]` — through the same human gate as every rule change.
