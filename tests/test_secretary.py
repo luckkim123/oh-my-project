@@ -83,6 +83,20 @@ def test_derive_status_tolerates_corrupt_ledger_line(tmp_path, capsys):
     st = derive_status(root)  # must not raise
     assert st["light"] in ("green", "yellow", "red")
 
+def test_derive_status_aggregates_explicit_sources(tmp_path):
+    # §6 v3 footnote / §13-R1: signature is pre-opened for secretary.sources[]
+    root = _mkroot(tmp_path)
+    sec = root / ".omp/secretary"
+    (sec / "todo.txt").write_text("(A) 2026-07-11 t1\n", encoding="utf-8")
+    other = tmp_path / "other-source"
+    other.mkdir()
+    (other / "todo.txt").write_text("t2\nt3\n", encoding="utf-8")
+    (other / "raid.md").write_text("- [open] I-9 (opened:2026-07-01)\n", encoding="utf-8")
+    st = derive_status(root, sources=[sec, other])
+    assert st["open_tasks"] == 3 and st["open_blockers"] == 1 and st["light"] == "red"
+    # default stays Part-I single-source
+    assert derive_status(root)["open_tasks"] == 1
+
 def test_brief_hash_check_clean_dirty_missing(tmp_path):
     root = _mkroot(tmp_path)
     brief = root / ".omp/secretary/BRIEF.md"

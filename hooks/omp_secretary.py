@@ -94,8 +94,8 @@ def append_ledger(root, event):
         os.close(fd)
 
 
-def _iter_ledger(root):
-    p = _sec(root) / "ledger.jsonl"
+def _iter_ledger(sec):
+    p = Path(sec) / "ledger.jsonl"
     if not p.is_file():
         return
     for raw in p.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -107,33 +107,44 @@ def _iter_ledger(root):
             sys.stderr.write("[omp_secretary] skip corrupt ledger line\n")
 
 
-def _open_blockers(root):
-    p = _sec(root) / "raid.md"
+def _open_blockers(sec):
+    p = Path(sec) / "raid.md"
     if not p.is_file():
         return 0
     return sum(1 for ln in p.read_text(encoding="utf-8").splitlines() if "[open]" in ln)
 
 
-def derive_status(root):
-    """D8: the ONLY place progress indicators are computed. Counts, never prose."""
-    todo = _sec(root) / "todo.txt"
-    tasks = []
-    if todo.is_file():
-        tasks = [t for t in map(parse_todo_line, todo.read_text(encoding="utf-8").splitlines()) if t]
-    open_tasks = sum(1 for t in tasks if not t["done"])
-    blockers = _open_blockers(root)
+def derive_status(root, sources=None):
+    """D8: the ONLY place progress indicators are computed. Counts, never prose.
+
+    sources: optional list of secretary-shaped dirs to aggregate. Default is
+    [.omp/secretary/] only — Part I behavior. Release 2's secretary.sources[]
+    (plan §13-R1) plugs additional dirs into this argument; kind-aware parsing
+    arrives with it.
+    """
+    if sources is None:
+        sources = [_sec(root)]
+    open_tasks = 0
+    blockers = 0
     done_7d = 0
     last_stage = None
     week_ago = datetime.now().timestamp() - 7 * 86400
-    for e in _iter_ledger(root):
-        if e.get("event") == "task_done":
-            try:
-                if datetime.fromisoformat(e["ts"]).timestamp() >= week_ago:
-                    done_7d += 1
-            except Exception:
-                pass
-        if e.get("stage"):
-            last_stage = e["stage"]
+    for sec in sources:
+        sec = Path(sec)
+        todo = sec / "todo.txt"
+        if todo.is_file():
+            tasks = [t for t in map(parse_todo_line, todo.read_text(encoding="utf-8").splitlines()) if t]
+            open_tasks += sum(1 for t in tasks if not t["done"])
+        blockers += _open_blockers(sec)
+        for e in _iter_ledger(sec):
+            if e.get("event") == "task_done":
+                try:
+                    if datetime.fromisoformat(e["ts"]).timestamp() >= week_ago:
+                        done_7d += 1
+                except Exception:
+                    pass
+            if e.get("stage"):
+                last_stage = e["stage"]
     if blockers > 0:
         light, reason = "red", "%d open blocker(s)" % blockers
     elif open_tasks > 10:
