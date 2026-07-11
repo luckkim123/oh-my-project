@@ -8,7 +8,7 @@
 | Prior decisions honored | `references/omc-backport-analysis.md` — T1–T25 채택, 재분석에서 반박된 45후보, §5 형제전파 0건. **본 문서는 이를 재논의하지 않는다**; 단 하나의 개정(T24)만 §4.3에서 명시적으로 논증한다. |
 | External research | 2026-07-11 웹 조사 2계통: (a) AI-PM assistant 지형 2025–26, (b) 지식노동 방법론 + agentic-memory 아키텍처. 출처는 본문 인라인. |
 | Date | 2026-07-11 |
-| Status | **APPROVED** (2026-07-11 사용자 승인 "ㄱㄱ" — 본문 가정 채택: omp-log/brief/review 명명·BRIEF 명시 호출·init 기본 생성·0.4.0·journal 태그·PreToolUse 게이트 보류) — 구현 진행 |
+| Status | **PLAN v2** — ultracode 심층분석 반영판, 구현 착수 전 사람 승인 게이트 대기 |
 | Deep analysis (v2) | 2026-07-11 ultracode 2-workflow(50 agents): ① 계획 5렌즈 감사(OMC 커버리지·omp 코드 정합·기존 결정 준수·설계 비판·웹 인용 검증 — 24 findings 중 19 생존), ② OMC 24문서 8클러스터 import 감사(검증 생존 후보 11). 적대 검증 생존분만 반영; 잠긴 결정을 건드리는 것은 §1.1 개정 대기 블록으로 분리(자동 반영 금지). |
 
 이 문서는 세 입력을 합성한다: OMC 심층분석(메커니즘 카탈로그), omp 현재 상태 인벤토리(부재 확인 포함), 외부 조사(도구 지형 + 방법론). 판정 어휘는 omx 선례를 따른다 — 상태축 `HAS / PARTIAL / ABSENT / NA_JUSTIFIED`, 채택축 `ADOPT / ADAPT / REJECT / DEFER`.
@@ -40,16 +40,16 @@
 | # | 결정 | 근거 |
 |:--|:--|:--|
 | D1 | **비서 = 두 번째 축이지 새 하네스가 아니다.** 기존 거버넌스 stage는 손대지 않고, secretary stage 3개를 *추가*한다. | omp 정체성 = "rules.json을 반복 재검사하는 관리 루프". 비서도 같은 루프 위에 얹는다 — 별도 도구로 쪼개면 `.omp/` SSOT가 이원화된다. |
-| D2 | **Pull, never push.** 브리핑은 세션 시작 시 로드되는 파일이지, 사용자를 부르는 알림이 아니다. cron digest·외부 notification 없음. | 4.4초 인터럽션이 순차 오류를 3배로 만든다(2.8초=2배) — Altmann, Trafton & Hambrick (2014, *J. Exp. Psychol.: General*); "복구 23분"은 Gloria Mark 계열의 통속화 수치(원논문 미확정으로 표기); unsolicited AI help는 self-threat을 유발해 기피된다 ([arXiv:2509.09309](https://arxiv.org/html/2509.09309v1)); 알림 일 3–5건 상한은 실무 관찰 heuristic ([notification budget](https://tianpan.co/blog/2026-05-13-background-agents-notification-budget-attention-economy), 비피어리뷰 — 참고용). |
-| D3 | **Correction over creation.** 비서 파일은 자동 초안이 기본이고 사용자는 고치기만 한다. 수동 기입을 요구하는 순간 이탈한다. | todo-app abandonment 연구: "모니터링/업데이트가 부담이면 시스템을 버린다" ([Zapier](https://zapier.com/blog/why-you-hate-every-to-do-list-app/)); 참고: 현재 PM 워크플로우의 AI 자동화 침투율은 5.2%로 낮다 ([Chief of Staff Network 2026](https://www.chiefofstaff.network/blog/ai-era-chief-of-staff-chief-of-ai-2026) — 현황 통계, 이탈 인과의 근거는 아님). |
+| D2 | **Pull, never push.** 브리핑은 세션 시작 시 로드되는 파일이지, 사용자를 부르는 알림이 아니다. cron digest·외부 notification 없음. | interruption 복구 평균 23분, 5초 인터럽션도 에러율 3배 ([arXiv:2509.09309](https://arxiv.org/html/2509.09309v1)); unsolicited AI update는 일 3–5건이 실질 상한 ([notification budget](https://tianpan.co/blog/2026-05-13-background-agents-notification-budget-attention-economy)). |
+| D3 | **Correction over creation.** 비서 파일은 자동 초안이 기본이고 사용자는 고치기만 한다. 수동 기입을 요구하는 순간 이탈한다. | todo-app abandonment 연구: "모니터링/업데이트가 부담이면 시스템을 버린다" ([Zapier](https://zapier.com/blog/why-you-hate-every-to-do-list-app/)); AI-native 실사용률 5.2% 격차 ([Chief of Staff Network 2026](https://www.chiefofstaff.network/blog/ai-era-chief-of-staff-chief-of-ai-2026)). |
 | D4 | **회상은 결정론적 grep만.** 기존 불변식(learning-protocol §6.A)이 비서 축에도 그대로 적용된다. 임베딩·유사도 검색 영구 금지. | 실증적으로도 충분: Claude Code auto-memory·Karpathy LLM wiki 모두 no-embedding으로 작동 ([Claude Code Memory docs](https://code.claude.com/docs/en/memory), [LLM wiki](https://aaif.io/blog/karpathys-llm-wiki-as-agent-memory/)). |
 | D5 | **저장은 `<project>/.omp/secretary/` 한 곳, 코드는 python3 stdlib 순수함수.** CLI 바이너리를 만들지 않는다(omp는 순수 플러그인 유지). 기계 로직은 `hooks/omp_secretary.py`에 — `omp_content_audit.py`가 확립한 "hook 파일 = 순수함수 라이브러리" 관용구 그대로. | omx는 CLI가 정체성이지만 omp는 처음부터 plugin-only였고 0.3.0까지 그 형태로 67 tests가 지킨다. 형태 변경은 이 계획의 목적(기능 추가)과 무관한 리스크. |
 | D6 | **Journal은 append-only, 실패가 일급 콘텐츠다.** git 커밋 로그는 성공만 남긴다 — "시도했지만 안 된 것"의 캡처가 이 축의 차별점. | engineering daybook 관행 ([ntietz](https://ntietz.com/blog/using-an-engineering-notebook/)); wiki append-only 규율(§5, 0.2.0)과 동일 계열. |
-| D7 | **비서 상태의 writer는 도메인 분할.** 서사·판단 콘텐츠(journal 본문·decisions·todo·raid·BRIEF)의 유일한 *LLM writer*는 신규 agent `chronicler`(write scope `.omp/secretary/**`), 기계 append(ledger.jsonl·journal 세션 스텁)는 훅이 소유한다. 두 writer는 라인 단위 disjoint — 훅=append-only 스텁 라인만, chronicler=서사 블록만, 기존 라인 truncate 금지. | organizer(이동)·dataset-curator(manifest)의 "도메인당 LLM-writer 1" 계보 + 탐지≠실행 분리. 검증은 기존 auditor가 새 축으로(author≠reviewer). hook+agent 공동 소유는 omp 최초라 경계를 라인 단위로 명문화(§1.1 개정 반영). |
+| D7 | **비서 상태의 single-writer는 신규 agent `chronicler` 1개.** write scope를 `.omp/secretary/**`로 한정한다. organizer(파일 이동)·dataset-curator(manifest)와 같은 "도메인당 writer 1" 패턴의 세 번째 사례. | 탐지≠실행 분리 불변식. 검증은 기존 auditor가 새 축으로 맡는다(author≠reviewer). |
 | D8 | **진행률은 쓰지 않고 파생시킨다.** "몇 % 완료"를 LLM이 추정해 적는 것을 금지 — 지표는 `ledger.jsonl`/`todo.txt` 카운트에서 코드가 계산한다. | OMC 분석의 실증 함정: marketplace가 "28 agents"라 광고하나 실제 19 — 손으로 쓴 수치는 반드시 drift한다. hallucinated-status 실패 모드의 직접 차단. |
-| D9 | **닫는 건 사람이다.** blocker·risk·task의 완료 처리는 자동으로 하지 않는다. 자동은 "닫아도 될 것 같다" flag까지만. | Motion/Asana의 risk-flag 업계 관행(1차 출처 미확인) + hallucinated-completion 회피를 위한 human sign-off 권고 ([Galileo failure modes](https://galileo.ai/blog/agent-failure-modes-guide)). |
+| D9 | **닫는 건 사람이다.** blocker·risk·task의 완료 처리는 자동으로 하지 않는다. 자동은 "닫아도 될 것 같다" flag까지만. | Motion/Asana의 risk-flag 패턴 + hallucinated-completion 회피 ([Galileo failure modes](https://galileo.ai/blog/agent-failure-modes-guide)). |
 
-### 1.1 잠긴 결정 개정 (ultracode 검증발 — **2026-07-11 사용자 승인, D-표 반영 완료**)
+### 1.1 잠긴 결정 개정 대기 (ultracode 검증발 — 자동 반영 금지, 사람 승인 필요)
 
 **[D7 문구 재정의 후보]** D7("비서 상태의 single-writer는 chronicler 1개")은 두 지점에서 자기 설계와 마찰한다: (1) §4.1이 journal을 "세션 스텁 + 서사"로 명시하는데 스텁은 SessionEnd 훅(LLM 없음)이, 서사는 chronicler가 같은 파일에 쓴다. (2) SSOT의 single-writer는 동시-쓰기 경합 해소 장치이고 기존 3개 도메인(T20)은 전부 agent만 쓰는 토폴로지였다 — hook+agent 공동 소유는 이 계획이 처음이라 "3번째 사례"는 부정확하다. **제안 재정의**: "chronicler는 서사·판단 콘텐츠(journal 본문, decisions, todo, raid, BRIEF)의 유일한 *LLM writer*이고, 기계 append(ledger.jsonl, journal 스텁)는 훅이 소유한다 — 두 writer는 라인 단위 disjoint(훅=append-only 스텁 라인만, chronicler=서사 블록만, 기존 라인 truncate 금지)." 승인 시 D7 문구와 §4.1에 ledger=훅-owned, journal=훅(스텁)+chronicler(서사) 공동임을 명시한다.
 
@@ -298,4 +298,4 @@ scan_journal_tags(root) -> list[TagRef]        # journal 인라인 태그([BLOCK
 4. **버전**: 0.4.0(축 추가) vs 1.0.0(정체성 확장 선언) — 본문은 0.4.0 가정.
 5. **journal 인라인 태그 vs ledger 이벤트 확장**: §3은 journal 서사에 선택적 grep 태그(`[BLOCKER:]`/`[LESSON:]`/`[DECISION:]`)를 채택했지만, 같은 목적을 이미 계획된 `append_ledger`에 `lesson_recorded` 등 이벤트 타입을 추가하는 쪽으로 흡수하면 파서가 하나 줄고 "지표 파생 SSOT=ledger" 원칙(D4·§4.1 페어링)과 더 정합적이다. 태그(서사 친화, 파서 +1) vs ledger 확장(SSOT 단일, 캡처 시 명시 이벤트 필요) 중 택일 — 본문은 태그를 가정하되 구현 착수 전 확정 요망.
 6. **PreToolUse 경로-스코프 게이트 (§2.3 검토 항목)**: chronicler write-scope의 하네스 강제 vs 훅 경량성(per-tool-use는 T24 원 논거의 정중앙) — 채택하려면 별도 T24 개정 논증이 선행돼야 한다. 이 저울(무결성 강제 vs 경량성)은 사용자 승인 사항.
-7. ~~**§1.1 잠긴 결정 개정 대기**~~ — 2026-07-11 사용자 승인으로 D-표 반영 완료 (§1.1은 개정 이력으로 보존).
+7. **§1.1 잠긴 결정 개정 대기**: D7 문구 재정의(훅=기계 append 소유 명시)와 D2/D3/D9 인용 정정 — 승인 시 D-표에 반영.
