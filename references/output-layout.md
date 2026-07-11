@@ -28,6 +28,8 @@ codify* them, not to absorb them.
     │   └── *.Dockerfile, *.yml  #   root holds only a build-tool view (symlink or sync copy)
     ├── wiki/                    # auto-accumulated patterns/decisions (grep-recalled)
     │   └── *.md
+    ├── secretary/               # 비서축 SSOT(계약은 references/secretary-protocol.md). BRIEF.md 만 '재생성되는 파생 뷰' 특수 지위(omp-managed 마커).
+    │   └── ...                  #   layout detail: references/secretary-protocol.md
     │
     │                            # ── work layer (intermediate artifacts — you rarely read these) ──
     └── work/                    # everything below is regenerable scratch, NOT the SSOT
