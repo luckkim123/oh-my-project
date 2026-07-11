@@ -16,7 +16,8 @@
     "./skills/omp-audit/",
     "./skills/omp-doctor/",
     "./skills/omp-pilot/",
-    "./skills/omp-log/"
+    "./skills/omp-log/",
+    "./skills/omp-brief/"
   ],
   "hooks": {
     "UserPromptSubmit": [
