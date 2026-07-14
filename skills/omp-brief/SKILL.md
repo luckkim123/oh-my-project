@@ -68,6 +68,13 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
    - Open items in `raid.md` (blockers)
    - `todo.txt`, sorted by priority letter, top 5
    - `decisions/` directory listing (paths only, no content read needed for the summary line)
+   - **Actionable-knowledge reconcile (family wiki-status convention)**: enumerate the open
+     actionable findings from `omp_content_audit.lint_wiki(root)` — `ready_to_promote` (a
+     `learned.md` candidate at `evidence_count>=3`, ripe for omp-learn), `stuck_candidate`, and
+     `contradiction`. Any open one must be reflected in the next-session goal / top-5 tasks or
+     consciously deferred — a recorded-but-actionable item must not silently vanish from the brief.
+     This is enumeration-only (derived from existing fields, no schema change); the human gate still
+     decides. Nothing open → nothing to add.
 3. **Hash check**: run `brief_hash_check(<BRIEF.md path>)`.
    - `"dirty"` → STOP. Report the conflict to the human; ask overwrite / merge / skip. Do not
      proceed to step 4 without an explicit answer.
