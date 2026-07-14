@@ -158,6 +158,31 @@ def test_learned_stuck_candidate_flagged_below_threshold_and_stale(tmp_path):
     finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
     stuck = [f for f in finds if f["kind"] == "stuck_candidate"]
     assert [f["path"] for f in stuck] == ["OBS-0001"]
+    # evidence_count 1 (< 3) is NOT ready to promote
+    assert not [f for f in finds if f["kind"] == "ready_to_promote"]
+
+
+def test_learned_ready_to_promote_flagged_at_threshold(tmp_path):
+    # a candidate that reached evidence_count>=3 is ripe for omp-learn promotion.
+    # Without this it produces NO finding at all (stuck fires only < 3) -> invisible
+    # to enumeration = the family failure class this closes.
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "learned.md").write_text(
+        "## OBS-0009  ripe pattern\n"
+        "- id: OBS-0009\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: seen enough\n"
+        "- evidence_count: 3\n"
+        "- first_seen: 2026-06-01\n"
+        "- last_seen: 2026-07-01\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    ready = [f for f in finds if f["kind"] == "ready_to_promote"]
+    assert [f["path"] for f in ready] == ["OBS-0009"]
+    assert not [f for f in finds if f["kind"] == "stuck_candidate"]
 
 
 def test_learned_contradiction_flagged_for_conflicting_path_constraint(tmp_path):

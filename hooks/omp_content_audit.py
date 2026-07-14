@@ -175,6 +175,13 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                                       "detail": "evidence_count=%d, %dd since first_seen" % (evidence_count, age_days)})
                 except ValueError:
                     pass
+            elif evidence_count >= 3:
+                # ripe for omp-learn promotion. A candidate at threshold otherwise
+                # produces no finding (stuck fires only < 3), so it would be invisible
+                # to enumeration -- the actionable-status gap this closes. Derived from
+                # existing fields (no new schema); the human gate still decides.
+                finds.append({"kind": "ready_to_promote", "path": b["id"],
+                              "detail": "evidence_count=%d >= 3 -- run omp-learn or defer" % evidence_count})
             applies_to = b.get("applies_to") or b.get("target")
             if applies_to:
                 by_glob.setdefault(applies_to, []).append(b)

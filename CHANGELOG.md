@@ -5,6 +5,30 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-14
+
+### Added
+
+- **Actionable-knowledge carry-forward (family wiki-status convention)** (`hooks/omp_content_audit.py`,
+  `skills/omp-brief/SKILL.md`, `skills/omp-handoff/SKILL.md`, `tests/test_omp_content_audit.py`) — omp's
+  adaptation of the om*-family fix for the failure class where an actionable item is recorded in the
+  knowledge store yet silently dropped from the next summary. omp keeps its schema unchanged (wiki
+  notes are deliberately schema-less; `learned.md` OBS blocks already carry `status`/`evidence_count`),
+  so this is a derived-enumeration + prompt-reconcile change, not a new status field.
+  - `lint_wiki()` gains a `ready_to_promote` finding: a `learned.md` candidate that reached
+    `evidence_count >= 3` is ripe for `omp-learn` promotion. Previously such a candidate produced NO
+    finding at all (`stuck_candidate` fires only below threshold), so it was invisible to
+    enumeration — exactly the gap this closes. Derived from existing fields; the omp-learn human gate
+    still decides.
+  - `omp-brief` (step 2) and `omp-handoff` (step 2) now reconcile the next-session goal / delegation
+    packet against the open actionable findings from `lint_wiki()` (`ready_to_promote`,
+    `stuck_candidate`, `contradiction`): each open one is reflected or consciously deferred, never
+    silently omitted. Enumeration-only, WARN-level — omp never hard-gates on the wiki.
+
+### Changed
+
+- `.claude-plugin/plugin.json`: `version` 0.5.0 → 0.6.0.
+
 ## [0.5.0] — 2026-07-11
 
 ### Added
