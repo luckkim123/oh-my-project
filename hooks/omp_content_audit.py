@@ -128,8 +128,9 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
 
     kinds: orphan (no backlink from another note), stale (mtime > WIKI_STALE_DAYS),
     oversized (> WIKI_OVERSIZED_BYTES), broken-ref (documented alias for find_dead_links,
-    not re-run here to avoid duplicate reporting), stuck_candidate / contradiction (learned.md
-    OBS blocks — see references/learning-protocol.md §2 for the block format).
+    not re-run here to avoid duplicate reporting), stuck_candidate / ready_to_promote /
+    contradiction (learned.md OBS blocks — see references/learning-protocol.md §2 for the
+    block format; ready_to_promote = candidate at evidence_count>=3, ripe for omp-learn).
     """
     root = Path(root)
     now = now or datetime.now()
