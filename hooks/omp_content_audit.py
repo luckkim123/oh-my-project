@@ -130,7 +130,8 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
     oversized (> WIKI_OVERSIZED_BYTES), broken-ref (documented alias for find_dead_links,
     not re-run here to avoid duplicate reporting), stuck_candidate / ready_to_promote /
     contradiction (learned.md OBS blocks — see references/learning-protocol.md §2 for the
-    block format; ready_to_promote = candidate at evidence_count>=3, ripe for omp-learn).
+    block format; ready_to_promote = candidate at evidence_count>=3 with
+    counter_examples==0 and user_overridden false, per §3 — ripe for omp-learn).
     """
     root = Path(root)
     now = now or datetime.now()
@@ -177,12 +178,23 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                 except ValueError:
                     pass
             elif evidence_count >= 3:
-                # ripe for omp-learn promotion. A candidate at threshold otherwise
-                # produces no finding (stuck fires only < 3), so it would be invisible
-                # to enumeration -- the actionable-status gap this closes. Derived from
-                # existing fields (no new schema); the human gate still decides.
-                finds.append({"kind": "ready_to_promote", "path": b["id"],
-                              "detail": "evidence_count=%d >= 3 -- run omp-learn or defer" % evidence_count})
+                # ripe for omp-learn promotion per protocol §3: evidence threshold
+                # AND counter_examples == 0 (a counter-example kills promotion
+                # outright) AND no durable user "no" (user_overridden). §3's
+                # non-contradiction criterion stays at the human gate (the
+                # contradiction finding below surfaces it independently).
+                # A candidate at threshold otherwise produces no finding (stuck
+                # fires only < 3), so it would be invisible to enumeration -- the
+                # actionable-status gap this closes. Derived from existing fields
+                # (no new schema); the human gate still decides.
+                try:
+                    counter_examples = int(b.get("counter_examples", "0"))
+                except ValueError:
+                    counter_examples = 0
+                overridden = b.get("user_overridden", "").strip().lower() == "true"
+                if counter_examples == 0 and not overridden:
+                    finds.append({"kind": "ready_to_promote", "path": b["id"],
+                                  "detail": "evidence_count=%d >= 3 -- run omp-learn or defer" % evidence_count})
             applies_to = b.get("applies_to") or b.get("target")
             if applies_to:
                 by_glob.setdefault(applies_to, []).append(b)

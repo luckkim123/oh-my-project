@@ -70,7 +70,8 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
    - `decisions/` directory listing (paths only, no content read needed for the summary line)
    - **Actionable-knowledge reconcile (family wiki-status convention)**: enumerate the open
      actionable findings from `omp_content_audit.lint_wiki(root)` — `ready_to_promote` (a
-     `learned.md` candidate at `evidence_count>=3`, ripe for omp-learn), `stuck_candidate`, and
+     `learned.md` candidate at `evidence_count>=3` with `counter_examples==0` and
+     `user_overridden` false per protocol §3, ripe for omp-learn), `stuck_candidate`, and
      `contradiction`. Any open one must be reflected in the next-session goal / top-5 tasks or
      consciously deferred — a recorded-but-actionable item must not silently vanish from the brief.
      This is enumeration-only (derived from existing fields, no schema change); the human gate still

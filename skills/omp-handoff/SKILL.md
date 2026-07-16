@@ -65,7 +65,7 @@ description: |
      guidance 에 `읽을 곳: <path> (<kind>, open N)` 형태로 넣는다.
    - `raid.md` 의 open 항목을 발췌해 Boundaries 에 붙인다(전체 파일 인라인 금지 — 관련 줄만).
    - **actionable-knowledge reconcile (family wiki-status convention)**: `omp_content_audit.lint_wiki(root)`
-     의 열린 actionable finding(`ready_to_promote` = `learned.md` 후보가 `evidence_count>=3` 도달,
+     의 열린 actionable finding(`ready_to_promote` = `learned.md` 후보가 `evidence_count>=3` 도달 + `counter_examples==0` + `user_overridden` false (§3),
      `stuck_candidate`, `contradiction`) 을 열거해, 인계 임무·Boundaries 에 반영하거나 의식적으로
      defer 한다 — 기록된 actionable 항목이 패킷에서 조용히 누락되면 안 된다. 열거 전용(기존 필드에서
      파생, 스키마 무변경); 실제 promote 는 omp-learn 의 human gate 소관. 열린 항목 없으면 생략.

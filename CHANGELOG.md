@@ -5,6 +5,19 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-07-16
+
+### Fixed
+
+- **`ready_to_promote` now implements learning-protocol §3's hard blockers, not just the
+  evidence threshold.** A candidate with `counter_examples > 0` (kills promotion outright,
+  §3.2) or `user_overridden: true` (the user's "no" is durable, §3.3) no longer surfaces as
+  ripe — previously both were ignored, so omp-brief/omp-handoff could present a
+  user-rejected or violated pattern as "run omp-learn or defer" (2026-07-16 wiki-week
+  review, HIGH). §3's non-contradiction criterion deliberately stays at the human gate —
+  the independent `contradiction` finding surfaces it. Docstring + omp-audit/omp-brief/
+  omp-handoff wording updated to match; 2 new blocking tests.
+
 ## [0.6.0] — 2026-07-14
 
 ### Added

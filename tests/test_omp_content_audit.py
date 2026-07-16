@@ -219,3 +219,45 @@ def test_learned_contradiction_flagged_for_conflicting_path_constraint(tmp_path)
     contradictions = [f for f in finds if f["kind"] == "contradiction"]
     assert len(contradictions) == 1
     assert contradictions[0]["path"] == "**/*.pkl"
+
+
+def test_learned_counter_example_blocks_ready_to_promote(tmp_path):
+    # protocol §3.2: counter_examples > 0 kills promotion outright, regardless
+    # of evidence_count — must NOT surface as ready_to_promote
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "learned.md").write_text(
+        "## OBS-0010  strong but violated pattern\n"
+        "- id: OBS-0010\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: everything lives under data/\n"
+        "- evidence_count: 5\n"
+        "- counter_examples: 3\n"
+        "- first_seen: 2026-07-01\n"
+        "- last_seen: 2026-07-10\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    assert not [f for f in finds if f["kind"] == "ready_to_promote"]
+
+
+def test_learned_user_overridden_blocks_ready_to_promote(tmp_path):
+    # protocol §3.3: the user's "no" is durable — an overridden candidate must
+    # NOT surface as ready_to_promote however much evidence accrues
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "learned.md").write_text(
+        "## OBS-0011  user already said no\n"
+        "- id: OBS-0011\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: rename all notebooks\n"
+        "- evidence_count: 4\n"
+        "- counter_examples: 0\n"
+        "- first_seen: 2026-07-01\n"
+        "- last_seen: 2026-07-10\n"
+        "- user_overridden: true\n"
+        "- source_stage: audit\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    assert not [f for f in finds if f["kind"] == "ready_to_promote"]
