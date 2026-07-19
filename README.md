@@ -24,6 +24,21 @@ Specialized SSOT (<project>/.omp/)   = per-project divergence (specializes the m
 
 The logic stays fixed and generic; only the artifact (`.omp/`) diverges per project. This asymmetry satisfies "deliverable + specialized" simultaneously.
 
+## Install
+
+Requires the [Claude Code](https://claude.com/claude-code) CLI. Two paths:
+
+- **Via [`oh-my-heroacademia`](https://github.com/luckkim123/oh-my-heroacademia)** (omp is registered there as a sibling of oms/omd):
+  ```
+  /plugin marketplace add luckkim123/oh-my-heroacademia
+  /plugin install oh-my-project@heroacademia
+  ```
+- **Standalone** (no other harness required — this repo is itself a Claude Code plugin via `.claude-plugin/plugin.json`):
+  ```
+  git clone https://github.com/luckkim123/oh-my-project.git
+  claude --plugin-dir ./oh-my-project
+  ```
+
 ## Two axes — space (structure) + time (secretary)
 
 omp governs two axes of the same living `.omp/`: the original **space** axis (folder structure/naming/dataset/env rules) and the 0.4.0 **secretary** axis (session journal, todo/RAID, decisions, pull-style briefing). Both share one SSOT, one hook layer, one specialization loop — the secretary is not a separate tool bolted on, it is `omp-audit`/`omp-init`/`omp-pilot` extended to also track *when* and *what happened*, not just *where things live*.
@@ -40,6 +55,7 @@ omp governs two axes of the same living `.omp/`: the original **space** axis (fo
   omp-doc       Generate·update human-facing docs (PROJECT.md etc.)
   omp-learn     Observation → rule promotion (human approval gate) ← the core of evolution
   omp-audit     Rule-compliance verification (read-only PASS/FAIL, space + secretary hygiene axes)
+  omp-doctor    Installation/prerequisite self-diagnosis (hooks registered, python3 present, reference cards intact — PASS/WARN/FAIL, read-only, no auto-fix)
   omp-pilot     Full orchestration (absorbs init when no .omp exists)
 ```
 
@@ -98,4 +114,4 @@ Mac / Linux / Windows. Every hook is **python3 stdlib only + fail-open** (errors
 
 ## Status
 
-v0.5.0 — 14 skills + 6 agents + 8 presets + 6 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_session_brief`/`omp_session_capture` session hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `omp_docker_audit` docker axis + `omp_secretary` secretary pure-function core + `__init__`) + schema implementation. 0.5.0 anchors the secretary axis to existing state surfaces: `secretary.sources[]` (rules.json read-map — registers a Kanban board/daily-notes dir/status table as a counted source, `omp-codify` human gate only, counts always `derive_status`-derived) and adds delegation briefing (`omp-handoff`: a 4-element knowledge packet assembled before handing work to a sibling harness such as oms/omd/omx, STAGE catalog 13 → 14), plus wikilink inbound counts in the `para` preset's organize dry-run plans. 0.4.0 adds the **secretary axis (time)** alongside the existing governance axis (space): 3 new stages (`omp-log` capture router, `omp-brief` pull-style briefing, `omp-review` weekly BuJo-style re-evaluation), 1 new agent (`chronicler`, the sole `.omp/secretary/**` writer), 2 new session hooks (SessionStart advisory brief injection, SessionEnd machine-only journal stub), an append-only `ledger.jsonl` + journal/todo.txt/raid.md/decisions/BRIEF.md layout, and a secretary hygiene audit axis (warn-default) plus a governance-side wiki/learned.md 6-check lint and structure-drift scan. 0.3.0 added **docker environment governance**: the `omp-env` stage canonicalizes Dockerfile/compose assets into `.omp/env/` (generation gate, in-place preserved); a docker audit axis (`omp_docker_audit`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version); provenance tracking (`origin:standard` + `standards_registry`, OCI/CIS/SemVer); docker preset + `docker-mechanisms.md` reference card. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Verified with pytest (122 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.
+v0.6.1 — 14 skills + 6 agents + 8 presets + 6 reference cards + hooks (`omp_route_emit`/`omp_verify_emit` runtime hooks + `omp_session_brief`/`omp_session_capture` session hooks + `omp_atomic` SSOT writes + `omp_content_audit` audit helper + `omp_docker_audit` docker axis + `omp_secretary` secretary pure-function core + `__init__`) + schema implementation. 0.6.1 fixes `ready_to_promote` to honor learning-protocol §3's hard blockers (`counter_examples`/`user_overridden`), so a rejected or contradicted candidate no longer surfaces as ripe for promotion in `omp-brief`/`omp-handoff`. 0.6.0 adds actionable-knowledge carry-forward: `lint_wiki()` gains a `ready_to_promote` finding for `learned.md` candidates past the evidence threshold, and `omp-brief`/`omp-handoff` reconcile their output against open wiki findings instead of silently dropping them. 0.5.0 anchors the secretary axis to existing state surfaces: `secretary.sources[]` (rules.json read-map — registers a Kanban board/daily-notes dir/status table as a counted source, `omp-codify` human gate only, counts always `derive_status`-derived) and adds delegation briefing (`omp-handoff`: a 4-element knowledge packet assembled before handing work to a sibling harness such as oms/omd/omx, STAGE catalog 13 → 14), plus wikilink inbound counts in the `para` preset's organize dry-run plans. 0.4.0 adds the **secretary axis (time)** alongside the existing governance axis (space): 3 new stages (`omp-log` capture router, `omp-brief` pull-style briefing, `omp-review` weekly BuJo-style re-evaluation), 1 new agent (`chronicler`, the sole `.omp/secretary/**` writer), 2 new session hooks (SessionStart advisory brief injection, SessionEnd machine-only journal stub), an append-only `ledger.jsonl` + journal/todo.txt/raid.md/decisions/BRIEF.md layout, and a secretary hygiene audit axis (warn-default) plus a governance-side wiki/learned.md 6-check lint and structure-drift scan. 0.3.0 added **docker environment governance**: the `omp-env` stage canonicalizes Dockerfile/compose assets into `.omp/env/` (generation gate, in-place preserved); a docker audit axis (`omp_docker_audit`, warn-default, rule-id-as-data: DL3007/secret-in-env/compose-version); provenance tracking (`origin:standard` + `standards_registry`, OCI/CIS/SemVer); docker preset + `docker-mechanisms.md` reference card. 0.2.1 fixed a false positive in `find_dead_links` for Obsidian table-escape pipes `[[Note\|alias]]`. Verified with pytest (134 passed). **Runtime end-to-end empirically validated** (confirmed the route/verify hooks, the init→codify→organize→audit flow, and live work/ separation in a plugin-reload session). See the [CHANGELOG](CHANGELOG.md) for full details.
