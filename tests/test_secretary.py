@@ -217,6 +217,15 @@ def test_count_source_open_readmap_kinds_are_zero(tmp_path):
     assert count_source_open(tmp_path, {"path": "missing.md", "kind": "todo"}) == 0
 
 
+def test_count_source_open_skips_fenced_checkbox_example(tmp_path):
+    (tmp_path / "Kanban.md").write_text(
+        "## Doing\n- [ ] real task\n\n"
+        "example:\n```\n- [ ] fenced example, not a real task\n```\n",
+        encoding="utf-8")
+    n = count_source_open(tmp_path, {"path": "Kanban.md", "kind": "todo"})
+    assert n == 1
+
+
 def test_derive_status_aggregates_registered_sources(tmp_path):
     sec = tmp_path / ".omp" / "secretary"
     sec.mkdir(parents=True)

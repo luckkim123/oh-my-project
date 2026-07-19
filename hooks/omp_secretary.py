@@ -27,7 +27,8 @@ TODO_DONE_RE = re.compile(r"^x\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\
 TODO_OPEN_RE = re.compile(r"^(?:\((?P<pri>[A-Z])\)\s+)?(?:(?P<created>\d{4}-\d{2}-\d{2})\s+)?(?P<text>.+)$")
 STALE_TASK_DAYS, STALE_BLOCKER_DAYS = 30, 14
 SOURCE_KINDS = ("todo", "journal", "status", "schedule")
-OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")  # simplified: line-regex, no fence awareness — a checkbox inside a ``` code block counts; add fence tracking if that ever misleads (D11 grep-level ceiling).
+OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")
+FENCE_RE = re.compile(r"^\s*```")  # fence toggle so a checkbox example inside a code block isn't counted (D11 ceiling lifted).
 
 
 def find_omp_root(start):
@@ -135,7 +136,15 @@ def _count_open_in_file(p):
     if p.suffix == ".txt":
         tasks = [t for t in map(parse_todo_line, lines) if t]
         return sum(1 for t in tasks if not t["done"])
-    return sum(1 for ln in lines if OPEN_CHECKBOX_RE.match(ln))
+    count = 0
+    in_fence = False
+    for ln in lines:
+        if FENCE_RE.match(ln):
+            in_fence = not in_fence
+            continue
+        if not in_fence and OPEN_CHECKBOX_RE.match(ln):
+            count += 1
+    return count
 
 
 def count_source_open(root, source):
