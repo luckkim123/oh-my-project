@@ -242,6 +242,28 @@ def test_learned_counter_example_blocks_ready_to_promote(tmp_path):
     assert not [f for f in finds if f["kind"] == "ready_to_promote"]
 
 
+def test_learned_malformed_counter_examples_blocks_ready_to_promote(tmp_path):
+    # the ValueError fallback for counter_examples must be conservative (block
+    # promotion), not permissive (default to 0 -> treated as "no counter-examples").
+    # A garbage/unparseable value means "unknown", never "safe to promote".
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "learned.md").write_text(
+        "## OBS-0012  malformed counter_examples\n"
+        "- id: OBS-0012\n"
+        "- channel: rule\n"
+        "- status: candidate\n"
+        "- pattern: garbage counter_examples value\n"
+        "- evidence_count: 5\n"
+        "- counter_examples: not-a-number\n"
+        "- first_seen: 2026-07-01\n"
+        "- last_seen: 2026-07-10\n"
+        "- user_overridden: false\n"
+        "- source_stage: audit\n"
+    )
+    finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
+    assert not [f for f in finds if f["kind"] == "ready_to_promote"]
+
+
 def test_learned_user_overridden_blocks_ready_to_promote(tmp_path):
     # protocol §3.3: the user's "no" is durable — an overridden candidate must
     # NOT surface as ready_to_promote however much evidence accrues
