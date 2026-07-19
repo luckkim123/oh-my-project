@@ -124,6 +124,42 @@ def test_reminds_on_move_after_boundary_operator():
     assert "[omp integrity reminder]" in out
 
 
+def test_reminds_on_move_after_newline():
+    """⑲ 개행으로 이어진 두 번째 줄이 실제 mv라면 탐지(멀티라인 명령 회귀 방지)."""
+    out = context_of(run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": "ls\nmv a.txt b.txt"},
+    }))
+    assert "[omp integrity reminder]" in out
+
+
+def test_reminds_on_move_inside_command_substitution():
+    """⑳ $(...) 서브셸 안의 mv도 탐지(subshell로 경계검사 우회 방지)."""
+    out = context_of(run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": 'echo "$(mv a.txt b.txt)"'},
+    }))
+    assert "[omp integrity reminder]" in out
+
+
+def test_reminds_on_move_inside_backtick_substitution():
+    """㉑ 백틱 서브셸 안의 mv도 탐지."""
+    out = context_of(run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": 'echo "`mv a.txt b.txt`"'},
+    }))
+    assert "[omp integrity reminder]" in out
+
+
+def test_silent_on_grep_inside_command_substitution():
+    """㉒ 서브셸 안에서도 grep이 risky verb를 인용문으로만 언급하면 침묵(false positive 회피 유지)."""
+    out = run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": 'x=$(grep -c "mv the file" notes.md)'},
+    })
+    assert out.strip() == ""
+
+
 def test_stdlib_only():
     """⑧ stdlib only."""
     src = HOOK.read_text()
