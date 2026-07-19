@@ -1,0 +1,26 @@
+name: Tag Guard
+
+# Runs test_version_sync.py with tags actually fetched. Kept separate from
+# ci.yml (which uses actions/checkout@v4's default shallow, tagless clone —
+# that default silently skips the tag surface, masking release-tag drift).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tag-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install pytest
+      - name: Run tag-drift test
+        run: python3 -m pytest tests/test_version_sync.py -q
