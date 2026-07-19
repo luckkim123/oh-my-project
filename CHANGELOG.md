@@ -14,6 +14,15 @@ All notable changes to this harness. Hook contract changes are recorded explicit
   fallback now leaves the candidate unable to match the `== 0` check (fail conservative,
   not permissive); 1 new blocking test.
 
+## [0.6.2] — 2026-07-19
+
+### Changed
+
+- **Vendored `hooks/omp_atomic.py` from the new shared `om-core` repo** — byte-identical
+  behavior; temp-file prefix changed from `.omp-tmp-` to `.om-tmp-` (no functional change).
+  A local-only `tests/test_atomic_vendored_sync.py` byte-compares the vendored copy against
+  `~/om-core/atomic_fn.py` and skips gracefully when that sibling repo is absent (clean CI).
+
 ## [0.6.1] — 2026-07-16
 
 ### Fixed
