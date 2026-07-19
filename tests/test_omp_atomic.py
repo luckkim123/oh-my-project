@@ -7,6 +7,8 @@ atomic rename 보장, py3.3+)."""
 import json
 from pathlib import Path
 
+import pytest
+
 from hooks.omp_atomic import atomic_write_json
 
 
@@ -48,6 +50,25 @@ def test_atomic_write_accepts_str_path(tmp_path):
     target = str(tmp_path / "manifest.json")
     atomic_write_json(target, {"ok": 1})
     assert Path(target).is_file()
+
+
+def test_atomic_write_rollback_on_failure_reraises_and_leaves_original_intact(tmp_path):
+    """쓰기 도중 실패(직렬화 불가 객체)해도: (1) 원본 예외가 그대로 전파되고
+    (swallow 되지 않고), (2) 임시파일 잔재가 안 남으며, (3) target 은 실패 전
+    원본 그대로 유지된다 — T20 의 존재 이유인 크래시-중 롤백 보장."""
+    target = tmp_path / "rules.json"
+    atomic_write_json(target, {"v": 1})
+    original = target.read_bytes()
+
+    class Unserializable:
+        pass
+
+    with pytest.raises(TypeError):
+        atomic_write_json(target, {"bad": Unserializable()})
+
+    assert target.read_bytes() == original  # 롤백: target 은 실패 전 값 그대로
+    leftovers = [p.name for p in tmp_path.iterdir() if p.name != "rules.json"]
+    assert leftovers == [], f"임시파일 잔재: {leftovers}"
 
 
 def test_atomic_write_stdlib_only():
