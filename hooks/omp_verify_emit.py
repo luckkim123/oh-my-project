@@ -37,7 +37,7 @@ RISKY_CMD_MARKERS = ("mv ", "rm ", "trash ", "gio trash", "rmdir ", "Remove-Item
 # Commands whose whole job is to inspect/print text — never treat their
 # arguments as an invocation of the risky verb they happen to quote.
 SAFE_INVOKED_CMDS = ("grep", "rg", "sed", "awk", "echo")
-_CMD_SPLIT_RE = re.compile(r"&&|\|\||;|\|")
+_CMD_SPLIT_RE = re.compile(r"&&|\|\||;|\||\n")
 WRITE_TOOLS = ("Edit", "Write", "MultiEdit")
 
 
@@ -45,6 +45,32 @@ def _invoked_cmd(segment: str) -> str:
     """First whitespace token of a command segment, basename only (strip a path)."""
     first = segment.split(None, 1)[0] if segment.split(None, 1) else ""
     return first.rsplit("/", 1)[-1]
+
+
+def _extract_command_substitutions(cmd: str) -> list:
+    """Inner text of every $(...) (balanced-paren, handles nesting) and
+    `...` command substitution, so a risky verb hidden inside a subshell
+    is still reachable by the boundary check instead of only the outer line."""
+    found = []
+    i = 0
+    while True:
+        start = cmd.find("$(", i)
+        if start == -1:
+            break
+        depth = 1
+        j = start + 2
+        while j < len(cmd) and depth > 0:
+            if cmd[j] == "(":
+                depth += 1
+            elif cmd[j] == ")":
+                depth -= 1
+            j += 1
+        inner = cmd[start + 2:j - 1]
+        found.append(inner)
+        found.extend(_extract_command_substitutions(inner))  # nested $(...)
+        i = j
+    found.extend(re.findall(r"`([^`]*)`", cmd))
+    return found
 
 
 def _is_risky_segment(segment: str) -> bool:
@@ -120,7 +146,10 @@ def detect(tool_name: str, tool_input: dict) -> str:
         return ""
     if tool_name == "Bash":
         cmd = str(tool_input.get("command", ""))
-        if any(_is_risky_segment(seg) for seg in _CMD_SPLIT_RE.split(cmd)):
+        segments = _CMD_SPLIT_RE.split(cmd)
+        for sub in _extract_command_substitutions(cmd):
+            segments.extend(_CMD_SPLIT_RE.split(sub))
+        if any(_is_risky_segment(seg) for seg in segments):
             return "파일 이동/삭제 명령이 실행됨."
         return ""
     return ""
