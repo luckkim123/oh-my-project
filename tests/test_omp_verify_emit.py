@@ -97,6 +97,33 @@ def test_windows_path_separator():
     assert out != ""
 
 
+def test_silent_on_grep_mentioning_risky_verb():
+    """⑯ grep이 인용문 안에서 risky verb를 언급해도 침묵 (false positive 회피)."""
+    out = run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": 'grep -c "mv the file then verify" notes.md'},
+    })
+    assert out.strip() == ""
+
+
+def test_silent_on_echo_mentioning_risky_verb():
+    """⑰ echo가 risky verb를 인용문 안에서 언급해도 침묵."""
+    out = run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": 'echo "do not rm anything"'},
+    })
+    assert out.strip() == ""
+
+
+def test_reminds_on_move_after_boundary_operator():
+    """⑱ && 뒤 두 번째 명령이 실제 mv라면 여전히 탐지(경계 검사가 과교정 아님)."""
+    out = context_of(run_hook({
+        "tool_name": "Bash",
+        "tool_input": {"command": "ls && mv a.txt b.txt"},
+    }))
+    assert "[omp integrity reminder]" in out
+
+
 def test_stdlib_only():
     """⑧ stdlib only."""
     src = HOOK.read_text()

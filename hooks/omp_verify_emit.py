@@ -18,6 +18,7 @@ failure re-emits (fail-open must not silence a safety signal) — only a success
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -29,8 +30,28 @@ from omp_secretary import find_omp_root  # noqa: E402
 COOLDOWN_S = 300
 
 # Bash command substrings that imply a move/delete (organize safety relevant).
+# Only checked at a command boundary (start of command, or right after && ; |) —
+# a bare substring test would false-positive on commands that merely MENTION a
+# risky verb, e.g. `grep -c "mv the file" notes.md` or `echo "do not rm this"`.
 RISKY_CMD_MARKERS = ("mv ", "rm ", "trash ", "gio trash", "rmdir ", "Remove-Item")
+# Commands whose whole job is to inspect/print text — never treat their
+# arguments as an invocation of the risky verb they happen to quote.
+SAFE_INVOKED_CMDS = ("grep", "rg", "sed", "awk", "echo")
+_CMD_SPLIT_RE = re.compile(r"&&|\|\||;|\|")
 WRITE_TOOLS = ("Edit", "Write", "MultiEdit")
+
+
+def _invoked_cmd(segment: str) -> str:
+    """First whitespace token of a command segment, basename only (strip a path)."""
+    first = segment.split(None, 1)[0] if segment.split(None, 1) else ""
+    return first.rsplit("/", 1)[-1]
+
+
+def _is_risky_segment(segment: str) -> bool:
+    seg = segment.lstrip()
+    if not seg or _invoked_cmd(seg) in SAFE_INVOKED_CMDS:
+        return False
+    return any(seg.startswith(marker) for marker in RISKY_CMD_MARKERS)
 
 
 def build_reminder(reason: str) -> str:
@@ -99,7 +120,7 @@ def detect(tool_name: str, tool_input: dict) -> str:
         return ""
     if tool_name == "Bash":
         cmd = str(tool_input.get("command", ""))
-        if any(marker in cmd for marker in RISKY_CMD_MARKERS):
+        if any(_is_risky_segment(seg) for seg in _CMD_SPLIT_RE.split(cmd)):
             return "파일 이동/삭제 명령이 실행됨."
         return ""
     return ""
