@@ -5,6 +5,15 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+### Fixed
+
+- **`ready_to_promote`'s `counter_examples` parse failure now blocks promotion instead of
+  permitting it.** A malformed/non-numeric `counter_examples` value fell back to `0` —
+  "no counter-examples" — which is exactly the state the §3.2 hard blocker is supposed to
+  rule out, so garbage data could silently satisfy the promote gate. The `ValueError`
+  fallback now leaves the candidate unable to match the `== 0` check (fail conservative,
+  not permissive); 1 new blocking test.
+
 ## [0.6.1] — 2026-07-16
 
 ### Fixed

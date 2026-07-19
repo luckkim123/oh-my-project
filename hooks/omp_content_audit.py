@@ -190,7 +190,10 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                 try:
                     counter_examples = int(b.get("counter_examples", "0"))
                 except ValueError:
-                    counter_examples = 0
+                    # malformed/unparseable value is unknown, not "no counter-examples" --
+                    # must not satisfy the ==0 promote gate below (fail conservative,
+                    # not permissive).
+                    counter_examples = None
                 overridden = b.get("user_overridden", "").strip().lower() == "true"
                 if counter_examples == 0 and not overridden:
                     finds.append({"kind": "ready_to_promote", "path": b["id"],
