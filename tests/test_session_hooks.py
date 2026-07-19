@@ -19,7 +19,8 @@ def _run(hook, payload, env_extra=None, cwd=None):
 
 def test_capture_writes_stub_in_omp_project(tmp_path):
     (tmp_path / ".omp" / "secretary").mkdir(parents=True)
-    sub = tmp_path / "src"; sub.mkdir()
+    sub = tmp_path / "src"
+    sub.mkdir()
     r = _run(CAPTURE, {"session_id": "s1", "cwd": str(sub)})
     assert r.returncode == 0
     assert (tmp_path / ".omp/secretary/ledger.jsonl").exists()  # ascend from subdir worked
@@ -41,7 +42,8 @@ def test_capture_fail_open_on_garbage():
     assert r.returncode == 0
 
 def test_brief_injects_when_present(tmp_path):
-    sec = tmp_path / ".omp" / "secretary"; sec.mkdir(parents=True)
+    sec = tmp_path / ".omp" / "secretary"
+    sec.mkdir(parents=True)
     (sec / "BRIEF.md").write_text("# BRIEF\ngreen\n", encoding="utf-8")
     r = _run(BRIEF_HOOK, {"session_id": "s1", "cwd": str(tmp_path)})
     out = json.loads(r.stdout)
@@ -49,7 +51,8 @@ def test_brief_injects_when_present(tmp_path):
     assert "BRIEF" in ctx and out["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
 def test_brief_truncates_to_30_lines(tmp_path):
-    sec = tmp_path / ".omp" / "secretary"; sec.mkdir(parents=True)
+    sec = tmp_path / ".omp" / "secretary"
+    sec.mkdir(parents=True)
     (sec / "BRIEF.md").write_text("\n".join("line%d" % i for i in range(100)))
     r = _run(BRIEF_HOOK, {"cwd": str(tmp_path)})
     ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
@@ -58,7 +61,8 @@ def test_brief_truncates_to_30_lines(tmp_path):
 def test_brief_silent_when_absent_or_skipped(tmp_path):
     r = _run(BRIEF_HOOK, {"cwd": str(tmp_path)})
     assert r.returncode == 0 and r.stdout.strip() == ""
-    sec = tmp_path / ".omp" / "secretary"; sec.mkdir(parents=True)
+    sec = tmp_path / ".omp" / "secretary"
+    sec.mkdir(parents=True)
     (sec / "BRIEF.md").write_text("x")
     r2 = _run(BRIEF_HOOK, {"cwd": str(tmp_path)}, env_extra={"OMP_SKIP_HOOKS": "session_brief"})
     assert r2.stdout.strip() == ""

@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-from omp_verify_emit import should_throttle, record_emit  # noqa: E402
+from omp_verify_emit import record_emit, should_throttle  # noqa: E402
 
 HOOK = Path(__file__).parent.parent / "hooks" / "omp_verify_emit.py"
 

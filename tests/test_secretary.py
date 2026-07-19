@@ -1,17 +1,23 @@
 """Secretary-axis pure functions — contract tests (spec §4.4, references/secretary-protocol.md)."""
 import json
-import os
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 from pathlib import Path
 
-import pytest
-
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 from omp_secretary import (  # noqa: E402
-    find_omp_root, sanitize_session_id, redact_secrets, parse_todo_line,
-    append_ledger, derive_status, brief_hash_check, session_stub,
-    scan_stale, scan_journal_tags, load_secretary_sources, count_source_open,
+    append_ledger,
+    brief_hash_check,
+    count_source_open,
+    derive_status,
+    find_omp_root,
+    load_secretary_sources,
+    parse_todo_line,
+    redact_secrets,
+    sanitize_session_id,
+    scan_journal_tags,
+    scan_stale,
+    session_stub,
 )
 
 
@@ -23,7 +29,8 @@ def _mkroot(tmp_path):
 
 def test_find_omp_root_ascends(tmp_path):
     root = _mkroot(tmp_path)
-    sub = root / "a" / "b"; sub.mkdir(parents=True)
+    sub = root / "a" / "b"
+    sub.mkdir(parents=True)
     assert find_omp_root(sub) == root
 
 def test_find_omp_root_none_when_absent(tmp_path):

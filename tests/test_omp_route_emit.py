@@ -63,7 +63,7 @@ def test_stage_line_template_lists_all_stages():
     갱신을 빠뜨리는 사각(doctor 가 그랬다)을 이 단언이 막는다 — LLM 이 매 턴
     출력하는 칸에 stage 가 없으면 그 의도를 표기할 자리가 없다."""
     out = context_of(run_hook({"prompt": "프로젝트 관리"}))
-    line = next((l for l in out.splitlines() if l.startswith("STAGE(project) →")), "")
+    line = next((ln for ln in out.splitlines() if ln.startswith("STAGE(project) →")), "")
     assert line, "한 줄 STAGE 템플릿이 없다"
     for stage in ALL_STAGES:
         assert stage in line, f"stage '{stage}' 가 한 줄 STAGE 템플릿에서 누락"

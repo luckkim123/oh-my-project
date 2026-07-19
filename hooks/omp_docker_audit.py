@@ -9,6 +9,7 @@ overall audit. A project may override severity per rule-id via rules.json.
 Linter rule-ids (DL3007 hadolint, compose-version Compose Spec) are carried as DATA.
 """
 from __future__ import annotations
+
 import re
 from typing import Optional
 

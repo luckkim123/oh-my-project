@@ -15,5 +15,7 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: pip install pytest jsonschema
+      - name: Lint
+        run: pip install ruff && ruff check .
       - name: Run tests
         run: python3 -m pytest -q
