@@ -3,8 +3,11 @@ from datetime import datetime
 from pathlib import Path
 
 from hooks.omp_content_audit import (
-    check_content_rule, find_dead_links, split_frontmatter,
-    scan_structure_drift, lint_wiki,
+    check_content_rule,
+    find_dead_links,
+    lint_wiki,
+    scan_structure_drift,
+    split_frontmatter,
 )
 
 

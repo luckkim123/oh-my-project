@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pytest
 
 VENDORED = Path(__file__).resolve().parent.parent / "hooks" / "omp_atomic.py"

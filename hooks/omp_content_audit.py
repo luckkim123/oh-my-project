@@ -4,6 +4,7 @@ Pure stdlib (re, pathlib). No file mutation. Returns violation dicts.
 The `auditor` agent invokes these as the canonical check algorithm.
 """
 from __future__ import annotations
+
 import re
 from datetime import datetime
 from pathlib import Path
