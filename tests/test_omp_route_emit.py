@@ -163,3 +163,117 @@ def test_route_emit_skip_gate_other_token_does_not_skip():
     env = dict(os.environ, OMP_SKIP_HOOKS="verify,session_brief")
     out = context_of(run_hook({"prompt": "프로젝트 정리"}, env=env))
     assert "STAGE(project) →" in out
+
+
+# --- wave-17: relevance gate (OMP_ROUTE_GATE, default off) -------------------
+# Isomorphic to oms's test_scholar_route_emit.py relevance-gate suite (§7.1/§7.2
+# of the design spec). Default OFF must be indistinguishable from today for ANY
+# prompt/cwd combo. The trap this repo must avoid (spec §3.2): the predicate is
+# keyword-OR-marker, never marker-only — a fresh .omp-less folder must still
+# surface NO_OMP_HINT on a keyword-matching prompt (two golden fixtures below).
+
+def _env(**gate):
+    e = dict(os.environ)
+    e.pop("OMP_ROUTE_GATE", None)
+    e.update(gate)
+    return e
+
+
+def test_gate_default_off_injects_even_for_irrelevant_prompt():
+    """기본값(env 미설정) = off. 무관 프롬프트도 오늘처럼 무조건 주입."""
+    out = context_of(run_hook({"prompt": "hello"}, env=_env()))
+    assert "STAGE(project) →" in out
+
+
+def test_gate_off_mode_injects_always():
+    """OMP_ROUTE_GATE=off 명시해도 동일 — 게이트 코드 전체 우회."""
+    out = context_of(run_hook({"prompt": "random unrelated text"}, env=_env(OMP_ROUTE_GATE="off")))
+    assert "STAGE(project) →" in out
+
+
+def test_gate_on_non_domain_prompt_is_silent(tmp_path):
+    """on + marker 없는 cwd + 무관 프롬프트 → 침묵(injection tax 0)."""
+    out = run_hook({"prompt": "hello"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on"))
+    assert out.strip() == ""
+
+
+def test_gate_on_word_boundary_no_false_positive(tmp_path):
+    """on + 부분문자열 오탐 금지 — "audit" 이 "auditorium" 안에서 발동하면 안 된다."""
+    out = run_hook({"prompt": "the auditorium needs to be booked"}, cwd=str(tmp_path),
+                   env=_env(OMP_ROUTE_GATE="on"))
+    assert out.strip() == ""
+
+
+def test_gate_on_missing_prompt_key_injects(tmp_path):
+    """on + prompt 키 자체가 없으면 fail-toward-inject — 전체 CHECKPOINT."""
+    out = context_of(run_hook({}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on")))
+    assert "STAGE(project) →" in out
+
+
+def test_gate_on_bad_stdin_fail_open_exit0(tmp_path):
+    """on + 파싱 불가 stdin → exit 0, fail-toward-inject."""
+    proc = subprocess.run(
+        [sys.executable, str(HOOK)],
+        input="not json at all", capture_output=True, text=True,
+        cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on"),
+    )
+    assert proc.returncode == 0
+    assert "STAGE(project) →" in context_of(proc.stdout)
+
+
+def test_gate_on_marker_present_forces_inject(tmp_path):
+    """on + .omp/ 존재 → 무관 프롬프트여도 주입 (marker OR keyword 의 marker 다리)."""
+    (tmp_path / ".omp").mkdir()
+    out = context_of(run_hook({"prompt": "hello"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on")))
+    assert "STAGE(project) →" in out
+
+
+def test_gate_on_keyword_only_injects_without_marker(tmp_path):
+    """on + marker 없는 cwd + 도메인 키워드("폴더 구조 정리해줘") → 주입."""
+    out = context_of(run_hook({"prompt": "폴더 구조 정리해줘"}, cwd=str(tmp_path),
+                              env=_env(OMP_ROUTE_GATE="on")))
+    assert "STAGE(project) →" in out
+
+
+def test_gate_on_excluded_polyseme_is_silent(tmp_path):
+    """on + marker 없는 cwd + 다의어 단독("이 함수 정리해줘") → 침묵 (제외 규칙 확인)."""
+    out = run_hook({"prompt": "이 함수 정리해줘"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on"))
+    assert out.strip() == ""
+
+
+def test_gate_observe_mode_injects_and_logs(tmp_path):
+    """observe + 무관 프롬프트 → 여전히 주입(byte-identity 유지) + would-suppress 로그 1줄."""
+    proc = subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=json.dumps({"prompt": "hello"}), cwd=str(tmp_path),
+        capture_output=True, text=True, env=_env(OMP_ROUTE_GATE="observe"),
+    )
+    assert proc.returncode == 0
+    assert "STAGE(project) →" in context_of(proc.stdout)
+    logged = json.loads(proc.stderr.strip())
+    assert logged["decision"] == "would-suppress"
+
+
+def test_gate_on_golden_positive_path_byte_identical_with_marker(tmp_path):
+    """§4 HARD REQUIREMENT fixture (a): .omp/ 있는 cwd (hint 없음) — gate=on 의
+    true-positive 출력이 off(=오늘)와 byte-for-byte 동일해야 한다."""
+    (tmp_path / ".omp").mkdir()
+    off_out = run_hook({"prompt": "audit 해줘"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="off"))
+    on_out = run_hook({"prompt": "audit 해줘"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on"))
+    assert on_out == off_out
+    assert NO_OMP_MARKER not in context_of(on_out)
+
+
+def test_gate_on_golden_positive_path_byte_identical_without_marker(tmp_path):
+    """§4 HARD REQUIREMENT fixture (b): .omp/ 없는 cwd (hint 붙음) — gate=on 의
+    true-positive 출력이 off(=오늘)와 byte-for-byte 동일해야 한다(hint 포함)."""
+    off_out = run_hook({"prompt": "codify 해줘"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="off"))
+    on_out = run_hook({"prompt": "codify 해줘"}, cwd=str(tmp_path), env=_env(OMP_ROUTE_GATE="on"))
+    assert on_out == off_out
+    assert NO_OMP_MARKER in context_of(on_out)
+
+
+def test_gate_stdlib_only():
+    """게이트 추가 후에도 stdlib only 유지 (회귀)."""
+    src = HOOK.read_text()
+    assert "import requests" not in src and "import yaml" not in src
