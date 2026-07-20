@@ -21,9 +21,20 @@ checkpoint. cwd-relative only (a sub-dir false-negative is harmless — it is a 
 
 Fail-open: any error returns 0 so the session is never blocked. Cross-platform:
 pure stdlib, pathlib only.
+
+Relevance gate (wave-17, ported from oms's is_paper_related): the gate only
+decides WHETHER to inject, never WHAT — a true positive (marker OR keyword,
+see is_omp_related) prints the exact same context (CHECKPOINT + NO_OMP_HINT
+branch) byte-for-byte, via the single _emit_checkpoint() assembly. The
+predicate is deliberately keyword-OR-marker, never marker-only: a fresh
+.omp-less folder must still surface the NO_OMP_HINT discoverability nag on a
+keyword-matching prompt (marker-only gating would kill that). Rollout is a
+3-state OMP_ROUTE_GATE env flag (off/observe/on), default "off": the gate code
+is fully bypassed and today's unconditional inject is unchanged.
 """
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -79,18 +90,96 @@ def _skipped(token):
     return token in {t.strip() for t in os.environ.get("OMP_SKIP_HOOKS", "").split(",") if t.strip()}
 
 
+# --- relevance gate (wave-17) -------------------------------------------------
+# High-specificity project-management tokens only. Deliberately excludes bare
+# 정리/구조/clean (다의성 심각 — "이 함수 정리해줘" is code cleanup, not omp) — a
+# genuine organize request is still caught by the phrase tokens below or by
+# organize/codify/dataset, and .omp/ present covers every in-project turn.
+_CJK_TOKENS = (
+    "폴더 구조", "명명 규칙", "재배치", "데이터셋", "초기화", "구조 파악", "정리 규칙", "브리핑",
+)
+_DOT_TOKENS = (".omp",)
+_ASCII_TOKENS = (
+    "omp", "omp-init", "omp-pilot", "omp-doctor", "codify", "organize",
+    "dataset", "audit", "handoff", "lineage", "checksum",
+)
+_ASCII_RE = re.compile(r"\b(?:" + "|".join(re.escape(t) for t in _ASCII_TOKENS) + r")\b")
+
+
+def is_omp_related(prompt) -> bool:
+    """True when .omp/ is present (marker OR keyword — NEVER marker-only, so
+    NO_OMP_HINT discoverability still surfaces on a keyword match in a fresh
+    .omp-less folder), prompt is missing/not-a-string (fail-toward-inject), or
+    any project-domain token matches. Never raises -- an internal error
+    (including _omp_missing's own probe) also fails toward injection."""
+    try:
+        if not _omp_missing():  # .omp/ present -> marker positive
+            return True
+        if not isinstance(prompt, str):
+            return True
+        lowered = prompt.lower()
+        if any(tok in lowered for tok in _CJK_TOKENS):
+            return True
+        if any(tok in lowered for tok in _DOT_TOKENS):
+            return True
+        return bool(_ASCII_RE.search(lowered))
+    except Exception:
+        return True  # gate exception -> inject
+
+
+def _gate_mode() -> str:
+    try:
+        v = os.environ.get("OMP_ROUTE_GATE", "off").strip().lower()
+    except Exception:
+        return "off"
+    return v if v in ("off", "observe", "on") else "off"
+
+
+def _log_would_suppress(prompt) -> None:
+    """observe-mode audit trail (rollout §6): one stderr line per turn the gate
+    would have suppressed. Best-effort — never raises, never touches stdout."""
+    try:
+        import hashlib
+        digest = (hashlib.sha256(prompt.encode("utf-8", "replace")).hexdigest()[:16]
+                  if isinstance(prompt, str) else "none")
+        sys.stderr.write(json.dumps({"decision": "would-suppress", "prompt_hash": digest}) + "\n")
+    except Exception:
+        pass
+
+
+def _emit_checkpoint() -> None:
+    context = CHECKPOINT + (NO_OMP_HINT if _omp_missing() else "")
+    out = {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": context,
+        }
+    }
+    print(json.dumps(out))
+
+
 def main() -> int:
     try:
         if _skipped("route"):
             return 0
-        context = CHECKPOINT + (NO_OMP_HINT if _omp_missing() else "")
-        out = {
-            "hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit",
-                "additionalContext": context,
-            }
-        }
-        print(json.dumps(out))
+        mode = _gate_mode()
+        if mode == "off":
+            _emit_checkpoint()  # today's unconditional inject, unchanged
+            return 0
+        try:
+            payload = json.load(sys.stdin)
+        except Exception:
+            payload = None
+        prompt = payload.get("prompt") if isinstance(payload, dict) else None
+        relevant = is_omp_related(prompt)
+        if mode == "observe":
+            if not relevant:
+                _log_would_suppress(prompt)
+            _emit_checkpoint()  # observe never suppresses — logging only
+            return 0
+        if not relevant:
+            return 0  # mode == "on": enforce
+        _emit_checkpoint()
     except Exception as e:  # noqa: BLE001 — fail-open is intentional
         # 에러 맥락을 stderr 로 1줄(디버그용). stdout 계약·exit code 불변 → fail-open. T23.
         sys.stderr.write("[omp_route_emit] swallowed: %r\n" % (e,))
