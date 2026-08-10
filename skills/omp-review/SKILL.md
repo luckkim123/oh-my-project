@@ -58,7 +58,8 @@ is always a human's call). This is the GTD "get current" moment for the secretar
   task (>30d), stale blocker (>14d), `brief_drift` (hand-edited BRIEF.md), `conflict_copy`
   (sync-duplicate files), and `axis_dormant` (a surface with zero entries after >14d of session
   history — the neglected-axis signal the other four structurally cannot give, since they each
-  need a record to exist first) all come from this one call. Do not hand-scan ages or grep for duplicates
+  need a record to exist first, and which `rules.json` `secretary.surfaces[]` can opt out of)
+  all come from this one call. Do not hand-scan ages or grep for duplicates
   separately; `scan_stale` is the single source for what counts as stale.
 - ⚠️ **`scan_journal_tags(root)` tallies are wiki-promotion *candidates* only — never auto-promoted.**
   Count repeated `[LESSON:...]`/`[BLOCKER:...]` slugs across `journal/*.md`; a tag appearing 2+ times

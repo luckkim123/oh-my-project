@@ -322,3 +322,47 @@ def test_scan_stale_stays_silent_on_a_young_axis(tmp_path):
     root = _mkroot(tmp_path)
     _aged_ledger(root, 3)
     assert not [f for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"]
+
+
+def _declare_surfaces(root, surfaces):
+    (root / ".omp" / "rules.json").write_text(
+        json.dumps({"secretary": {"surfaces": surfaces}}), encoding="utf-8")
+
+
+def test_declaring_the_axis_unused_silences_dormancy(tmp_path):
+    """A finding that can never be cleared stops being information.
+
+    The read-map half (sources[]) is independently useful, so a project may run
+    the secretary axis on Kanban files alone and never open raid.md.
+    """
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    _declare_surfaces(root, [])
+    assert derive_status(root)["raid_dormant"] is False
+    assert "absence" not in derive_status(root)["reason"]
+    assert not [f for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"]
+
+
+def test_declaring_a_subset_checks_only_those(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    _declare_surfaces(root, ["raid.md"])
+    dormant = {f["path"] for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"}
+    assert dormant == {"raid.md"}
+    assert derive_status(root)["raid_dormant"] is True
+
+
+def test_never_declared_still_checks_all_three(tmp_path):
+    """Absent is not opted out — existing projects keep the full check."""
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    (root / ".omp" / "rules.json").write_text(json.dumps({"secretary": {"sources": []}}))
+    dormant = {f["path"] for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"}
+    assert dormant == {"raid.md", "todo.txt", "decisions/"}
+
+
+def test_corrupt_rules_fails_open_to_all_three(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    (root / ".omp" / "rules.json").write_text("NOT-JSON")
+    assert len([f for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"]) == 3

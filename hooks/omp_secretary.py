@@ -32,6 +32,7 @@ STALE_TASK_DAYS, STALE_BLOCKER_DAYS = 30, 14
 STALE_DORMANT_DAYS = 14
 #: The three surfaces only chronicler writes. When one is empty, every count
 #: derived from it reads as a healthy zero.
+CHRONICLER_SURFACES = ("raid.md", "todo.txt", "decisions/")
 RAID_ENTRY_RE = re.compile(r"\[(?:open|closed)\]")
 SOURCE_KINDS = ("todo", "journal", "status", "schedule")
 OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")
@@ -135,17 +136,40 @@ def _raid_entries(sec):
                if RAID_ENTRY_RE.search(ln))
 
 
-def surface_entries(sec):
-    """Entry counts for the three chronicler-owned judgment surfaces."""
+def surface_entries(sec, used=None):
+    """Entry counts for the chronicler-owned judgment surfaces this project uses.
+
+    `used` restricts the set (see `load_secretary_surfaces`); None means all
+    three, which is what a project that has never declared otherwise gets."""
     sec = Path(sec)
     todo = sec / "todo.txt"
     dec = sec / "decisions"
-    return {
+    counts = {
         "raid.md": _raid_entries(sec),
         "todo.txt": sum(1 for ln in todo.read_text(encoding="utf-8", errors="replace").splitlines()
                         if parse_todo_line(ln)) if todo.is_file() else 0,
         "decisions/": sum(1 for _ in dec.glob("*.md")) if dec.is_dir() else 0,
     }
+    if used is None:
+        return counts
+    return {k: v for k, v in counts.items() if k in used}
+
+
+def load_secretary_surfaces(root):
+    """`rules.json` secretary.surfaces[] — which chronicler surfaces this project
+    actually uses. Absent means all three (a project that never declared is not a
+    project that opted out). An explicit `[]` declares the chronicler axis unused,
+    which silences the dormancy checks: a finding that can never be cleared stops
+    being information and becomes noise, and the read-map half of the axis
+    (`sources[]`) is independently useful without it. Fail-open to all three."""
+    try:
+        rules = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        declared = rules.get("secretary", {}).get("surfaces")
+        if not isinstance(declared, list):
+            return set(CHRONICLER_SURFACES)
+        return {s for s in declared if s in CHRONICLER_SURFACES}
+    except Exception:
+        return set(CHRONICLER_SURFACES)
 
 
 def _axis_age_days(oldest_ts, now_ts):
@@ -261,7 +285,8 @@ def derive_status(root, sources=None):
     # about a surface that holds no evidence either way. Say which zero it is.
     axis_age = _axis_age_days(oldest_ts, datetime.now().timestamp())
     raid_dormant = (raid_entries == 0 and axis_age is not None
-                    and axis_age > STALE_DORMANT_DAYS)
+                    and axis_age > STALE_DORMANT_DAYS
+                    and "raid.md" in load_secretary_surfaces(root))
     if raid_dormant:
         reason += "; raid.md never filed in %dd — 0 blockers is absence, not evidence" % axis_age
     return {"light": light, "reason": reason, "open_tasks": open_tasks,
@@ -347,7 +372,7 @@ def scan_stale(root, now):
             oldest_ts = ts
     age = _axis_age_days(oldest_ts, now.timestamp())
     if age is not None and age > STALE_DORMANT_DAYS:
-        for name, n in surface_entries(sec).items():
+        for name, n in surface_entries(sec, load_secretary_surfaces(root)).items():
             if n == 0:
                 finds.append({"kind": "axis_dormant", "path": name,
                               "detail": "no entry in %dd of recorded session history — "

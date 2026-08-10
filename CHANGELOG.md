@@ -28,6 +28,12 @@ All notable changes to this harness. Hook contract changes are recorded explicit
   hook-written session stubs, so chronicler had never run at all, and every BRIEF that
   month reported a healthy `0 open blockers`. This is the omp face of the same defect omx
   v0.11.1 fixed: a mechanism whose input nobody writes reports its emptiness as health.
+- **`rules.json` `secretary.surfaces[]` — the opt-out for the two checks above.** A dormancy
+  finding nobody intends to clear is noise, not information, and the read-map half of the axis
+  (`sources[]`) is independently useful without any chronicler surface at all. Absent means all
+  three (never declared is not opted out, so existing projects keep the full check); an explicit
+  `[]` declares the chronicler axis unused and silences both; a subset checks only what it names.
+  A corrupt or missing `rules.json` fails open to all three.
 
 ### Fixed
 
