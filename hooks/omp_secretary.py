@@ -274,19 +274,23 @@ def derive_status(root, sources=None):
                     oldest_ts = ts
             if e.get("stage"):
                 last_stage = e["stage"]
+    tracks_raid = "raid.md" in load_secretary_surfaces(root)
     if blockers > 0:
         light, reason = "red", "%d open blocker(s)" % blockers
     elif open_tasks > 10:
         light, reason = "yellow", "%d open tasks (ceiling 10)" % open_tasks
-    else:
+    elif tracks_raid:
         light, reason = "green", "%d open tasks, no blockers" % open_tasks
+    else:
+        # This project declared it does not keep raid.md, so it has no basis for
+        # the "no blockers" half of the green reason. Report only what is counted.
+        light, reason = "green", "%d open tasks" % open_tasks
     # RED is reachable only through the blocker count, so a raid nobody has ever
     # filed makes RED unreachable AND makes the reason line assert "no blockers"
     # about a surface that holds no evidence either way. Say which zero it is.
     axis_age = _axis_age_days(oldest_ts, datetime.now().timestamp())
     raid_dormant = (raid_entries == 0 and axis_age is not None
-                    and axis_age > STALE_DORMANT_DAYS
-                    and "raid.md" in load_secretary_surfaces(root))
+                    and axis_age > STALE_DORMANT_DAYS and tracks_raid)
     if raid_dormant:
         reason += "; raid.md never filed in %dd — 0 blockers is absence, not evidence" % axis_age
     return {"light": light, "reason": reason, "open_tasks": open_tasks,

@@ -366,3 +366,17 @@ def test_corrupt_rules_fails_open_to_all_three(tmp_path):
     _aged_ledger(root, 30)
     (root / ".omp" / "rules.json").write_text("NOT-JSON")
     assert len([f for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"]) == 3
+
+
+def test_opted_out_green_does_not_claim_no_blockers(tmp_path):
+    """The claim the whole change exists to stop, in its last reachable spot."""
+    root = _mkroot(tmp_path)
+    _declare_surfaces(root, [])
+    st = derive_status(root)
+    assert st["light"] == "green" and st["reason"] == "0 open tasks"
+
+
+def test_a_project_that_tracks_raid_still_says_no_blockers(tmp_path):
+    root = _mkroot(tmp_path)
+    _declare_surfaces(root, ["raid.md"])
+    assert derive_status(root)["reason"] == "0 open tasks, no blockers"
