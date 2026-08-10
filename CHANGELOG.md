@@ -5,6 +5,8 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-08-10 — absence is not health
+
 ### Added
 
 - **`axis_dormant` — the fifth `scan_stale` finding kind, and the first that fires on an
@@ -34,6 +36,13 @@ All notable changes to this harness. Hook contract changes are recorded explicit
   three (never declared is not opted out, so existing projects keep the full check); an explicit
   `[]` declares the chronicler axis unused and silences both; a subset checks only what it names.
   A corrupt or missing `rules.json` fails open to all three.
+
+- **`omp_route_emit` relevance gate (default-off).** An early-return guard decides WHETHER
+  to inject the omp-routing checkpoint, never WHAT — the true-positive path emits the same
+  context byte-for-byte. Keyword-OR-marker, never marker-only, so an `.omp`-less folder still
+  gets the discoverability hint on a matching prompt.
+- **Structural skill lint** over `skills/*/SKILL.md`, and a conservative `ruff` config wired
+  into CI with existing violations fixed.
 
 ### Fixed
 
