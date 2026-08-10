@@ -65,6 +65,23 @@ inbound 위키링크 수를 dry-run 계획서에 병기한다 — 파일시스�
 - Obsidian 이 링크를 자동 갱신해 주는 앱-내 이동과 달리 omp 의 이동은 파일시스템
   레벨임을 계획서 머리에 1줄 고지한다.
 
+#### inbound imports 카운트 (code_graphs 등록 프로젝트 한정 — v0.8.0)
+
+위 wikilink 카운트의 코드판. 같은 문제("옮기면 참조가 조용히 깨진다")를 코드 저장소에서
+푼다. `rules.json.code_graphs.indexes[]` 에 `tool: "code-review-graph"` 항목이 등록돼
+있고 이동 후보가 그 인덱스가 담는 소스 파일이면, 각 이동 행에 inbound import 수를 병기한다.
+
+- 카운트 방법: `code-review-graph query importers_of <이동할 경로>` (인자는 노드명·정규화명
+  또는 **파일 경로**를 받는다). 출력 파싱에 실패하면 카운트를 생략하고 "미확인"으로 표기한다 —
+  추정치를 적지 않는다.
+- 계획서 표기: `inbound imports: N` 열. **N > 0 인 이동은 참조 깨짐 경고를 명시**하고 승인
+  요청 시 함께 보여준다(이동을 막지는 않는다 — 판단은 사람 몫). wikilink 규칙과 동일.
+- ⚠️ **graphify 로 대체하지 말 것**: graphify 는 증분 갱신이 없어 이동 직전 시점에 stale 이고,
+  stale 한 "0 importers" 는 잘못된 초록불이다. 카운트 출처는 증분 런타임(CRG)이어야 한다.
+- ⚠️ **그래프가 stale 이면 카운트도 stale 이다**: audit 의 graph 축이 `graph_stale` 을 낸
+  상태라면 계획서 머리에 그 사실을 1줄 고지하고, 카운트를 근거로 "안전하다" 고 말하지 않는다.
+  갱신은 사람이 해당 항목의 `refresh` 명령으로 한다(omp 는 인덱스를 빌드하지 않는다).
+
 5. ━━━ **GATE: move approval (human)** — show the dry-run plan to a human and take a decision: proceed (all) / select some / revise (fix destinations) / abort. **Without approval, not a single item is executed.**
 6. **Delegate the execution lane (organizer, write)**: only for the approved plan, delegate the actual moves via `Task(subagent_type="oh-my-project:organizer", ...)`.
    - Inputs: the approved move plan (from→to + rule citation), `references/safe-fileops.md` (absolute protocol), target OS info.

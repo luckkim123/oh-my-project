@@ -461,6 +461,61 @@
         }
       }
     },
+    "code_graphs": {
+      "type": "object",
+      "description": "Code-index registry (registry axis): the local code graphs / symbol indexes that exist for this project, registered as READ targets together with their real coverage. omp NEVER builds or refreshes one — it records where the artifact is, what it actually covers, and the command a human runs to refresh it (not-a-build-runner, the same boundary omp-env holds). Registered only through the omp-codify human gate, never auto-registered (the same contract as secretary.sources). The audit graph axis checks a declared coverage against the tool's own status output, so a wrong 'covers' surfaces as a finding instead of standing as silent misinformation.",
+      "additionalProperties": false,
+      "properties": {
+        "indexes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "tool",
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "tool": {
+                "type": "string",
+                "enum": [
+                  "code-review-graph",
+                  "graphify",
+                  "tokensave"
+                ],
+                "description": "Which indexer produced the artifact. NOTE: omp never executes `tokensave` — its CLI re-installs agent integration as a side effect of commands that look read-only (measured: `tokensave status` rewrote ~/.claude/settings.json), so a tokensave entry is registration-only and its coverage is not machine-verified."
+              },
+              "path": {
+                "type": "string",
+                "description": "Project-relative location of the artifact, e.g. '.crg/', 'graphify-out/', '.tokensave/'. Registered, never owned — the artifact stays where its tool put it and is never copied into .omp/ (a graph is a build artifact; .omp/ is a commit candidate)."
+              },
+              "covers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "What the index actually contains — languages ('python') or extensions ('.md'). Checked against the tool's status output by the audit graph axis; a declared language the graph does not contain is a coverage mismatch."
+              },
+              "excludes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Paths deliberately kept out of the index, e.g. '.obsidian/**' for a vendored plugin tree. Explains why a node count is far below the repo's file count."
+              },
+              "refresh": {
+                "type": "string",
+                "description": "The command a HUMAN runs to bring the index up to date, e.g. 'code-review-graph update'. omp quotes it in findings; omp does not run it."
+              },
+              "convention": {
+                "type": "string",
+                "description": "One-line human note on what this index is and is not good for, e.g. 'notes (.md) are absent from this graph — query prose with tokensave instead'."
+              }
+            }
+          }
+        }
+      }
+    },
     "standards_registry": {
       "type": "object",
       "description": "Optional dedup map of external standards keyed by provenance.id (e.g. 'OCI-DIST-1.1.1'). A rule references a standard once via provenance.id; the registry holds url/version/verified centrally so a re-verification pass can walk it. Rule-id-as-data pattern.",
