@@ -60,6 +60,7 @@ CHECKPOINT = (
     "프로젝트 폴더 관리 요청(구조 파악·정리, 명명 규칙, 파일 재배치, dataset 추적, "
     "초기화, .omp 관리)이면, 행동 전에 한 줄로 판정하라:\n"
     "- 단계: init(1회 부트스트랩·.omp 생성) / codify(구조·명명 규칙 성문화) / "
+    "style(기존 코드에서 관용구 귀납→content_conventions 제안, 쓰기는 codify) / "
     "organize(규칙 위반 탐지→안전 재배치) / dataset(등록·체크섬·split·lineage) / "
     "env(환경 자산 Dockerfile/compose 정본을 .omp/env/에 생성·관리) / "
     "doc(사람용 문서 생성·갱신) / learn(관찰→규칙 승격, 승인 게이트) / "
@@ -80,7 +81,7 @@ CHECKPOINT = (
     "즉흥적으로 구조를 정하는 것은 결함이다.\n\n"
     "프로젝트 관리 작업이면, 판정을 응답 맨 앞 omha ROUTE 줄 바로 다음에 이 한 줄로 "
     "출력하라(누락 금지):\n"
-    "STAGE(project) → <init|codify|organize|dataset|env|doc|learn|audit|log|brief|review|handoff|omp-pilot|omp-doctor> · <한 줄 근거>\n"
+    "STAGE(project) → <init|codify|style|organize|dataset|env|doc|learn|audit|log|brief|review|handoff|omp-pilot|omp-doctor> · <한 줄 근거>\n"
     "프로젝트 관리 작업이 아니면 이 블록 전체 무시(STAGE 줄도 출력하지 말 것).\n"
     "</omp-routing>"
 )
@@ -97,6 +98,9 @@ def _skipped(token):
 # organize/codify/dataset, and .omp/ present covers every in-project turn.
 _CJK_TOKENS = (
     "폴더 구조", "명명 규칙", "재배치", "데이터셋", "초기화", "구조 파악", "정리 규칙", "브리핑",
+    # style stage: phrase tokens only. Bare 스타일/컨벤션 are as ambiguous as 정리 —
+    # "이 UI 스타일 바꿔" is not omp — so both require the code/관용구 qualifier.
+    "코드 스타일", "코드 컨벤션", "관용구", "스타일 드리프트",
 )
 _DOT_TOKENS = (".omp",)
 _ASCII_TOKENS = (

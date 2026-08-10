@@ -17,7 +17,7 @@ HOOK = ROOT / "hooks" / "omp_route_emit.py"
 # route 카탈로그의 STAGE 이름 ↔ skills/omp-<name>/ 폴더 매핑.
 # (omp-pilot·omp-doctor 는 'omp-' 접두 그대로, 나머지는 omp-<stage>.)
 ROUTE_STAGES = (
-    "init", "codify", "organize", "dataset", "env", "doc", "learn", "audit",
+    "init", "codify", "style", "organize", "dataset", "env", "doc", "learn", "audit",
     "log", "brief", "review", "handoff",
     "omp-pilot", "omp-doctor",
 )
@@ -71,6 +71,34 @@ def test_omp_env_skill_registered():
     assert ".omp/env/" in text
     assert "dry-run" in text.lower()
     assert "not-a-build-runner" in text.lower() or "not a build runner" in text.lower()
+
+
+def test_omp_style_skill_contracts():
+    """Code-idiom stage: reuses content_conventions[] and never adds a second axis.
+
+    The stage exists because nothing induced code idioms from existing source;
+    the axis it writes into already existed. If someone later "fixes" this by
+    introducing rules.json.code_conventions[], audit/learn/schema get three
+    places to disagree — so the absence of that field is part of the contract."""
+    skill = ROOT / "skills" / "omp-style" / "SKILL.md"
+    assert skill.exists()
+    text = skill.read_text(encoding="utf-8")
+    assert text.startswith("---") and "name: omp-style" in text
+    # reuses the existing axis and the existing checker
+    assert "content_conventions[]" in text
+    assert "check_content_rule" in text
+    # detection-only: proposes, codify writes
+    assert "omp-codify" in text
+    assert "GATE" in text
+    # The invariant lives in the schema, not in the prose — the skill body is
+    # expected to name code_conventions[] precisely in order to forbid it.
+    schema = json.loads((ROOT / "references" / "schemas" / "rules.schema.json").read_text(encoding="utf-8"))
+    assert "code_conventions" not in schema["properties"], \
+        "code_conventions[] would duplicate content_conventions[]; see omp-style Anti_Patterns"
+    assert "Adding a `code_conventions[]` field to the schema" in text, \
+        "the anti-pattern must stay documented, or the next session re-adds the axis"
+    # induction floor — a rule needs witnesses, not a preference
+    assert "3 existing files" in text or "3 witnesses" in text
 
 
 def test_omp_handoff_skill_registered():

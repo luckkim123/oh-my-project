@@ -5,6 +5,53 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-08-10 — the house style was never written down
+
+### Added
+
+- **`omp-style` — the stage that induces CODE idioms from existing source.** `omp-codify`
+  settled *where* a file goes (structure) and *what it is called* (naming). Nothing settled
+  *how its contents are written* — the conventions a human author held in their head. An
+  agent dropped onto a hand-written tree therefore imposes its pretrained mainstream idiom,
+  and the only detector was a reviewer repeating the same correction. The stage scans four
+  dimensions (file anatomy, state/control-flow naming, infrastructure placement, error and
+  logging shape), induces the idioms actually in force, and proposes them as rules.
+
+  Adapted from ECC's `inherit-legacy-style` (MIT, github.com/affaan-m/ECC, `origin:
+  community`), which produced a standalone `.ai-style-rules.md`. Retargeting it at
+  `rules.json` is the whole point: a file outside the `.omp/` SSOT is a fourth index that
+  audit cannot read.
+
+- **`omp-style` contract test** (`tests/test_plugin_integrity.py::test_omp_style_skill_contracts`)
+  — asserts the stage reuses `content_conventions[]`, names `check_content_rule`, hands the
+  write to codify behind a human GATE, keeps the 3-witness induction floor, and that
+  `rules.json` has **no** `code_conventions` property.
+
+### Changed
+
+- **`content_conventions[]` is documented as what it always was: file-content, not
+  note-content.** The schema description was already general ("what must (or must not)
+  appear INSIDE matching files") and `hooks/omp_content_audit.check_content_rule` reads any
+  file by path and applies a `re.MULTILINE` regex with **no extension restriction** —
+  verified against `.py` and `.cpp` fixtures, each caught 1/2 files. But `omp-codify` step 2
+  called it a "note-body convention" and `references/output-layout.md` said the same in two
+  places, so the axis read as notes-only and a code-idiom axis looked absent. All three
+  now say note bodies *or* code.
+
+  This is why **no new schema field was added.** A `code_conventions[]` axis would have cost
+  the 4-place coherence this repo charges for a new field (schema + codify + learn + audit)
+  and would have handed `omp-audit`, `omp-learn`, and the schema three places to disagree
+  about one rule. The gap was never storage or verification — both existed — it was that
+  nothing *induced* the rules from source. That is exactly and only what `omp-style` adds.
+
+- **Routing card carries the new stage** (`hooks/omp_route_emit.py`): `style(...)` in the
+  stage list, `|style|` in the `STAGE(project)` enum, +65 characters (1,337 → 1,402 — the
+  injection ceiling is counted in characters, so this is budgeted, not incidental). Four
+  phrase tokens added to the relevance gate — `코드 스타일`, `코드 컨벤션`, `관용구`,
+  `스타일 드리프트`. Phrases only: bare `스타일` is as ambiguous as bare `정리`, and
+  "이 UI 스타일 바꿔" is not an omp turn. Verified 8/8 on a case set including that
+  false-positive pair.
+
 ## [0.8.0] — 2026-08-10 — a graph is not coverage
 
 ### Added
