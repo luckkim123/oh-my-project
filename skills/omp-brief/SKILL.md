@@ -42,8 +42,10 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
   → **STOP**, do not write, and ask the human whether to overwrite / merge their edit in / skip this
   regeneration. Only `"clean"` or `"missing"` (no file yet) proceeds straight to regeneration.
 - ⚠️ **All numbers are `derive_status(root)` output, quoted verbatim** (D8): traffic-light color,
-  its one-line reason, `open_tasks`, `open_blockers`, `done_7d`, `last_stage` all come from that one
-  call. No paraphrasing, no re-deriving, no LLM-estimated percentage or count anywhere in the file.
+  its one-line reason, `open_tasks`, `open_blockers`, `done_7d`, `last_stage`, `raid_dormant` all come
+  from that one call. When `raid_dormant` is true the reason already carries the caveat — quote it
+  whole; trimming it back to a bare "0 blockers" restores the exact claim it exists to prevent.
+  No paraphrasing, no re-deriving, no LLM-estimated percentage or count anywhere in the file.
 - ⚠️ **Fixed section order** (never reordered): (1) omp-managed marker → (2) traffic light → (3)
   state-of-play → (4) goal → (5) top-5 tasks → (6) open blockers → (7) decisions (paths only).
 - ⚠️ **Double cap: ≤30 lines AND ≤2000 characters** — both bounds apply simultaneously
@@ -62,7 +64,7 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
 
 <Steps>
 1. **Compute status**: call `derive_status(root)` → `{light, reason, open_tasks, open_blockers,
-   done_7d, last_stage}`. This is the only source of numbers for the whole file.
+   done_7d, last_stage, raid_dormant}`. This is the only source of numbers for the whole file.
 2. **Gather source material**:
    - Last 7 days of `journal/*.md` (for state-of-play / goal context)
    - Open items in `raid.md` (blockers)

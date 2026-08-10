@@ -254,3 +254,71 @@ def test_derive_status_without_sources_block_unchanged(tmp_path):
     (sec / "todo.txt").write_text("only native\n", encoding="utf-8")
     st = derive_status(tmp_path)
     assert st["open_tasks"] == 1 and st["sources"] == []
+
+
+# --- axis dormancy: the one state every other stale check cannot see ----------
+#
+# Measured 2026-08-10 on a live vault: raid.md/todo.txt/decisions all untouched
+# since the 2026-07-11 bootstrap while journal/ and ledger.jsonl grew daily
+# (the journal held nothing but hook stubs). The BRIEF reported "0 open
+# blockers" the whole month, and RED — reachable only through that count — was
+# unreachable by construction.
+
+def _aged_ledger(root, days):
+    from datetime import timedelta
+    old = (datetime.now() - timedelta(days=days)).isoformat()
+    (root / ".omp/secretary/ledger.jsonl").write_text(
+        json.dumps({"ts": old, "event": "session_end"}) + "\n", encoding="utf-8")
+
+
+def test_dormant_raid_annotates_the_status_reason(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    st = derive_status(root)
+    assert st["raid_dormant"] is True
+    assert st["open_blockers"] == 0            # unchanged: still an honest count
+    assert "absence, not evidence" in st["reason"]
+
+
+def test_a_filed_then_cleared_raid_is_not_dormant(tmp_path):
+    """0 open blockers on a raid someone actually uses is a real zero."""
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    (root / ".omp/secretary/raid.md").write_text(
+        "## Issues\n- [closed] I-1 was resolved\n", encoding="utf-8")
+    st = derive_status(root)
+    assert st["raid_dormant"] is False and st["open_blockers"] == 0
+    assert "absence" not in st["reason"]
+
+
+def test_a_new_project_is_never_dormant(tmp_path):
+    """No session history yet means NEW, not neglected."""
+    root = _mkroot(tmp_path)
+    assert derive_status(root)["raid_dormant"] is False   # empty ledger
+    _aged_ledger(root, 2)
+    assert derive_status(root)["raid_dormant"] is False   # too young
+
+
+def test_scan_stale_reports_every_unwritten_surface(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    kinds = [(f["kind"], f["path"]) for f in scan_stale(root, datetime.now())]
+    assert ("axis_dormant", "raid.md") in kinds
+    assert ("axis_dormant", "todo.txt") in kinds
+    assert ("axis_dormant", "decisions/") in kinds
+
+
+def test_scan_stale_skips_surfaces_that_carry_entries(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 30)
+    sec = root / ".omp/secretary"
+    (sec / "todo.txt").write_text("(A) 2026-08-09 still working on it\n", encoding="utf-8")
+    (sec / "decisions" / "0001-pick-a-thing.md").write_text("# Title\n", encoding="utf-8")
+    dormant = {f["path"] for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"}
+    assert dormant == {"raid.md"}
+
+
+def test_scan_stale_stays_silent_on_a_young_axis(tmp_path):
+    root = _mkroot(tmp_path)
+    _aged_ledger(root, 3)
+    assert not [f for f in scan_stale(root, datetime.now()) if f["kind"] == "axis_dormant"]

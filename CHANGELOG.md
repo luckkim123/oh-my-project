@@ -5,6 +5,30 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+### Added
+
+- **`axis_dormant` — the fifth `scan_stale` finding kind, and the first that fires on an
+  ABSENT record rather than an aging one.** `stale_task`, `stale_blocker`, `brief_drift`
+  and `conflict_copy` each need a record to exist before they can see anything, so a
+  chronicler surface nobody has ever written to is the one state the review agenda is
+  structurally blind to. `axis_dormant` reports any of `raid.md` / `todo.txt` /
+  `decisions/` still holding zero entries after more than `STALE_DORMANT_DAYS` (14) of
+  recorded session history. A project with an empty ledger is NEW, not neglected, and is
+  never flagged.
+- **`raid_dormant` in `derive_status`, and the caveat it puts on the reason line.** RED is
+  reachable only through the blocker count, so a `raid.md` nobody has filed against makes
+  RED unreachable *and* makes the green/yellow reason assert "no blockers" about a surface
+  holding no evidence either way. The count itself is unchanged — the reason now appends
+  `raid.md never filed in Nd — 0 blockers is absence, not evidence`. A raid that was filed
+  and cleared reports a real zero and is not annotated.
+
+  Measured on a live vault 2026-08-10: `raid.md` still the bootstrap template, `todo.txt`
+  and `done.txt` at 0 bytes, `decisions/` empty — all untouched for 30 days — while
+  `journal/` grew to 15 files and `ledger.jsonl` to 15 KB. The journal held nothing but
+  hook-written session stubs, so chronicler had never run at all, and every BRIEF that
+  month reported a healthy `0 open blockers`. This is the omp face of the same defect omx
+  v0.11.1 fixed: a mechanism whose input nobody writes reports its emptiness as health.
+
 ### Fixed
 
 - **`ready_to_promote`'s `counter_examples` parse failure now blocks promotion instead of

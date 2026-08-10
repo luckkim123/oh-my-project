@@ -55,8 +55,10 @@ is always a human's call). This is the GTD "get current" moment for the secretar
   write"). `hooks/omp_atomic.py`'s `atomic_write_json` is JSON-shaped and does not apply here;
   chronicler performs the plain-text tempfile+`os.replace` swap itself.
 - ⚠️ **`scan_stale(root, now)` output is the review agenda for hygiene findings** — stale
-  task (>30d), stale blocker (>14d), `brief_drift` (hand-edited BRIEF.md), and `conflict_copy`
-  (sync-duplicate files) all come from this one call. Do not hand-scan ages or grep for duplicates
+  task (>30d), stale blocker (>14d), `brief_drift` (hand-edited BRIEF.md), `conflict_copy`
+  (sync-duplicate files), and `axis_dormant` (a surface with zero entries after >14d of session
+  history — the neglected-axis signal the other four structurally cannot give, since they each
+  need a record to exist first) all come from this one call. Do not hand-scan ages or grep for duplicates
   separately; `scan_stale` is the single source for what counts as stale.
 - ⚠️ **`scan_journal_tags(root)` tallies are wiki-promotion *candidates* only — never auto-promoted.**
   Count repeated `[LESSON:...]`/`[BLOCKER:...]` slugs across `journal/*.md`; a tag appearing 2+ times
@@ -112,7 +114,7 @@ is always a human's call). This is the GTD "get current" moment for the secretar
 <Output>
 - Migration verdicts applied (migrate / strike / done counts, all human-confirmed — never a batch
   default)
-- `scan_stale` findings surfaced (stale_task / stale_blocker / brief_drift / conflict_copy counts)
+- `scan_stale` findings surfaced (stale_task / stale_blocker / brief_drift / conflict_copy / axis_dormant counts)
 - `raid.md` reconfirmation outcome (kept-open / flagged-closeable / closed counts, all human-decided)
 - Journal tag tally: any slug at 2+ occurrences, named as a wiki-promotion candidate for `omp-learn`
   (or "no recurring tags")

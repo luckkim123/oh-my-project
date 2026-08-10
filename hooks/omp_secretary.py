@@ -26,6 +26,13 @@ _SECRET_PATTERNS = (
 TODO_DONE_RE = re.compile(r"^x\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?\s+(.*)$")
 TODO_OPEN_RE = re.compile(r"^(?:\((?P<pri>[A-Z])\)\s+)?(?:(?P<created>\d{4}-\d{2}-\d{2})\s+)?(?P<text>.+)$")
 STALE_TASK_DAYS, STALE_BLOCKER_DAYS = 30, 14
+#: How long an axis must have been running before an untouched chronicler
+#: surface counts as dormant rather than merely new. Every other stale check
+#: fires on a record that EXISTS; this one fires on the absence of any.
+STALE_DORMANT_DAYS = 14
+#: The three surfaces only chronicler writes. When one is empty, every count
+#: derived from it reads as a healthy zero.
+RAID_ENTRY_RE = re.compile(r"\[(?:open|closed)\]")
 SOURCE_KINDS = ("todo", "journal", "status", "schedule")
 OPEN_CHECKBOX_RE = re.compile(r"^\s*[-*]\s+\[ \](\s|$)")
 FENCE_RE = re.compile(r"^\s*```")  # fence toggle so a checkbox example inside a code block isn't counted (D11 ceiling lifted).
@@ -117,6 +124,39 @@ def _open_blockers(sec):
     return sum(1 for ln in p.read_text(encoding="utf-8").splitlines() if "[open]" in ln)
 
 
+def _raid_entries(sec):
+    """Entries raid.md holds, open or closed. Zero means nobody ever filed one —
+    which `_open_blockers` reports identically to a raid that was filed and
+    cleared, and the traffic light reads both as 'no blockers'."""
+    p = Path(sec) / "raid.md"
+    if not p.is_file():
+        return 0
+    return sum(1 for ln in p.read_text(encoding="utf-8", errors="replace").splitlines()
+               if RAID_ENTRY_RE.search(ln))
+
+
+def surface_entries(sec):
+    """Entry counts for the three chronicler-owned judgment surfaces."""
+    sec = Path(sec)
+    todo = sec / "todo.txt"
+    dec = sec / "decisions"
+    return {
+        "raid.md": _raid_entries(sec),
+        "todo.txt": sum(1 for ln in todo.read_text(encoding="utf-8", errors="replace").splitlines()
+                        if parse_todo_line(ln)) if todo.is_file() else 0,
+        "decisions/": sum(1 for _ in dec.glob("*.md")) if dec.is_dir() else 0,
+    }
+
+
+def _axis_age_days(oldest_ts, now_ts):
+    """Days since this axis started recording, from the ledger's oldest entry.
+    None when the ledger is empty — a project with no session history yet is
+    NEW, not dormant, and must never be flagged."""
+    if oldest_ts is None:
+        return None
+    return int((now_ts - oldest_ts) // 86400)
+
+
 def load_secretary_sources(root):
     """rules.json secretary.sources[] — the codify-gated read-map (D14).
     Fail-open: missing/corrupt rules.json or malformed entries -> skipped/[]."""
@@ -181,6 +221,8 @@ def derive_status(root, sources=None):
     done_7d = 0
     last_stage = None
     registered = []
+    raid_entries = 0
+    oldest_ts = None
     week_ago = datetime.now().timestamp() - 7 * 86400
     for sec in sources:
         if isinstance(sec, dict):  # a secretary.sources[] entry (Release 2)
@@ -195,13 +237,17 @@ def derive_status(root, sources=None):
             tasks = [t for t in map(parse_todo_line, todo.read_text(encoding="utf-8").splitlines()) if t]
             open_tasks += sum(1 for t in tasks if not t["done"])
         blockers += _open_blockers(sec)
+        raid_entries += _raid_entries(sec)
         for e in _iter_ledger(sec):
-            if e.get("event") == "task_done":
-                try:
-                    if datetime.fromisoformat(e["ts"]).timestamp() >= week_ago:
-                        done_7d += 1
-                except Exception:
-                    pass
+            try:
+                ts = datetime.fromisoformat(e["ts"]).timestamp()
+            except Exception:
+                ts = None
+            if ts is not None:
+                if e.get("event") == "task_done" and ts >= week_ago:
+                    done_7d += 1
+                if oldest_ts is None or ts < oldest_ts:
+                    oldest_ts = ts
             if e.get("stage"):
                 last_stage = e["stage"]
     if blockers > 0:
@@ -210,9 +256,17 @@ def derive_status(root, sources=None):
         light, reason = "yellow", "%d open tasks (ceiling 10)" % open_tasks
     else:
         light, reason = "green", "%d open tasks, no blockers" % open_tasks
+    # RED is reachable only through the blocker count, so a raid nobody has ever
+    # filed makes RED unreachable AND makes the reason line assert "no blockers"
+    # about a surface that holds no evidence either way. Say which zero it is.
+    axis_age = _axis_age_days(oldest_ts, datetime.now().timestamp())
+    raid_dormant = (raid_entries == 0 and axis_age is not None
+                    and axis_age > STALE_DORMANT_DAYS)
+    if raid_dormant:
+        reason += "; raid.md never filed in %dd — 0 blockers is absence, not evidence" % axis_age
     return {"light": light, "reason": reason, "open_tasks": open_tasks,
             "open_blockers": blockers, "done_7d": done_7d, "last_stage": last_stage,
-            "sources": registered}
+            "raid_dormant": raid_dormant, "sources": registered}
 
 
 def brief_hash_check(path):
@@ -279,6 +333,25 @@ def scan_stale(root, now):
             if re.search(r" \d+\.[A-Za-z0-9]+$", p.name):  # "NAME 2.ext" sync conflict copy
                 finds.append({"kind": "conflict_copy", "path": str(p.relative_to(sec)),
                               "detail": "possible iCloud/sync duplicate"})
+    # The four checks above all need a record to exist before they can fire, so a
+    # surface nobody ever wrote to is the one state the review agenda cannot see.
+    # The ledger keeps growing regardless (the hook writes it), which is what
+    # makes a dormant axis look like a healthy one.
+    oldest_ts = None
+    for e in _iter_ledger(sec):
+        try:
+            ts = datetime.fromisoformat(e["ts"]).timestamp()
+        except Exception:
+            continue
+        if oldest_ts is None or ts < oldest_ts:
+            oldest_ts = ts
+    age = _axis_age_days(oldest_ts, now.timestamp())
+    if age is not None and age > STALE_DORMANT_DAYS:
+        for name, n in surface_entries(sec).items():
+            if n == 0:
+                finds.append({"kind": "axis_dormant", "path": name,
+                              "detail": "no entry in %dd of recorded session history — "
+                                        "every other stale check needs a record to exist" % age})
     return finds
 
 
