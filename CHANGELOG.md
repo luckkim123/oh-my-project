@@ -5,6 +5,67 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-08-10 — a graph is not coverage
+
+### Added
+
+- **`code_graphs.indexes[]` — the registry axis.** A project's local code indexes
+  (code-review-graph, graphify, tokensave) become registered READ targets in
+  `rules.json`, each carrying `tool` / `path` / `covers` / `excludes` / `refresh` /
+  `convention`. The same contract `secretary.sources[]` established: registered through
+  the `omp-codify` human gate, never auto-registered, and **registered without being
+  owned** — the artifact stays where its tool put it and is never copied into `.omp/`
+  (a graph is a build artifact; `.omp/` is a commit candidate).
+
+  The gap this closes: a graph tool answers "is there a graph?" but never "does it cover
+  what you are about to ask it". Measured on one Obsidian vault, `code-review-graph
+  status` reported 21,865 nodes over 101 files with languages `bash, python, javascript,
+  cpp, objc` — while the repo tracked 2,277 files of which **828 were notes**. The index
+  was entirely vendored `.obsidian` plugin JS, the notes were absent, the build was 12
+  days behind HEAD, and nothing reported any of it. A user-scope search-guard hook was
+  meanwhile instructing every session to consult that graph before grepping.
+
+- **`hooks/omp_graph_audit.py` + the audit graph axis (warn-default).**
+  `scan_graphs(root, rules)` returns `graph_missing` (registered but absent on disk),
+  `graph_stale` (CRG's `Built at commit` ≠ HEAD, or a graphify `needs_update` marker) and
+  `graph_coverage_mismatch` (a language in `covers` the index does not hold). Same idiom
+  as the Docker / secretary / governance axes: findings never block an overall PASS, and
+  the auditor reports rather than fixes — each finding quotes the entry's own `refresh`
+  command for a human to run.
+
+- **`omp-organize`: `inbound imports: N` for code-index projects.** The code-side twin of
+  the para preset's `inbound [[links]]: N` — the same "moving it breaks a reference
+  silently" problem, sourced from `code-review-graph query importers_of <path>`. N > 0
+  warns without blocking; judgement stays human. graphify is explicitly *not* the source:
+  it has no incremental update, so its "0 importers" at move time is a false green.
+
+- **`omp-handoff`: coverage travels with the delegation packet.** The Tool·source
+  guidance element now carries the registered index's `tool` / `covers` / `convention`,
+  plus any open `graph_stale` / `graph_coverage_mismatch`. Passing existence alone is what
+  makes a sibling lane read an empty result from an index that never looked as "not here".
+
+- **`omp-init`: propose, never build.** The confirmation report names any code-index
+  artifact the scan found and proposes registration through `omp-codify`; for a code-heavy
+  project with no index it proposes the build command for the user to run.
+
+### Notes
+
+- **omp does not build or refresh an index**, in any stage — the `omp-env`
+  not-a-build-runner boundary, extended. Depending on an external binary would also break
+  the stdlib-only / fail-open / cross-platform invariant every omp hook holds.
+- **`tokensave` is never executed by omp, in any stage.** Its CLI re-installs agent
+  integration as a side effect of commands that look read-only: a measured `tokensave
+  status` printed `Wrote ~/.claude/settings.json` and re-injected its own
+  UserPromptSubmit and Stop hooks, which then ran twice per prompt alongside the wrapper
+  already wired there. A tokensave entry is therefore registration-only and its coverage
+  is reported as undeclarable rather than verified — registration still earns its keep,
+  because it is what tells a sibling lane "prose lives here, not in the code graph".
+  `code-review-graph status` and graphify's read commands were checked against the same
+  measurement and have no such side effect.
+- Design record: `docs/design/2026-08-10-code-graph-registry-plan.md`.
+- Verified with pytest (205 passed, 1 skipped), including 16 new graph-axis tests whose
+  status fixture is the real vault measurement above.
+
 ## [0.7.0] — 2026-08-10 — absence is not health
 
 ### Added

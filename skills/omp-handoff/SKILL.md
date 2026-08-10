@@ -39,11 +39,17 @@ description: |
 |:--|:--|
 | Objective (임무 + 완료 기준 1줄) | 사용자 인자 + `todo.txt`/`raid.md` 관련 항목 |
 | Output format · 산출물 위치 계약 | `output-layout.md` + NAMING/STRUCTURE 의 경계 결정 |
-| Tool·source guidance (어디를 읽어라) | PROJECT.md 1줄 + wiki grep-by-topic + `derive_status(root)["sources"]` read-map |
+| Tool·source guidance (어디를 읽어라) | PROJECT.md 1줄 + wiki grep-by-topic + `derive_status(root)["sources"]` read-map + `rules.json.code_graphs.indexes[]` (등록된 코드 인덱스의 `tool`·`covers`·`convention` 1줄 — "이 저장소엔 CRG 가 있고 `.md` 는 안 덮는다" 같은 것) |
 | Boundaries (하지 말 것) | rules.json 관련 규칙 + raid.md open blocker 발췌 |
 
 - ⚠️ **참조만, 복붙 금지**: 브리핑은 경로와 발췌 요지만 담고, 원문 전체(PROJECT.md·rules.json·
   wiki 문서 전체 등)를 인라인하지 않는다. 위임받는 스킬이 필요하면 그 경로를 직접 연다.
+- ⚠️ **코드 인덱스는 "무엇을 덮는가"까지 넘긴다**: `code_graphs.indexes[]` 를 전할 때 존재
+  여부만 말하면 형제 레인이 "그래프가 있으니 그래프에 물어보면 된다"로 읽고, 그 인덱스가
+  담지 않는 것(예: 산문 `.md`)을 조회한 뒤 빈 결과를 "없음"으로 오독한다 — 이 축이 생긴
+  이유가 그 오독이다. `covers`·`convention` 을 함께 싣고, 직전 audit 이 `graph_stale` /
+  `graph_coverage_mismatch` 를 냈다면 그 사실도 같이 싣는다. 이 스킬은 인덱스를 갱신하지
+  않는다(사람이 `refresh` 실행).
 - ⚠️ **wiki 는 scope/audience 필드를 만들지 않는다** — grep-by-topic 으로 관련 wiki 문서를 찾는
   것이 먼저이고, 이 스킬이 wiki 스키마를 확장하지 않는다.
 - ⚠️ **세 산출물, 한 pass**:

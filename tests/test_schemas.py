@@ -208,3 +208,40 @@ def test_rules_schema_has_secretary_sources():
     sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
     import omp_secretary
     assert list(omp_secretary.SOURCE_KINDS) == src["properties"]["kind"]["enum"]
+
+
+def test_rules_schema_has_code_graphs():
+    """v0.8.0: code_graphs.indexes[] registry — tool enum must match omp_graph_audit.GRAPH_TOOLS."""
+    s = load(RULES_SCHEMA)
+    item = s["properties"]["code_graphs"]["properties"]["indexes"]["items"]
+    assert set(item["required"]) == {"tool", "path"}
+    assert item["properties"]["tool"]["enum"] == ["code-review-graph", "graphify", "tokensave"]
+    assert "code_graphs" not in s["required"]  # optional — existing projects stay valid
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
+    import omp_graph_audit
+    assert list(omp_graph_audit.GRAPH_TOOLS) == item["properties"]["tool"]["enum"]
+
+
+def test_code_graphs_rejects_unknown_tool():
+    """An indexer outside the enum must fail validation rather than register silently."""
+    jsonschema = pytest.importorskip("jsonschema")
+    bad = dict(REPRESENTATIVE_RULES)
+    bad["code_graphs"] = {"indexes": [{"tool": "ctags", "path": "tags"}]}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(bad, load(RULES_SCHEMA))
+
+
+def test_code_graphs_instance_validates():
+    """A fully-populated registry entry validates, including the coverage fields."""
+    jsonschema = pytest.importorskip("jsonschema")
+    ok = dict(REPRESENTATIVE_RULES)
+    ok["code_graphs"] = {"indexes": [{
+        "tool": "code-review-graph",
+        "path": ".crg/",
+        "covers": ["python", "cpp"],
+        "excludes": [".obsidian/**"],
+        "refresh": "code-review-graph update",
+        "convention": "notes (.md) are absent from this graph — query prose with tokensave",
+    }]}
+    jsonschema.validate(ok, load(RULES_SCHEMA))
