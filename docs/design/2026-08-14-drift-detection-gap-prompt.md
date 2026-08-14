@@ -241,7 +241,7 @@ Kanban 의 daily-note 규약 `[[2026-08-16]]` 22건은 정상이므로 오탐으
 
 # 부록 2 — vault ownership-gap 세션이 덧붙임 (2026-08-14, 세 번째 세션)
 
-> 같은 날 vault 쪽 의뢰서(`1_Area/2026-08-14-harness-ownership-gap-prompt.md`)를 실행한
+> 같은 날 vault 쪽 의뢰서(`3_Archive/session_prompts/2026-08-14-harness-ownership-gap-prompt.md`)를 실행한
 > 세션이다. 본문·부록 1 과 겹치지 않는 것만, 그리고 **위 서술 중 이미 낡은 것만** 적는다.
 > 형식은 부록 1 의 선례를 따른다.
 
