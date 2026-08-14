@@ -131,6 +131,25 @@ def test_scan_structure_drift_reads_backtick_paths_from_structure_md(tmp_path):
     assert [f["path"] for f in finds] == ["data/raw"]
 
 
+def test_scan_structure_drift_skips_template_placeholders(tmp_path):
+    """`YYYY`/`NNNN`/`...` 가 든 백틱은 경로가 아니라 *모양*이라 잡으면 안 된다.
+
+    실측(2026-08-14, 한 vault): structure_drift 13건 중 4건이 이 부류였다. 대부분이 틀린
+    목록은 읽히지 않고, 그러면 섞여 있던 진짜 4건도 같이 안 읽힌다. 그래서 오탐 제거가
+    탐지력 유지의 일부다 — 아래 마지막 줄이 그 반대편(진짜 결손은 여전히 잡는다)이다.
+    """
+    (tmp_path / ".omp").mkdir()
+    (tmp_path / ".omp" / "STRUCTURE.md").write_text(
+        "| `journal/YYYY-MM-DD.md` | 일일 노트 형식 |\n"
+        "| `3_Archive/calendar/daily_notes/YYYY-MM-DD.md` | 같은 부류 |\n"
+        "| `decisions/NNNN-slug.md` | ADR 형식 |\n"
+        "| `3_Archive/etc/...zip` | 생략 표기 |\n"
+        "| `data/raw/` | 진짜 경로인데 디스크에 없다 |\n"
+    )
+    finds = [f["path"] for f in scan_structure_drift(tmp_path, {"structure": {"directories": []}})]
+    assert finds == ["data/raw"], finds
+
+
 # --- lint_wiki (roadmap #8c) ---
 
 def test_wiki_lint_orphan_stale_oversized(tmp_path):

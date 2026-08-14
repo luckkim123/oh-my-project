@@ -74,6 +74,16 @@ def find_dead_links(root: Path) -> list[dict]:
 
 _BACKTICK_PATH = re.compile(r"`([\w.\-]+(?:/[\w.\-]+)+/?)`")
 
+# A backtick string that names a *shape* rather than a file: `journal/YYYY-MM-DD.md`,
+# `decisions/NNNN-slug.md`, `3_Archive/etc/...zip`. These can never exist on disk, so
+# reporting them as drift is pure noise, and noise is not free -- a findings list that
+# is mostly wrong stops being read, taking the real entries with it. Measured on one
+# vault: 13 structure_drift findings, of which 4 were these (and 4 were genuine).
+# Only shapes actually observed are listed; do not add speculative tokens, and note
+# bare MM/DD are deliberately absent (too plausible as a real name fragment) -- the
+# YYYY in a date template already carries the match.
+_PLACEHOLDER_PATH = re.compile(r"YYYY|NNNN|\.\.\.")
+
 WIKI_STALE_DAYS = 30
 WIKI_OVERSIZED_BYTES = 50_000
 LEARNED_STUCK_DAYS = 30
@@ -104,7 +114,8 @@ def scan_structure_drift(root: Path, rules: dict) -> list[dict]:
         f = root / ".omp" / name
         if f.is_file():
             text = f.read_text(encoding="utf-8", errors="replace")
-            paths.extend(m.group(1).rstrip("/") for m in _BACKTICK_PATH.finditer(text))
+            paths.extend(m.group(1).rstrip("/") for m in _BACKTICK_PATH.finditer(text)
+                         if not _PLACEHOLDER_PATH.search(m.group(1)))
     seen = set()
     finds = []
     for p in paths:

@@ -5,6 +5,39 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-08-14 — a findings list that is mostly wrong stops being read
+
+### Fixed
+
+- **`scan_structure_drift` no longer reports template shapes as missing paths**
+  (`hooks/omp_content_audit.py`). `_BACKTICK_PATH` treats any backticked `a/b` string in
+  `STRUCTURE.md`/`DATASETS.md` as a path, so documentation that names a *format* rather than
+  a file — `journal/YYYY-MM-DD.md`, `decisions/NNNN-slug.md`, `3_Archive/etc/...zip` — was
+  reported as drift on every run. Those can never exist on disk; the finding was unfalsifiable.
+
+  Measured on one vault before and after: **13 findings → 9**, removing exactly the 4
+  placeholder shapes and leaving all 4 genuine ones (directories moved out by other work,
+  plus a wiki note cited but absent). Only shapes actually observed are matched; bare
+  `MM`/`DD` are deliberately excluded as too plausible in a real name, and the `YYYY` in a
+  date template already carries the match.
+
+  **This is a detection fix, not just tidiness.** The axis is warn-default and advisory, which
+  means its only enforcement is a human reading the list. At 4-of-13 noise the list still gets
+  read; the reason to cut it is that noise hides its neighbours — the same argument 0.11.0
+  used to justify measuring a new guard's firing rate before shipping it, applied backwards to
+  an axis that was never measured.
+
+### Notes
+
+- Four false positives remain and are **left alone deliberately**: three are relative
+  fragments (`sim_validation/docs` is real at `0_Project/in_progress/albc/…`, quoted without
+  its prefix), one is a frontmatter field list (`title/allDay/date/…`), one names a file in
+  another repository. Each needs a rule this codebase does not have evidence for yet — whether
+  a relative quote is a scanner limitation or a documentation defect is a judgment call, and a
+  rule invented from a single sample is how a guard starts lying.
+- `python3 -m pytest -q` — **214 passed, 1 skipped** (one new test asserts both directions:
+  placeholders skipped, a genuinely missing real path still reported).
+
 ## [0.11.0] — 2026-08-14 — the drawer that offered no resistance
 
 ### Added
