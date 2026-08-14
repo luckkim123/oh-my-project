@@ -10,9 +10,48 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-from omp_verify_emit import record_emit, should_throttle  # noqa: E402
+from omp_verify_emit import detect, record_emit, should_throttle  # noqa: E402
 
 HOOK = Path(__file__).parent.parent / "hooks" / "omp_verify_emit.py"
+
+_PLACEMENT_RULES = {"structure": {"directories": [
+    {"path": "0_Project", "role": "PROJECTS", "enforced": True},
+    {"path": "1_Area", "role": "AREAS: 일회성 실행 지시서는 여기가 아니다", "enforced": True},
+    {"path": "2_Resource/concepts", "role": "개념 노트", "enforced": False},
+]}}
+
+
+def _placement(tmp_path, rel, tool="Write"):
+    return detect(tool, {"file_path": str(tmp_path / rel)}, str(tmp_path), _PLACEMENT_RULES)
+
+
+def test_placement_fires_on_category_top_level_drop(tmp_path):
+    """사건의 형태 — enforced 카테고리 최상단에 일회성 문서가 떨어진다."""
+    reason = _placement(tmp_path, "1_Area/2026-08-16-graphify-resume-prompt.md")
+    assert "enforced 폴더 최상단" in reason and "1_Area/" in reason
+    assert "일회성 실행 지시서는 여기가 아니다" in reason  # role 을 실어 판단 재료를 준다
+
+
+def test_placement_silent_on_established_and_exempt_paths(tmp_path):
+    """오탐 회귀 — 실측(3,292 추적 파일 중 최상단 6건, 그중 4건이 README)이 근거다.
+
+    깊은 경로는 이미 누군가 고른 구조 안이고, 카테고리 README 는 정당한 색인이며,
+    enforced:false 폴더는 감사 대상이 아니고, Edit 은 배치가 아니라 내용 변경이다.
+    """
+    assert not _placement(tmp_path, "1_Area/README.md")
+    assert not _placement(tmp_path, "0_Project/in_progress/albc/notes/handoff.md")
+    assert not _placement(tmp_path, "2_Resource/concepts/rl/value_iteration.md")
+    assert not _placement(tmp_path, "1_Area/2026-08-16-graphify-resume-prompt.md", tool="Edit")
+
+
+def test_placement_silent_without_root_or_rules_and_outside_project(tmp_path):
+    """advisory 축이라 근거가 없으면 추측하지 않고 침묵한다 (2인자 호출 하위호환 포함)."""
+    fp = str(tmp_path / "1_Area" / "x.md")
+    assert not detect("Write", {"file_path": fp})                       # 기존 2인자 호출
+    assert not detect("Write", {"file_path": fp}, None, _PLACEMENT_RULES)
+    assert not detect("Write", {"file_path": fp}, str(tmp_path), None)
+    assert not detect("Write", {"file_path": "/tmp/elsewhere/1_Area/x.md"},
+                      str(tmp_path), _PLACEMENT_RULES)
 
 
 def run_hook(payload: dict, cwd=None, env=None) -> str:

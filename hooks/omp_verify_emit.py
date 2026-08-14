@@ -136,13 +136,69 @@ def record_emit(root, reason: str, now: float = None) -> None:
         pass  # best-effort state; never let this fail the hook
 
 
-def detect(tool_name: str, tool_input: dict) -> str:
-    """Return a reminder reason string, or '' if nothing relevant happened."""
+def _category_drop(fp: str, root, rules: dict) -> str:
+    """A file written straight into the TOP LEVEL of an enforced category dir.
+
+    The only placement signal available without a placement schema, and it is the
+    shape the motivating incident had: a one-off session prompt dropped into
+    `1_Area/` because nothing objected. Deeper paths are excluded on purpose --
+    `0_Project/in_progress/albc/notes/x.md` sits inside a structure somebody
+    already chose, while a file at a category's own top level is the drawer that
+    offers no resistance. `README.md` is exempt: a category index lives there.
+
+    Measured on one vault before shipping (3,292 tracked files): 6 files sit at an
+    enforced dir's top level and 4 are the category README -- so the rule fires on
+    exactly the 2 known-bad files and nothing else. A guard that calls current
+    practice a violation gets switched off, so that rate IS the gate.
+    """
+    if root is None or not isinstance(rules, dict):
+        return ""
+    norm = str(fp).replace("\\", "/")
+    try:
+        rel = str(Path(norm).resolve().relative_to(Path(root).resolve())).replace("\\", "/")
+    except Exception:
+        return ""  # outside the project (or unresolvable) -- not ours to judge
+    if rel.rsplit("/", 1)[-1] == "README.md":
+        return ""
+    for d in rules.get("structure", {}).get("directories", []):
+        if not d.get("enforced"):
+            continue
+        path = str(d.get("path", "")).strip("/")
+        if not path or not rel.startswith(path + "/"):
+            continue
+        if "/" in rel[len(path) + 1:]:
+            continue  # deeper than the category's own top level
+        return "enforced 폴더 최상단에 파일이 생성됨 — %s (role: %s)" % (
+            rel, str(d.get("role", ""))[:110])
+    return ""
+
+
+def load_rules(root) -> dict:
+    """rules.json as a dict, or {} on any failure (advisory axis, never blocks)."""
+    if root is None:
+        return {}
+    try:
+        data = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def detect(tool_name: str, tool_input: dict, root=None, rules: dict = None) -> str:
+    """Return a reminder reason string, or '' if nothing relevant happened.
+
+    `root`/`rules` are optional so existing two-arg callers keep working; without
+    them the placement signal stays silent rather than guessing.
+    """
     if tool_name in WRITE_TOOLS:
         fp = str(tool_input.get("file_path", ""))
         # normalize separators so Windows backslashes also match
         if "/.omp/" in fp.replace("\\", "/") or fp.replace("\\", "/").endswith("/.omp"):
             return ".omp/ SSOT 파일이 수정됨."
+        # Placement is a creation-time question, so only Write (which lands a whole
+        # file) is asked it -- an Edit/MultiEdit changes a file already placed.
+        if tool_name == "Write":
+            return _category_drop(fp, root, rules)
         return ""
     if tool_name == "Bash":
         cmd = str(tool_input.get("command", ""))
@@ -162,10 +218,12 @@ def main() -> int:
         data = json.load(sys.stdin)
         tool_name = data.get("tool_name", "")
         tool_input = data.get("tool_input", {}) or {}
-        reason = detect(tool_name, tool_input)
+        # root before detect: the placement signal needs it to make a path relative.
+        # find_omp_root is cheap (an upward walk) and detect stays silent without it.
+        root = find_omp_root(data.get("cwd") or Path.cwd())
+        reason = detect(tool_name, tool_input, root, load_rules(root))
         if not reason:
             return 0  # nothing relevant — stay silent
-        root = find_omp_root(data.get("cwd") or Path.cwd())
         if should_throttle(root, reason):
             return 0  # same reason emitted within COOLDOWN_S — stay silent
         out = {

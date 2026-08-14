@@ -5,6 +5,49 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-08-14 — the drawer that offered no resistance
+
+### Added
+
+- **A placement signal in the PostToolUse hook** (`hooks/omp_verify_emit.py`). The hook
+  already listed `Write` in its matcher, but its logic only looked at `.omp/` edits and
+  Bash `mv`/`rm` — a `Write` that landed a whole new file somewhere questionable produced
+  nothing. `detect()` gains an optional `(root, rules)` pair (two-arg callers keep working)
+  and reports **a file created directly at the top level of an `enforced: true` category
+  directory**, quoting that directory's own `role` so the session has the criterion in hand
+  rather than a bare complaint. `README.md` is exempt — a category index belongs there.
+
+  The motivating incident: a one-off session prompt, expiring on a fixed date, was written
+  into a vault's `1_Area/` (PARA's *"ongoing responsibility with no end date"*). No layer
+  objected; a human found it three days later, by which time another session had grown the
+  file and a scheduled script had hardcoded its path.
+
+  **Deliberately narrow, and the narrowness is measured.** Deeper paths are excluded because
+  `…/albc/notes/x.md` sits inside a structure somebody already chose; only a category's own
+  top level is the drawer that offers no resistance. On the vault above — 3,292 tracked
+  files — exactly **6** sit at an enforced directory's top level, **4** of them the category
+  README. So the rule fires on the 2 known-bad files and nothing else. That rate is the
+  gate, not a nice-to-have: a guard that calls current practice a violation gets switched
+  off in its first week.
+
+  Advisory, like every other axis here: it reminds, never blocks, never moves a file, and
+  stays silent when `root` or `rules.json` is unavailable rather than guessing.
+
+### Notes on what this deliberately is NOT
+
+- **No `placement[]` schema field, and therefore no rule about *which kind* of document
+  belongs where.** That was the obvious design (name the document type by filename regex or
+  frontmatter, name its destination) and it costs the 4-place coherence this repo charges
+  for a new field — schema + codify + learn + audit — the same bill that killed
+  `code_conventions[]` in 0.9.0. There is a fresher proof: one vault had hand-added
+  `secretary.external_sources[]` to its `rules.json`, and because nothing consumed it the
+  field was **read by zero code paths while silently making the whole file fail schema
+  validation for four days**. A registration axis with no consumer is not a feature. The
+  existing `role` prose plus this signal covers the measured case; a schema field can be
+  argued for when a case appears that they do not.
+- **No `PreToolUse` block.** omp has no PreToolUse hook at all, and the first one should not
+  be a placement guess: a false positive there halts the work instead of annotating it.
+
 ## [0.10.0] — 2026-08-14 — the note remembered; nobody asked it again
 
 ### Added
