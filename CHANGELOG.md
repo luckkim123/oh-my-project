@@ -36,7 +36,9 @@ All notable changes to this harness. Hook contract changes are recorded explicit
   passing, was explicitly told to discard it. **Moving files is not a lane.**
 
   The hook was never the gate, which is why this is a text fix and not a wiring one:
-  `is_omp_related()` returns True on the mere presence of `.omp/` (`omp_route_emit.py:120`),
+  `is_omp_related()` returns True on the mere presence of `.omp/` — its first branch,
+  `if not _omp_missing(): return True` (cite the function, not a line: `CHECKPOINT` grows
+  above it and shifts every number below) —
   so in any initialized project the block is injected on **every** prompt at every
   `OMP_ROUTE_GATE` setting. The suppression was happening one layer up — the model reading
   the closing line and honoring it. Measured on one vault mid-incident: a
