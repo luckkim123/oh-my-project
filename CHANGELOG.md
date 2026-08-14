@@ -5,6 +5,45 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-08-14 — the index-coherence rule was scoped to the lane that never moves files
+
+### Fixed
+
+- **`⚠️ 인덱스 정합` now binds regardless of lane** (`hooks/omp_route_emit.py`, hook contract).
+  The rule told a session to finish the `.omp/` update in the same task as a rename. It sat
+  inside a block whose closing line read *"프로젝트 관리 작업이 아니면 이 블록 전체 무시"* —
+  so the one turn that most needs it, an experiment or code session that renames a folder in
+  passing, was explicitly told to discard it. **Moving files is not a lane.**
+
+  The hook was never the gate, which is why this is a text fix and not a wiring one:
+  `is_omp_related()` returns True on the mere presence of `.omp/` (`omp_route_emit.py:120`),
+  so in any initialized project the block is injected on **every** prompt at every
+  `OMP_ROUTE_GATE` setting. The suppression was happening one layer up — the model reading
+  the closing line and honoring it. Measured on one vault mid-incident: a
+  `sim_validation/docs/` rename landed in an experiment session and four sibling-harness wiki
+  pages citing those paths went stale within the hour, with the coherence rule injected and
+  discarded on every one of those turns.
+
+  Two changes, both in `CHECKPOINT`:
+  - The closing line now exempts the three `⚠️` items by name — each is self-scoped by its own
+    precondition (file move / structural rename / structure-naming judgment), so only the
+    stage judgment and the `STAGE(project) →` line stay lane-gated.
+  - The coherence rule says **어느 레인에서 했든** out loud, and widens its target from
+    `.omp/` alone to *any document that wrote the path down* — README, handoff, sibling-harness
+    wiki. `.omp/` being current is not coherence if the handoff still points at the old path.
+
+  +143 characters (1,402 → 1,545). The injection ceiling is counted in characters, so this is
+  budgeted, not incidental.
+
+### Notes
+
+- `python3 -m pytest -q` — **206 passed, 1 skipped**. Run it with `OMP_ROUTE_GATE` unset or
+  `off`: the suite does not isolate that variable, so a shell exporting `OMP_ROUTE_GATE=on`
+  (claudebase sets it in `config/settings.json`) leaks into the subprocess hook calls and
+  fails 8 tests spuriously — on this commit **and on its parent**. Pre-existing, not
+  introduced here, and deliberately not fixed here; the suite's own env isolation is a
+  separate change.
+
 ## [0.9.0] — 2026-08-10 — the house style was never written down
 
 ### Added
