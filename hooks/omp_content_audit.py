@@ -78,6 +78,17 @@ WIKI_STALE_DAYS = 30
 WIKI_OVERSIZED_BYTES = 50_000
 LEARNED_STUCK_DAYS = 30
 
+# An unresolved commitment in a wiki note, written as a markdown checkbox.
+# Deliberately NOT a prose scan: matching words like 미결/TODO/pending in running
+# text measured 3 false positives out of 7 hits on one vault -- a heading that
+# *declares the item resolved* matches, and so does a filename containing "TODO".
+# Prose carries no machine-readable open/closed state; a checkbox does, and
+# closing one is a single character. Full rejection:
+# docs/design/2026-08-14-resurfacing-detector-measurement.md
+_OPEN_ITEM = re.compile(r"^[ \t]*[-*+][ \t]+\[ \][ \t]+(\S.*)$", re.M)
+OPEN_ITEM_PREVIEW = 3   # how many item texts a finding quotes
+OPEN_ITEM_CHARS = 60    # per-item quote budget
+
 
 def scan_structure_drift(root: Path, rules: dict) -> list[dict]:
     """Flag rules.json structure.directories[] paths (and backtick-quoted paths in
@@ -128,7 +139,9 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
     """Wiki + learned.md hygiene lint. Returns finding dicts {"kind":..., "path":..., "detail":...}.
 
     kinds: orphan (no backlink from another note), stale (mtime > WIKI_STALE_DAYS),
-    oversized (> WIKI_OVERSIZED_BYTES), broken-ref (documented alias for find_dead_links,
+    oversized (> WIKI_OVERSIZED_BYTES), open_item (unchecked `- [ ]` commitments in a
+    wiki note -- the resurfacing channel for actions the notes promised; no age gate,
+    see _OPEN_ITEM), broken-ref (documented alias for find_dead_links,
     not re-run here to avoid duplicate reporting), stuck_candidate / ready_to_promote /
     contradiction (learned.md OBS blocks — see references/learning-protocol.md §2 for the
     block format; ready_to_promote = candidate at evidence_count>=3 with
@@ -157,6 +170,22 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                 finds.append({"kind": "stale", "path": str(f), "detail": "%dd since last edit" % age_days})
             if f.stat().st_size > WIKI_OVERSIZED_BYTES:
                 finds.append({"kind": "oversized", "path": str(f), "detail": "%d bytes" % f.stat().st_size})
+            # Unresolved commitments recorded in this note. No age gate: file mtime
+            # answers "was the page edited", not "how long has this item sat" -- the
+            # motivating vault case had a 3-month-old item in a file whose mtime was
+            # 0.0d because a different session appended a section that morning. An
+            # unchecked box is actionable on sight; omp-brief enumerates it and the
+            # human decides. Reporting is per-file so one note cannot flood the brief.
+            # Re-read rather than reusing the backlink pass's `text`: that name holds
+            # whatever the LAST note in the first loop bound, not this file's body.
+            body = f.read_text(encoding="utf-8", errors="replace")
+            open_items = [t.strip() for t in _OPEN_ITEM.findall(body)]
+            if open_items:
+                preview = "; ".join(t[:OPEN_ITEM_CHARS] for t in open_items[:OPEN_ITEM_PREVIEW])
+                if len(open_items) > OPEN_ITEM_PREVIEW:
+                    preview += "; ..."
+                finds.append({"kind": "open_item", "path": str(f),
+                              "detail": "%d unchecked: %s" % (len(open_items), preview)})
 
     learned = root / ".omp" / "learned.md"
     if learned.is_file():

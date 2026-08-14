@@ -143,6 +143,55 @@ def test_wiki_lint_orphan_stale_oversized(tmp_path):
     assert ("orphan", "hub.md") in kinds and ("oversized", "big.md") in kinds
 
 
+def test_wiki_open_item_flags_unchecked_boxes_only(tmp_path):
+    """열린 체크박스만 open_item. 닫힌 것·산문은 안 걸린다."""
+    wiki = tmp_path / ".omp" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "plan.md").write_text(
+        "# plan\n\n"
+        "- [ ] krit Kanban 결합 해제\n"
+        "* [ ] workspace 이주 2차\n"
+        "+ [ ]   앞뒤 공백 있는 항목\n"
+        "- [x] 이미 끝난 것\n"
+        "- [X] 대문자로 닫은 것\n"
+        "- 그냥 항목\n"
+    )
+    finds = [f for f in lint_wiki(tmp_path, now=datetime(2026, 7, 11)) if f["kind"] == "open_item"]
+    assert len(finds) == 1, finds
+    assert finds[0]["detail"].startswith("3 unchecked: ")
+    assert "이미 끝난 것" not in finds[0]["detail"]
+
+
+def test_wiki_open_item_does_not_fire_on_prose_markers(tmp_path):
+    """오탐 회귀 — 산문 스캔을 기각한 이유가 여기 박혀 있다.
+
+    실측(2026-08-14, 한 vault): 산문 마커(미결/TODO/보류) 매칭은 7건 중 3건이 오탐이었다.
+    해소를 *선언하는* 제목이 걸리고, 파일명 `RL-ALBC - TODO.md` 가 걸린다. 아래 본문은
+    그 세 부류를 그대로 담았으며 open_item 은 0건이어야 한다.
+    """
+    wiki = tmp_path / ".omp" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "history.md").write_text(
+        "### 미결 (omp-organize 별도 세션 대상)\n"
+        "init 범위 밖이라 미실행. 이동 대상 후보:\n\n"
+        "## 2026-08-14 — 이주 2차 실행, 1차 미결 전부 해소\n"
+        "- dead link: `RL-ALBC - TODO.md:242` 가 이주된 reviews 를 가리킴\n"
+        "- **보류: krit/Kanban.md** — 병렬 세션이 재편 중\n"
+        "TODO 라는 단어가 산문에 있어도 항목이 아니다.\n"
+    )
+    assert not [f for f in lint_wiki(tmp_path, now=datetime(2026, 7, 11)) if f["kind"] == "open_item"]
+
+
+def test_wiki_open_item_is_per_file_not_per_note_body_leak(tmp_path):
+    """노트마다 자기 본문을 읽는가 (첫 루프의 text 가 새면 마지막 노트가 전파된다)."""
+    wiki = tmp_path / ".omp" / "wiki"
+    wiki.mkdir(parents=True)
+    (wiki / "a-has-items.md").write_text("see [[b-clean]]\n- [ ] 유일한 열린 항목\n")
+    (wiki / "b-clean.md").write_text("see [[a-has-items]]\n본문에 체크박스 없음\n")
+    finds = [f for f in lint_wiki(tmp_path, now=datetime(2026, 7, 11)) if f["kind"] == "open_item"]
+    assert [Path(f["path"]).name for f in finds] == ["a-has-items.md"]
+
+
 def test_learned_stuck_candidate_flagged_below_threshold_and_stale(tmp_path):
     (tmp_path / ".omp").mkdir()
     learned = tmp_path / ".omp" / "learned.md"

@@ -5,6 +5,46 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-08-14 — the note remembered; nobody asked it again
+
+### Added
+
+- **`open_item` — the eighth `lint_wiki` kind, and the resurfacing channel omp did not
+  have.** A wiki note routinely records something a session promised to do later. Nothing
+  ever read it again: `lint_wiki`'s seven kinds covered the *page* (orphan / stale /
+  oversized) and `learned.md` *rule candidates* (stuck / ready / contradiction), and
+  `omp-brief` enumerated only the three `learned.md` kinds. A commitment written in a wiki
+  note was, structurally, write-only. Measured on one vault: a "미결 (omp-organize 별도 세션
+  대상)" recorded 2026-05-31 was still unread on 2026-08-14 — **three months**, ended by a
+  human noticing, not by the harness.
+
+  The unit is an **unchecked markdown checkbox**, `- [ ]`, closed by writing `[x]`
+  (`references/output-layout.md` documents the convention; `omp-brief` now enumerates the
+  kind alongside `ready_to_promote`/`stuck_candidate`/`contradiction`). Findings are
+  per-file with a 3-item preview so one note cannot flood a brief. **omp never closes an
+  item** — same detection ≠ execution invariant as every other axis, warn-default, never
+  blocks a PASS.
+
+### Notes on what this deliberately is NOT
+
+Two mechanisms were designed, measured against the motivating case, and **rejected** —
+recorded because both look obviously right on paper
+(`docs/design/2026-08-14-resurfacing-detector-measurement.md` carries the full data):
+
+- **No prose scan.** Matching 미결/TODO/pending in running text produced **3 false
+  positives in 7 hits** on the vault above. A heading that *declares the item resolved*
+  ("1차 미결 전부 해소") contains the same words as the item, and a filename can too
+  (`RL-ALBC - TODO.md`). Open and closed states coexisted in one file with no
+  machine-readable link between them. Restricting matches to headings and list items did
+  not help — all three survived. A rule that calls current practice a violation gets
+  switched off in its first week, so the convention carries the state instead: a checkbox
+  is unambiguous and costs one character to close.
+- **No age gate.** The obvious "flag it after 30 days" cannot use file mtime, because mtime
+  answers *"was this page edited"*, not *"how long has this item sat"*. The motivating
+  file's mtime on the day of the incident was **0.0d** — a different session had appended a
+  section that morning while the three-month-old commitment sat untouched inside it. An
+  unchecked box is actionable on sight; the human decides.
+
 ### Fixed
 
 - **The suite now isolates the ambient kill switches** (`tests/conftest.py`, new). `run_hook`

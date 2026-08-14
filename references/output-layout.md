@@ -93,6 +93,29 @@ pass so they never drift. audit reads the .json (machine truth); humans read the
 - **Light (patterns/decisions)**: `wiki/*.md` is auto-appended during any omp stage,
   no gate, recalled next session by deterministic grep (the obsidian-backlink feel).
 
+### Open commitments in a wiki note: write them as `- [ ]`
+
+A wiki note routinely records something the session *promised to do later* — "미결",
+"별도 세션 대상", "pending". Write those as **unchecked markdown checkboxes**, one per
+line, and close them by changing `[ ]` to `[x]`:
+
+```markdown
+- [ ] move the paper artifacts to workspace (out of init's scope)
+- [x] decouple the Kanban sources from rules.json
+```
+
+`lint_wiki` reports the unchecked ones as `open_item`, and `omp-brief` enumerates them
+into the next-session goal. **Prose is not scanned and never will be** — on one vault a
+prose-marker scan produced 3 false positives out of 7 hits, because a heading that
+*declares an item resolved* contains the same words as the item, and a filename can too.
+A checkbox carries its own open/closed state; a sentence does not.
+
+**There is no age gate.** File mtime answers "was this page edited", not "how long has
+this item sat": the case that motivated the channel was a three-month-old commitment in
+a file whose mtime was same-day, because another session had appended a section that
+morning. An unchecked box is actionable on sight, and the human decides — omp never
+closes one.
+
 ## .gitignore guidance (omp emits this hint, does not force it)
 
 `.omp/wiki/` and `.omp/learned.md` are project-local working memory. Whether to commit
