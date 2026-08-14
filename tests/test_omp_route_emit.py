@@ -179,6 +179,21 @@ def _env(**gate):
     return e
 
 
+def test_ambient_kill_switches_are_scrubbed():
+    """tests/conftest.py 가 앰비언트 킬스위치를 벗겼는가 (환경 누수 회귀 방지).
+
+    이게 깨지면 게이트와 무관한 테스트들이 억제 경로를 타고 stdout 이 비면서
+    "STAGE(project) → 가 없다" 로 실패한다 — 원인과 증상이 전혀 안 닮은 부류라
+    증상 대신 원인을 직접 어서션한다. 실측 2026-08-14: 셸이 OMP_ROUTE_GATE=on 이면
+    (claudebase config/settings.json 이 넣는다) 8건이 그렇게 터졌다.
+    """
+    for ambient in ("OMP_ROUTE_GATE", "OMP_SKIP_HOOKS"):
+        assert ambient not in os.environ, (
+            f"{ambient} 가 테스트 환경에 남아 있다 — tests/conftest.py 확인. "
+            "셸이 export 한 값이 훅 subprocess 로 새면 무관한 테스트가 조용히 실패한다."
+        )
+
+
 def test_gate_default_off_injects_even_for_irrelevant_prompt():
     """기본값(env 미설정) = off. 무관 프롬프트도 오늘처럼 무조건 주입."""
     out = context_of(run_hook({"prompt": "hello"}, env=_env()))

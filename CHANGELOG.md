@@ -5,6 +5,26 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+### Fixed
+
+- **The suite now isolates the ambient kill switches** (`tests/conftest.py`, new). `run_hook`
+  spawns the hook with `env=None` or `dict(os.environ, …)`, so a developer shell exporting
+  `OMP_ROUTE_GATE` or `OMP_SKIP_HOOKS` fed those values straight into the subprocess. On a
+  machine where claudebase's `config/settings.json` sets `OMP_ROUTE_GATE=on`, `python3 -m
+  pytest -q` failed **8 tests** that have nothing to do with the gate: they took the
+  suppression path, stdout came back empty, and the assertion read `"STAGE(project) → 가
+  없다"` — a symptom that looks nothing like its cause. The conftest pops both variables once
+  at collection; tests that exercise the gate are unaffected because they set the value
+  explicitly via `_env(OMP_ROUTE_GATE=…)`.
+
+  `test_ambient_kill_switches_are_scrubbed` asserts the cause directly rather than the
+  symptom. Control measured both ways on the same commit: with the conftest,
+  `OMP_ROUTE_GATE=on OMP_SKIP_HOOKS=route python3 -m pytest -q` → **207 passed, 1 skipped**;
+  with it removed, the same command → **9 failed**.
+
+  Test-only — no runtime behavior changes, so no version bump is required for this to take
+  effect.
+
 ## [0.9.1] — 2026-08-14 — the index-coherence rule was scoped to the lane that never moves files
 
 ### Fixed
