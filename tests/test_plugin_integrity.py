@@ -18,7 +18,7 @@ HOOK = ROOT / "hooks" / "omp_route_emit.py"
 # (omp-pilot·omp-doctor 는 'omp-' 접두 그대로, 나머지는 omp-<stage>.)
 ROUTE_STAGES = (
     "init", "codify", "style", "organize", "dataset", "env", "doc", "learn", "audit",
-    "log", "brief", "review", "handoff",
+    "log", "brief", "review", "handoff", "garden",
     "omp-pilot", "omp-doctor",
 )
 

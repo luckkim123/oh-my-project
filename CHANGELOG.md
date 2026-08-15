@@ -5,6 +5,64 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-08-16 — the document that still names a folder nobody kept
+
+### Added
+
+- **`omp-garden` — a periodic doc-drift sweep, stage 16** (`skills/omp-garden/`,
+  `hooks/omp_doc_garden.py`). Resolves every backtick-quoted path in the project's prose
+  against the actual tree and reports the ones that do not exist, with the line and the
+  sentence around them. Report-only: it never edits a document, never repoints a path, and
+  never deletes anything.
+
+  **Why it is not part of `omp-audit`.** `scan_structure_drift` already covers *declared*
+  paths — `rules.json structure.directories[]` plus `.omp/STRUCTURE.md` and
+  `.omp/DATASETS.md`. Every path this project actually lost track of was somewhere else: a
+  README, a handoff note, a sibling harness's page. Those are the sweep's target, and the two
+  `.omp/` documents the audit stage owns are excluded so one drift is never reported under two
+  stages. It reuses `_BACKTICK_PATH`/`_PLACEHOLDER_PATH` from that module, so 0.11.1's
+  placeholder fix applies here without being restated.
+
+  **It carries state, and that is the other half.** A stateless sweep prints the same finding
+  forever, so the third report reads exactly like the first — nothing separates new rot from
+  "we looked and did not act". `.omp/garden-state.json` counts the sweeps each finding
+  survived, marks it `ESCALATE` at 3, and reports what got resolved since the last run.
+  Fingerprints key on file + cited path, deliberately **not** the line number: a line-keyed
+  fingerprint resets to 1 on any edit above the citation, so the escalation would never fire
+  while the state file still looked healthy.
+
+  **Three verdicts, never one.** Repoint (it moved, the claim holds), rewrite (the claim went
+  stale with the path), suppress (`GARDEN_OK: <reason>`, for a historical mention that is
+  correct as written). A sweep that only repoints turns a post-mortem's record of where a bug
+  used to live into a false statement — and without the escape hatch its reader learns to
+  ignore it, which is the failure the vault's `citation-check.py` was rebuilt to avoid.
+
+  **omp ships no scheduler.** Claude Code already provides `/loop` and `/schedule`; what was
+  missing was the definition of what to look at periodically, not the timer. Arming it stays
+  the human's call.
+
+  **The discriminators were tuned against real corpora, not fixtures.** The first working
+  version passed every unit test and produced **755 findings on claudebase** — unusable, and
+  the exact failure the stage exists to prevent. Three filters, each measured:
+
+  | Filter | What it removes | claudebase |
+  |:---|:---|---:|
+  | (none — backtick with a slash) | — | 755 |
+  | parent directory must exist | `origin/main`, `remotion-dev/claude-code-plugin`, `a/b`, `claude/settings.json` — strings that were never paths in this tree | 110 |
+  | dotted tail >5 chars or with `_` is a symbol | `hooks/omp_content_audit.check_content_rule` | — |
+  | default `docs/*.md`, not `docs/**` | `docs/reference/omc-deep-analysis-v4.15.2/**`, a vendored analysis of a *different* repo whose every cited path is correctly absent here — **99 of the 110** | 10 |
+
+  The parent-exists rule trades recall for readability on purpose: a drift that also deleted
+  the parent directory is missed. The alternative is a report nobody reads. Widen with
+  `--doc-glob` when a subtree really is this project's own documentation.
+
+  First run found real drift on the first try: `CLAUDE.md` cites `./install.sh`, which lives
+  at `installer/install.sh`.
+
+  Registered across the 3-way sync invariant (`plugin.json` skills[], the `omp_route_emit`
+  stage catalog, `tests/test_plugin_integrity.py`), plus two phrase-only gate tokens
+  (`문서 정원`, `문서 드리프트` — bare `문서` belongs to the omd lane). 18 new tests.
+
 ## [0.11.1] — 2026-08-14 — a findings list that is mostly wrong stops being read
 
 ### Fixed

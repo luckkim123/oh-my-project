@@ -68,7 +68,7 @@ CHECKPOINT = (
     "log(비서 캡처 — 사건·할일·막힘·결정 기록) / brief(현황 브리핑 — 어디까지 왔고 "
     "다음 뭐 할지) / review(주간 재평가 — migration·stale 정리) / "
     "handoff(위임 브리핑 — 형제 하네스(oms·omd·omx 등)에 맡기기 직전, 이 프로젝트 지식을 "
-    "4요소 패킷으로 전수), 또는 omp-pilot(통째) / omp-doctor(설치·전제 자가진단).\n"
+    "4요소 패킷으로 전수) / garden(문서 정원 — 문서가 가리키는 경로가 실재하나, 보고만), 또는 omp-pilot(통째) / omp-doctor(설치·전제 자가진단).\n"
     "단일 단계면 그 스킬 직접, 폴더 통째 정리·진화면 omp-pilot, "
     "설치/작동 문제 진단이면 omp-doctor.\n"
     "⚠️ 안전: 파일 이동은 mv→검증→삭제·trash 경유, 실제 dataset은 안 옮김(메타만).\n"
@@ -82,7 +82,7 @@ CHECKPOINT = (
     "즉흥적으로 구조를 정하는 것은 결함이다.\n\n"
     "프로젝트 관리 작업이면, 판정을 응답 맨 앞 omha ROUTE 줄 바로 다음에 이 한 줄로 "
     "출력하라(누락 금지):\n"
-    "STAGE(project) → <init|codify|style|organize|dataset|env|doc|learn|audit|log|brief|review|handoff|omp-pilot|omp-doctor> · <한 줄 근거>\n"
+    "STAGE(project) → <init|codify|style|organize|dataset|env|doc|learn|audit|log|brief|review|handoff|garden|omp-pilot|omp-doctor> · <한 줄 근거>\n"
     "프로젝트 관리 작업이 아니면 위 단계 판정·STAGE 줄을 생략한다. 단 ⚠️ 3개는 각자의 전제"
     "(파일 이동 / 구조 리네임 / 구조·명명 판단)가 성립할 때 발동하는 것이라 레인과 무관하게 "
     "유효하다 — '내 레인이 아니다'로 넘기지 말 것.\n"
@@ -104,6 +104,9 @@ _CJK_TOKENS = (
     # style stage: phrase tokens only. Bare 스타일/컨벤션 are as ambiguous as 정리 —
     # "이 UI 스타일 바꿔" is not omp — so both require the code/관용구 qualifier.
     "코드 스타일", "코드 컨벤션", "관용구", "스타일 드리프트",
+    # garden stage: phrase token only. Bare 문서 belongs to the omd lane
+    # (a .pptx/.docx deliverable), so the qualifier is what makes it omp.
+    "문서 정원", "문서 드리프트",
 )
 _DOT_TOKENS = (".omp",)
 _ASCII_TOKENS = (

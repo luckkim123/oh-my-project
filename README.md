@@ -55,6 +55,7 @@ omp governs two axes of the same living `.omp/`: the original **space** axis (fo
   omp-doc       Generate·update human-facing docs (PROJECT.md etc.)
   omp-learn     Observation → rule promotion (human approval gate) ← the core of evolution
   omp-audit     Rule-compliance verification (read-only PASS/FAIL, space + secretary hygiene axes)
+  omp-garden    Periodic doc-drift sweep — cited paths in README/docs/ that no longer exist, with a per-finding survival count that escalates at 3 sweeps (report-only, never auto-fixes)
   omp-doctor    Installation/prerequisite self-diagnosis (hooks registered, python3 present, reference cards intact — PASS/WARN/FAIL, read-only, no auto-fix)
   omp-pilot     Full orchestration (absorbs init when no .omp exists)
 ```
