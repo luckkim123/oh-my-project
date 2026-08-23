@@ -5,6 +5,13 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-08-23 — a marker says where you are, not what you asked
+
+훅이 답하던 질문은 하나였다: 주입할까. `.omp/` 가 있으면 예스였고, 프로젝트 폴더
+안에서는 *모든* 턴이 그렇다. 그래서 "이어서 진행해줘" 같은 평범한 턴이 한 번도
+쓰지 않을 단계 목록에 1,593자를 냈다. 마커는 이 폴더가 omp 프로젝트라는 뜻이지
+이 요청이 프로젝트 작업이라는 뜻이 아니다.
+
 ### Changed
 
 - **Route injection now has a verbosity axis: marker-only turns get `BRIEF`**
