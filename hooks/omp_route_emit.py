@@ -22,15 +22,24 @@ checkpoint. cwd-relative only (a sub-dir false-negative is harmless — it is a 
 Fail-open: any error returns 0 so the session is never blocked. Cross-platform:
 pure stdlib, pathlib only.
 
-Relevance gate (wave-17, ported from oms's is_paper_related): the gate only
-decides WHETHER to inject, never WHAT — a true positive (marker OR keyword,
-see is_omp_related) prints the exact same context (CHECKPOINT + NO_OMP_HINT
-branch) byte-for-byte, via the single _emit_checkpoint() assembly. The
-predicate is deliberately keyword-OR-marker, never marker-only: a fresh
-.omp-less folder must still surface the NO_OMP_HINT discoverability nag on a
-keyword-matching prompt (marker-only gating would kill that). Rollout is a
+Relevance gate (wave-17, ported from oms's is_paper_related): decides WHETHER
+to inject. The predicate is deliberately keyword-OR-marker, never marker-only:
+a fresh .omp-less folder must still surface the NO_OMP_HINT discoverability nag
+on a keyword-matching prompt (marker-only gating would kill that). Rollout is a
 3-state OMP_ROUTE_GATE env flag (off/observe/on), default "off": the gate code
-is fully bypassed and today's unconditional inject is unchanged.
+is fully bypassed and the unconditional inject is unchanged. claudebase ships
+"on" in config/settings.json, so on a claudebase machine the gate IS live —
+read the env, not this default, before concluding anything about behaviour.
+
+Verbosity axis (2026-08-23): a SECOND, orthogonal question — HOW MUCH to inject
+once the gate says yes. _keyword_hit (prompt tokens only, marker ignored) picks
+CHECKPOINT vs BRIEF. Rationale: the marker says "this folder is an omp
+project", which is true of every turn inside it, so marker-only turns were
+paying 1,593 chars each for a stage list they never used. BRIEF keeps the STAGE
+output format and all three lane-independent safety rules and drops only the
+per-stage descriptions, which skills/omp-*/SKILL.md already owns. Coverage is
+unchanged — a suppressed turn under the gate is still suppressed, an injected
+turn is still injected, just shorter when the prompt gave no reason for detail.
 """
 import json
 import os
@@ -90,6 +99,40 @@ CHECKPOINT = (
 )
 
 
+# Marker-only turns get this instead of CHECKPOINT. Measured 2026-08-23 on one
+# vault: CHECKPOINT injects 1,593 chars on EVERY turn inside an .omp/ folder,
+# while the prompt is about project management on a small minority of them —
+# the marker says "this folder is an omp project", not "this request is".
+#
+# What is dropped: the per-stage parenthetical descriptions. Those duplicate
+# skills/omp-*/SKILL.md, which the module docstring already names as the single
+# source of truth — so CHECKPOINT was violating its own no-drift principle by
+# carrying them inline. The stage NAMES are the skill names, so the session can
+# still route, and reads the skill when the choice is not obvious.
+#
+# What is KEPT verbatim in substance: all three ⚠️ rules. They declare
+# themselves lane-independent ("어느 레인에서 했든", "레인과 무관하게 유효"), which
+# is exactly the claim that makes them wrong to drop on a non-project turn —
+# a file move or a structure rename can happen in any lane.
+BRIEF = (
+    "<omp-routing>\n"
+    "프로젝트 폴더 관리 요청(구조·명명·재배치·dataset·환경자산·.omp 관리)이면 응답 맨 앞 "
+    "omha ROUTE 줄 바로 다음에 이 한 줄을 출력하라:\n"
+    "STAGE(project) → <init|codify|style|organize|dataset|env|doc|learn|audit|log|brief|"
+    "review|handoff|garden|omp-pilot|omp-doctor> · <한 줄 근거>\n"
+    "각 단계의 정의는 같은 이름의 `omp-*` 스킬 본문이 SSOT다 — 어느 단계인지 갈리면 "
+    "추측하지 말고 그 스킬을 읽어라. 프로젝트 관리 작업이 아니면 이 줄을 생략한다.\n"
+    "⚠️ 아래 3개는 레인과 무관하게 상시 유효하다 — '내 레인이 아니다'로 넘기지 말 것: "
+    "(1) 파일 이동은 mv→검증→삭제·trash 경유, 실제 dataset은 안 옮김(메타만). "
+    "(2) 구조에 영향 주는 이동·리네임은 .omp/(STRUCTURE.md·rules.json·DATASETS.md)와 "
+    "그 경로를 적어둔 문서(README·인계문·형제 하네스 wiki)까지 같은 작업 안에서 갱신 — "
+    "옛 경로가 남는 drift 금지. (3) 구조·명명·컨벤션을 판단하기 전에 일반 관행·내 기억보다 "
+    "먼저 .omp/(rules.json·STRUCTURE.md·NAMING.md·CONVENTIONS.md)와 .omp/wiki/·learned.md를 "
+    "SSOT로 읽어라.\n"
+    "</omp-routing>"
+)
+
+
 def _skipped(token):
     return token in {t.strip() for t in os.environ.get("OMP_SKIP_HOOKS", "").split(",") if t.strip()}
 
@@ -116,15 +159,13 @@ _ASCII_TOKENS = (
 _ASCII_RE = re.compile(r"\b(?:" + "|".join(re.escape(t) for t in _ASCII_TOKENS) + r")\b")
 
 
-def is_omp_related(prompt) -> bool:
-    """True when .omp/ is present (marker OR keyword — NEVER marker-only, so
-    NO_OMP_HINT discoverability still surfaces on a keyword match in a fresh
-    .omp-less folder), prompt is missing/not-a-string (fail-toward-inject), or
-    any project-domain token matches. Never raises -- an internal error
-    (including _omp_missing's own probe) also fails toward injection."""
+def _keyword_hit(prompt) -> bool:
+    """True when the PROMPT ITSELF carries a project-domain token — the marker
+    is deliberately NOT consulted. This is the verbosity axis (see
+    _emit_checkpoint): a keyword says the user is asking for project work *now*,
+    so the full stage list earns its tokens; the marker only says the folder is
+    an omp project, which is true of every turn inside it. Fails toward True."""
     try:
-        if not _omp_missing():  # .omp/ present -> marker positive
-            return True
         if not isinstance(prompt, str):
             return True
         lowered = prompt.lower()
@@ -133,6 +174,23 @@ def is_omp_related(prompt) -> bool:
         if any(tok in lowered for tok in _DOT_TOKENS):
             return True
         return bool(_ASCII_RE.search(lowered))
+    except Exception:
+        return True
+
+
+def is_omp_related(prompt) -> bool:
+    """True when .omp/ is present (marker OR keyword — NEVER marker-only, so
+    NO_OMP_HINT discoverability still surfaces on a keyword match in a fresh
+    .omp-less folder), prompt is missing/not-a-string (fail-toward-inject), or
+    any project-domain token matches. Never raises -- an internal error
+    (including _omp_missing's own probe) also fails toward injection.
+
+    WHETHER to inject, only. HOW MUCH is _keyword_hit's call — the two are
+    separate axes, and a marker-only turn injects BRIEF, never nothing."""
+    try:
+        if not _omp_missing():  # .omp/ present -> marker positive
+            return True
+        return _keyword_hit(prompt)
     except Exception:
         return True  # gate exception -> inject
 
@@ -157,8 +215,10 @@ def _log_would_suppress(prompt) -> None:
         pass
 
 
-def _emit_checkpoint() -> None:
-    context = CHECKPOINT + (NO_OMP_HINT if _omp_missing() else "")
+def _emit_checkpoint(brief: bool = False) -> None:
+    # brief only ever fires with .omp/ present, so NO_OMP_HINT resolves to ""
+    # there; the expression is left uniform rather than special-cased.
+    context = (BRIEF if brief else CHECKPOINT) + (NO_OMP_HINT if _omp_missing() else "")
     out = {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -189,7 +249,11 @@ def main() -> int:
             return 0
         if not relevant:
             return 0  # mode == "on": enforce
-        _emit_checkpoint()
+        # Two axes: `relevant` decided WHETHER (above), _keyword_hit decides
+        # HOW MUCH. A marker-only turn (inside an .omp/ folder, prompt says
+        # nothing about project work) gets BRIEF; an explicit ask gets the full
+        # stage list. Same coverage as before, ~70% fewer chars on the common turn.
+        _emit_checkpoint(brief=not _keyword_hit(prompt))
     except Exception as e:  # noqa: BLE001 — fail-open is intentional
         # 에러 맥락을 stderr 로 1줄(디버그용). stdout 계약·exit code 불변 → fail-open. T23.
         sys.stderr.write("[omp_route_emit] swallowed: %r\n" % (e,))

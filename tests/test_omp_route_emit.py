@@ -292,3 +292,54 @@ def test_gate_stdlib_only():
     """게이트 추가 후에도 stdlib only 유지 (회귀)."""
     src = HOOK.read_text()
     assert "import requests" not in src and "import yaml" not in src
+
+
+# --- 2026-08-23: verbosity axis (CHECKPOINT vs BRIEF) ------------------------
+# The gate decides WHETHER to inject; _keyword_hit decides HOW MUCH. Marker-only
+# turns — i.e. every ordinary turn inside an .omp/ folder — were paying 1,593
+# chars for a stage list the prompt gave no reason to need. Measured after this
+# change on one vault: 1,593 -> 725 chars on a non-project turn, 1,593 kept on
+# an explicit project ask.
+
+STAGE_DESCRIPTION = "1회 부트스트랩"  # per-stage prose lives only in CHECKPOINT
+
+
+def _omp_dir(tmp_path):
+    (tmp_path / ".omp").mkdir()
+    return str(tmp_path)
+
+
+def test_marker_only_turn_gets_brief(tmp_path):
+    """마커만 참(폴더가 omp 프로젝트일 뿐) → BRIEF. contract 는 그대로 남는다."""
+    out = context_of(run_hook({"prompt": "이어서 진행해줘"},
+                              cwd=_omp_dir(tmp_path), env=_env(OMP_ROUTE_GATE="on")))
+    assert "STAGE(project) →" in out, "BRIEF 도 출력 contract 는 유지해야 한다"
+    assert STAGE_DESCRIPTION not in out, "BRIEF 는 단계별 설명문을 떨궈야 한다"
+
+
+def test_keyword_turn_gets_full_checkpoint(tmp_path):
+    """프롬프트가 실제로 프로젝트 작업을 요구하면 전문(全文)을 그대로 받는다."""
+    out = context_of(run_hook({"prompt": "폴더 구조 정리해줘"},
+                              cwd=_omp_dir(tmp_path), env=_env(OMP_ROUTE_GATE="on")))
+    assert STAGE_DESCRIPTION in out
+
+
+def test_brief_is_shorter_but_keeps_every_stage_name(tmp_path):
+    """짧아지되 라우팅 능력은 안 잃는다 — 단계 이름이 곧 스킬 이름이라 필수."""
+    d = _omp_dir(tmp_path)
+    brief = context_of(run_hook({"prompt": "이어서 진행해줘"}, cwd=d,
+                                env=_env(OMP_ROUTE_GATE="on")))
+    full = context_of(run_hook({"prompt": "폴더 구조 정리해줘"}, cwd=d,
+                               env=_env(OMP_ROUTE_GATE="on")))
+    assert len(brief) < len(full)
+    for stage in ALL_STAGES:
+        assert stage in brief, f"stage '{stage}' 가 BRIEF 에 없다 — 라우팅이 깨진다"
+
+
+def test_brief_keeps_all_three_lane_independent_rules(tmp_path):
+    """3개 ⚠️ 는 '레인과 무관하게 유효'를 자칭한다 — 떨구면 절감이 아니라 안전 회귀."""
+    out = context_of(run_hook({"prompt": "이어서 진행해줘"},
+                              cwd=_omp_dir(tmp_path), env=_env(OMP_ROUTE_GATE="on")))
+    assert "trash" in out, "(1) 파일 이동 안전 규칙"
+    assert "STRUCTURE.md" in out, "(2) 리네임 후 인덱스 정합"
+    assert "learned.md" in out, "(3) 판단 전 지식 SSOT"

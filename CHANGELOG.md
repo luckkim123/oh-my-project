@@ -5,6 +5,32 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+### Changed
+
+- **Route injection now has a verbosity axis: marker-only turns get `BRIEF`**
+  (`hooks/omp_route_emit.py`). The relevance gate answered one question —
+  WHETHER to inject — and `.omp/` being present answered it `yes` for *every*
+  turn inside a project folder, so an ordinary "이어서 진행해줘" paid the full
+  1,593-char checkpoint for a stage list it never used. A second, orthogonal
+  predicate `_keyword_hit` (prompt tokens only, marker deliberately ignored)
+  now answers HOW MUCH: an explicit project ask still gets `CHECKPOINT`
+  verbatim, everything else gets `BRIEF`. Measured on one vault: **1,593 → 725
+  chars** on a non-project turn, 1,593 unchanged on `"폴더 구조 정리해줘"`.
+
+  Coverage is identical — a turn the gate suppressed is still suppressed, a
+  turn it injected is still injected. What `BRIEF` drops is only the per-stage
+  parenthetical prose, which `skills/omp-*/SKILL.md` already owns; the module
+  docstring had claimed "this hook never embeds that knowledge inline, so there
+  is no drift" while `CHECKPOINT` did exactly that. What `BRIEF` keeps in full
+  is the `STAGE(project) →` output contract, every stage name (they are the
+  skill names — routing would break without them), and all three ⚠️ rules,
+  which declare themselves lane-independent and so must survive a non-project
+  turn. Four tests lock each of those down.
+
+  Also corrected in the docstring: `OMP_ROUTE_GATE`'s code default is `"off"`,
+  but claudebase ships `"on"` in `config/settings.json` — read the env, not the
+  default, before concluding anything about live behaviour.
+
 ## [0.12.0] — 2026-08-16 — the document that still names a folder nobody kept
 
 ### Added
