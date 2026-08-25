@@ -164,10 +164,15 @@ def _category_drop(fp: str, root, rules: dict) -> str:
         if not d.get("enforced"):
             continue
         path = str(d.get("path", "")).strip("/")
-        if not path or not rel.startswith(path + "/"):
-            continue
-        if "/" in rel[len(path) + 1:]:
-            continue  # deeper than the category's own top level
+        # `.` (or an empty path) names the project root. It needs its own branch:
+        # the prefix test below looks for `path + "/"`, and `relative_to()` never
+        # emits a leading `./`, so a root entry silently matched nothing and the
+        # rule read as enforced while doing nothing at all.
+        if path in ("", "."):
+            if "/" in rel:
+                continue  # deeper than the root's own top level
+        elif not rel.startswith(path + "/") or "/" in rel[len(path) + 1:]:
+            continue  # wrong category, or deeper than its own top level
         return "enforced 폴더 최상단에 파일이 생성됨 — %s (role: %s)" % (
             rel, str(d.get("role", ""))[:110])
     return ""

@@ -44,6 +44,49 @@ def test_placement_silent_on_established_and_exempt_paths(tmp_path):
     assert not _placement(tmp_path, "1_Area/2026-08-16-graphify-resume-prompt.md", tool="Edit")
 
 
+_ROOT_RULES = {"structure": {"directories": [
+    {"path": ".", "role": "루트는 진입점 — README·LICENSE 외엔 하위 디렉터리로", "enforced": True},
+    {"path": "runtime/skills", "role": "스킬 1개 = 디렉터리 1개", "enforced": True},
+]}}
+
+
+def _root_placement(tmp_path, rel, rules=None, tool="Write"):
+    return detect(tool, {"file_path": str(tmp_path / rel)}, str(tmp_path), rules or _ROOT_RULES)
+
+
+def test_root_entry_fires_on_a_new_top_level_file(tmp_path):
+    """`.` 은 프로젝트 루트를 뜻한다. 이 검사가 없어서 `path: "."` 항목이 조용히
+    아무것도 안 잡았다 — 접두 검사가 `"./"` 로 시작하는 경로를 찾는데
+    `relative_to()` 는 그런 걸 만들지 않는다. enforced 로 읽히면서 무효였다."""
+    reason = _root_placement(tmp_path, "ruff.toml")
+    assert "ruff.toml" in reason and "루트는 진입점" in reason
+
+
+def test_root_entry_ignores_anything_deeper(tmp_path):
+    """루트 항목이 트리 전체를 삼키면 안 된다 — 최상단만 본다."""
+    assert not _root_placement(tmp_path, "docs/note.md")
+    assert not _root_placement(tmp_path, "runtime/hooks/x.py")
+
+
+def test_root_entry_keeps_the_readme_exemption_and_write_only_rule(tmp_path):
+    assert not _root_placement(tmp_path, "README.md")
+    assert not _root_placement(tmp_path, "ruff.toml", tool="Edit")
+
+
+def test_empty_path_is_treated_as_root_not_as_a_wildcard(tmp_path):
+    """`strip("/")` 이 빈 문자열을 낼 수 있다. 루트로 읽되 깊은 경로는 여전히 제외."""
+    rules = {"structure": {"directories": [{"path": "", "role": "루트", "enforced": True}]}}
+    assert _root_placement(tmp_path, "stray.md", rules)
+    assert not _root_placement(tmp_path, "docs/stray.md", rules)
+
+
+def test_named_category_still_matches_only_its_own_top_level(tmp_path):
+    """루트 분기를 넣으면서 기존 경로 분기가 상하지 않았는지."""
+    assert _root_placement(tmp_path, "runtime/skills/loose.md")
+    assert not _root_placement(tmp_path, "runtime/skills/my-skill/SKILL.md")
+    assert not _root_placement(tmp_path, "runtime/agents/x.md")
+
+
 def test_placement_silent_without_root_or_rules_and_outside_project(tmp_path):
     """advisory 축이라 근거가 없으면 추측하지 않고 침묵한다 (2인자 호출 하위호환 포함)."""
     fp = str(tmp_path / "1_Area" / "x.md")

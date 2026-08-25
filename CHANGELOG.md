@@ -5,6 +5,32 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.12.2] — 2026-08-25 — a rule that reads as enforced and matches nothing
+
+`rules.json` 의 `structure.directories[]` 항목은 `path: "."` 로 프로젝트 루트를
+가리킬 수 있다. 배치 훅은 그걸 못 받았다 — 판정이 `rel.startswith(path + "/")`
+하나였고 `path` 가 `.` 이면 `"./"` 로 시작하는 경로를 찾는데, `relative_to()` 는
+그런 문자열을 절대 만들지 않는다. 그래서 루트 항목은 `enforced: true` 를 달고도
+**단 한 번도 발화하지 않았다.**
+
+이게 나쁜 종류의 실패인 이유는 조용해서다. 스키마 검증도 통과하고, 훅도 에러 없이
+돌고, `rules.json` 을 읽는 사람은 루트가 감시되고 있다고 믿는다. 발견 경위도 그 점을
+보여준다 — claudebase 에 `.omp/` 를 얹으며 초안의 `enforced` 근거를 코드로 대조하다
+나왔고, 대조하지 않았으면 무효인 규칙이 배포될 뻔했다.
+
+### Fixed
+
+- **`path: "."`(및 빈 문자열)을 프로젝트 루트로 해석한다** (`hooks/omp_verify_emit.py`
+  `_category_drop`). 루트 항목은 최상단 파일에만 발화하고 깊은 경로는 그대로 제외한다 —
+  루트가 트리 전체를 삼키면 카테고리 개념이 무너진다. `README.md` 면제와 `Write` 전용
+  규칙은 변동 없다.
+
+### Added
+
+- `tests/test_omp_verify_emit.py` 에 배치 테스트 5건: 루트 항목 발화 · 깊은 경로 무시 ·
+  README 면제와 Edit 무시 유지 · 빈 경로도 루트(와일드카드 아님) · 이름 있는 카테고리
+  분기 무회귀. 변별 확인 — 수정을 되돌리면 2건이 빨간불로 바뀐다.
+
 ## [0.12.1] — 2026-08-23 — a marker says where you are, not what you asked
 
 훅이 답하던 질문은 하나였다: 주입할까. `.omp/` 가 있으면 예스였고, 프로젝트 폴더
