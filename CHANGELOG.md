@@ -5,6 +5,44 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-08-28 — one place that knows where `.omp/` is
+
+Phase 2 of the `.hq/` store unification. Behavior is unchanged: every helper
+returns exactly the path its call site computed inline before, and the root
+literal is still `.omp` — the switch to `.hq` and the read fallback are the
+next phase.
+
+### Added
+- `hooks/omp_paths.py` — the single declaration site for `.omp` in this
+  repo's code. `LEGACY_ROOT` plus a named helper per derived path
+  (`rules_json`, `secretary_dir`, `state_dir`, `wiki_dir`, `learned_md`,
+  `structure_md`, `datasets_md`, `garden_state_json`, `brief_md`,
+  `verify_throttle_json`), the sweep glob tuple, and the `is_inside_store`
+  predicate.
+- `tests/test_omp_paths_lint.py` — the re-entry lint. An AST walk flags any
+  `str` constant that contains the root literal and holds no whitespace;
+  paths have no spaces, prose always does, so a prompt string mentioning
+  `.omp/` is not a violation and `".omp/garden-state.json"` is. Docstrings
+  are excluded explicitly, f-string pieces are included.
+
+### Changed
+- 18 call sites across `omp_content_audit`, `omp_doc_garden`,
+  `omp_route_emit`, `omp_secretary`, `omp_session_brief`, and
+  `omp_verify_emit` now call the helpers instead of building paths inline.
+
+### Verification
+- 246 passed, 5 skipped; exit code read without a pipe.
+- The lint was checked for discrimination, not just for passing: a violation
+  was planted, exit 1 reproduced, the file removed, exit 0 reproduced.
+- `ruff check .` clean.
+
+### Notes
+- `tests/` and `references/` are outside the lint's scope, with the reason
+  and the measured residual count recorded in the test's own docstring —
+  fixtures need the literal, and `references/` python is copied into user
+  projects where it cannot import a hook module.
+
+
 ## [0.12.2] — 2026-08-25 — a rule that reads as enforced and matches nothing
 
 `rules.json` 의 `structure.directories[]` 항목은 `path: "."` 로 프로젝트 루트를
