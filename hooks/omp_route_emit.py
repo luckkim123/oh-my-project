@@ -47,6 +47,10 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from omp_paths import LEGACY_ROOT  # noqa: E402
+from omp_paths import root as omp_root  # noqa: E402
+
 # 부재 전용 마커 — CHECKPOINT 의 일반 stage 열거("init")와 구별되는 고유 문구
 # (테스트가 같은 문구를 본다: tests/test_omp_route_emit.py NO_OMP_MARKER).
 NO_OMP_HINT = (
@@ -59,7 +63,7 @@ NO_OMP_HINT = (
 def _omp_missing() -> bool:
     """cwd 에 .omp/ 가 없으면 True. best-effort — 판단 불가 시 False(힌트 억제)."""
     try:
-        return not (Path.cwd() / ".omp").is_dir()
+        return not omp_root(Path.cwd()).is_dir()
     except Exception:
         return False  # 확인 실패 시 힌트 안 붙임 (fail-open, false nag 방지)
 
@@ -151,7 +155,7 @@ _CJK_TOKENS = (
     # (a .pptx/.docx deliverable), so the qualifier is what makes it omp.
     "문서 정원", "문서 드리프트",
 )
-_DOT_TOKENS = (".omp",)
+_DOT_TOKENS = (LEGACY_ROOT,)
 _ASCII_TOKENS = (
     "omp", "omp-init", "omp-pilot", "omp-doctor", "codify", "organize",
     "dataset", "audit", "handoff", "lineage", "checksum",

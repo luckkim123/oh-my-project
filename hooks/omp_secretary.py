@@ -12,6 +12,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from omp_paths import root as omp_root  # noqa: E402
+from omp_paths import rules_json as omp_rules_json  # noqa: E402
+from omp_paths import secretary_dir  # noqa: E402
+
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 TAG_RE = re.compile(r"\[(BLOCKER|LESSON|DECISION):([A-Za-z0-9_-]+)\]")
 MANAGED_RE = re.compile(r"<!--\s*omp-managed:\s*sha256:([a-f0-9]{64})\s*-->")
@@ -44,7 +49,7 @@ def find_omp_root(start):
         cur = Path(start).resolve()
         home = Path.home().resolve()
         for cand in (cur, *cur.parents):
-            if (cand / ".omp").is_dir():
+            if omp_root(cand).is_dir():
                 return cand
             if cand == home:
                 break
@@ -86,7 +91,7 @@ def parse_todo_line(line):
 
 
 def _sec(root):
-    return Path(root) / ".omp" / "secretary"
+    return secretary_dir(root)
 
 
 def append_ledger(root, event):
@@ -163,7 +168,7 @@ def load_secretary_surfaces(root):
     being information and becomes noise, and the read-map half of the axis
     (`sources[]`) is independently useful without it. Fail-open to all three."""
     try:
-        rules = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        rules = json.loads(omp_rules_json(root).read_text(encoding="utf-8"))
         declared = rules.get("secretary", {}).get("surfaces")
         if not isinstance(declared, list):
             return set(CHRONICLER_SURFACES)
@@ -185,7 +190,7 @@ def load_secretary_sources(root):
     """rules.json secretary.sources[] — the codify-gated read-map (D14).
     Fail-open: missing/corrupt rules.json or malformed entries -> skipped/[]."""
     try:
-        rules = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        rules = json.loads(omp_rules_json(root).read_text(encoding="utf-8"))
         out = []
         for s in rules.get("secretary", {}).get("sources", []):
             if isinstance(s, dict) and s.get("path") and s.get("kind") in SOURCE_KINDS:

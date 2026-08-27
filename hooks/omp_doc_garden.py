@@ -43,8 +43,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from omp_atomic import atomic_write_json  # noqa: E402
 from omp_content_audit import _BACKTICK_PATH, _PLACEHOLDER_PATH  # noqa: E402
+from omp_paths import DATASETS_MD_REL, DEFAULT_DOC_GLOBS, STRUCTURE_MD_REL, garden_state_json  # noqa: E402
 
-STATE_REL = ".omp/garden-state.json"
 STATE_VERSION = 1
 
 # Root-level and top-of-docs/ markdown. Not a rules.json field on purpose: omp's
@@ -57,12 +57,12 @@ STATE_VERSION = 1
 # a DIFFERENT repository, and 99 of the 110 findings were that document
 # faithfully citing omc's paths. A subtree that documents someone else's tree is
 # not this project's documentation; widen with --doc-glob when it is.
-DEFAULT_DOC_GLOBS = ("*.md", ".omp/*.md", "docs/*.md")
+# (value itself lives in omp_paths.DEFAULT_DOC_GLOBS, imported above)
 
 # `omp-audit`'s scan_structure_drift owns these two. Scanning them here would
 # report one drift under two stages, and the duplicate outlives whichever copy
 # gets fixed.
-OWNED_BY_AUDIT = {".omp/STRUCTURE.md", ".omp/DATASETS.md"}
+OWNED_BY_AUDIT = {STRUCTURE_MD_REL, DATASETS_MD_REL}
 
 SUPPRESS_MARKER = "GARDEN_OK"
 ESCALATE_AFTER = 3       # sweeps a finding may survive before it needs a decision
@@ -170,7 +170,7 @@ def fingerprint(finding: dict) -> str:
 
 
 def load_state(root) -> dict:
-    path = Path(root) / STATE_REL
+    path = garden_state_json(root)
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -219,7 +219,7 @@ def merge(state: dict, findings: list, now: datetime) -> tuple:
 
 
 def record(root, state: dict) -> None:
-    atomic_write_json(Path(root) / STATE_REL, state)
+    atomic_write_json(garden_state_json(root), state)
 
 
 def format_report(annotated: list, resolved: list, doc_count: int) -> str:

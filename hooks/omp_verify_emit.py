@@ -25,6 +25,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from omp_atomic import atomic_write_json  # noqa: E402
+from omp_paths import is_inside_store, verify_throttle_json  # noqa: E402
+from omp_paths import rules_json as omp_rules_json  # noqa: E402
 from omp_secretary import find_omp_root  # noqa: E402
 
 COOLDOWN_S = 300
@@ -98,7 +100,7 @@ def _skipped(token):
 
 
 def _throttle_path(root):
-    return Path(root) / ".omp" / "state" / "verify-throttle.json"
+    return verify_throttle_json(root)
 
 
 def should_throttle(root, reason: str, now: float = None) -> bool:
@@ -183,7 +185,7 @@ def load_rules(root) -> dict:
     if root is None:
         return {}
     try:
-        data = json.loads((Path(root) / ".omp" / "rules.json").read_text(encoding="utf-8"))
+        data = json.loads(omp_rules_json(root).read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
@@ -197,8 +199,7 @@ def detect(tool_name: str, tool_input: dict, root=None, rules: dict = None) -> s
     """
     if tool_name in WRITE_TOOLS:
         fp = str(tool_input.get("file_path", ""))
-        # normalize separators so Windows backslashes also match
-        if "/.omp/" in fp.replace("\\", "/") or fp.replace("\\", "/").endswith("/.omp"):
+        if is_inside_store(fp):
             return ".omp/ SSOT 파일이 수정됨."
         # Placement is a creation-time question, so only Write (which lands a whole
         # file) is asked it -- an Edit/MultiEdit changes a file already placed.

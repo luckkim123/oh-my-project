@@ -6,9 +6,13 @@ The `auditor` agent invokes these as the canonical check algorithm.
 from __future__ import annotations
 
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Optional
+
+sys.path.insert(0, str(Path(__file__).parent))
+from omp_paths import datasets_md, learned_md, structure_md, wiki_dir  # noqa: E402
 
 _FM = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
@@ -110,8 +114,7 @@ def scan_structure_drift(root: Path, rules: dict) -> list[dict]:
         p = d.get("path")
         if p:
             paths.append(p)
-    for name in ("STRUCTURE.md", "DATASETS.md"):
-        f = root / ".omp" / name
+    for f in (structure_md(root), datasets_md(root)):
         if f.is_file():
             text = f.read_text(encoding="utf-8", errors="replace")
             paths.extend(m.group(1).rstrip("/") for m in _BACKTICK_PATH.finditer(text)
@@ -160,7 +163,7 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
     """
     root = Path(root)
     now = now or datetime.now()
-    wiki = root / ".omp" / "wiki"
+    wiki = wiki_dir(root)
     finds: list[dict] = []
 
     if wiki.is_dir():
@@ -198,7 +201,7 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                 finds.append({"kind": "open_item", "path": str(f),
                               "detail": "%d unchecked: %s" % (len(open_items), preview)})
 
-    learned = root / ".omp" / "learned.md"
+    learned = learned_md(root)
     if learned.is_file():
         blocks = _parse_obs_blocks(learned.read_text(encoding="utf-8", errors="replace"))
         by_glob: dict[str, list[dict]] = {}

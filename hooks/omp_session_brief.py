@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from omp_paths import brief_md  # noqa: E402
 from omp_secretary import find_omp_root  # noqa: E402
 
 MAX_LINES, MAX_CHARS = 30, 2000
@@ -25,7 +26,7 @@ def main() -> int:
         root = find_omp_root(data.get("cwd") or Path.cwd())
         if root is None:
             return 0
-        brief = root / ".omp" / "secretary" / "BRIEF.md"
+        brief = brief_md(root)
         if not brief.is_file():
             return 0  # pull model: nothing prepared, stay silent (no nag)
         text = brief.read_text(encoding="utf-8", errors="replace")
