@@ -1,5 +1,4 @@
-"""P3 cutover acceptance — the four-state gate, new-path resolution, and the
-legacy-only read fallback.
+"""P3/P7 cutover acceptance — the four-state gate and anchor-gated resolution.
 
 store-spec.md section 6 requires a fixture for all four gate rows, and it is
 worth saying why each of the three "not normal" rows is here rather than folded
@@ -13,11 +12,10 @@ into one "not on the new store" case:
   corrupt  the row that reverses omp's blanket fail-open: a store that will not
            parse is not an absent store
 
-The write-gating tests below are the other half. `_write` has three branches and
-the middle one — anchored, but this artifact not copied yet — is invisible to a
-test that only checks "anchored writes new, unanchored writes legacy". That
-window is exactly where the pilot lives between seeding an anchor and copying
-the files, so it gets its own case.
+P7 closed store-spec §7 stage 2: `_resolve` is gated on `has_anchor` alone, so
+read and write are the same computation and there is no longer a "seeded but
+not yet copied" window to test separately — an anchored project resolves to
+`.hq/` regardless of what exists on disk on either side.
 """
 import json
 import os
@@ -30,10 +28,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 from omp_paths import (  # noqa: E402
     GATE_CORRUPT, GATE_LEGACY, GATE_NORMAL, GATE_OFF, AnchorError,
-    brief_md, gate_state, garden_state_json, garden_state_json_write,
-    is_inside_store, learned_md, parse_anchor_id, rules_json, secretary_dir,
-    secretary_dir_write, structure_md, verify_throttle_json,
-    verify_throttle_json_write, wiki_dir,
+    brief_md, gate_state, garden_state_json, is_inside_store, learned_md,
+    parse_anchor_id, rules_json, secretary_dir, structure_md,
+    verify_throttle_json, wiki_dir,
 )
 
 ROOT = Path(__file__).parent.parent
@@ -193,56 +190,28 @@ def test_every_helper_falls_back_when_only_the_legacy_store_exists(tmp_path):
     assert verify_throttle_json(tmp_path) == legacy / "state/verify-throttle.json"
 
 
-def test_fallback_is_per_file_not_per_directory(tmp_path):
-    """A machine that pulled the anchor commit has the tracked layers but not
-    the ignored ones. rules.json must already be new while the throttle file is
-    still read from the legacy store."""
+# --- stage 2: the anchor is the only test, in both directions --------------
+
+def test_anchored_resolves_new_even_when_only_the_legacy_file_exists(tmp_path):
+    """The window stage 1 protected — anchor seeded, this artifact not copied
+    over yet — no longer changes the answer. `.hq/rules.json` does not exist on
+    disk at all here, and the anchored project still resolves to it."""
+    _seed_legacy(tmp_path)
     _seed_anchor(tmp_path)
+    assert rules_json(tmp_path) == tmp_path / ".hq/config/project/rules.json"
+    assert secretary_dir(tmp_path) == tmp_path / ".hq/config/project/secretary"
+
+
+def test_unanchored_resolves_legacy_even_when_a_hq_file_exists(tmp_path):
+    """The inverse: no anchor means every resolution stays on `.omp/`, even
+    when a `.hq/` file already exists here (a stray copy, or a shared layer
+    another harness wrote) — stage 1's per-file 'new wins if present' fallback
+    is what used to pick that up, and stage 2 removed it."""
+    _seed_legacy(tmp_path)
     (tmp_path / ".hq" / "config" / "project").mkdir(parents=True)
     (tmp_path / ".hq" / "config" / "project" / "rules.json").write_text(
         "{}", encoding="utf-8")
-    (tmp_path / ".omp" / "state").mkdir(parents=True)
-    (tmp_path / ".omp" / "state" / "verify-throttle.json").write_text(
-        "{}", encoding="utf-8")
-    assert rules_json(tmp_path) == tmp_path / ".hq/config/project/rules.json"
-    assert verify_throttle_json(tmp_path) == tmp_path / ".omp/state/verify-throttle.json"
-
-
-# --- write gating: the anchor decides, and a half-migrated root stays put ----
-
-def test_write_goes_legacy_without_an_anchor(tmp_path):
-    _seed_legacy(tmp_path)
-    assert secretary_dir_write(tmp_path) == tmp_path / ".omp/secretary"
-    assert garden_state_json_write(tmp_path) == tmp_path / ".omp/garden-state.json"
-    assert verify_throttle_json_write(tmp_path) == \
-        tmp_path / ".omp/state/verify-throttle.json"
-
-
-def test_write_goes_new_when_migrated(tmp_path):
-    _seed_migrated(tmp_path)
-    assert secretary_dir_write(tmp_path) == tmp_path / ".hq/config/project/secretary"
-    assert garden_state_json_write(tmp_path) == \
-        tmp_path / ".hq/runtime/project/garden-state.json"
-    assert verify_throttle_json_write(tmp_path) == \
-        tmp_path / ".hq/runtime/project/verify-throttle.json"
-
-
-def test_write_stays_legacy_while_anchored_but_not_yet_copied(tmp_path):
-    """The pilot's own window. Seeding the anchor is step 0 and copying the
-    files is step 2; a write landing in the new store in between would be
-    invisible to every reader, which still resolves to the populated old one."""
-    _seed_legacy(tmp_path)
-    (tmp_path / ".omp" / "garden-state.json").write_text("{}", encoding="utf-8")
-    _seed_anchor(tmp_path)
-    assert secretary_dir_write(tmp_path) == tmp_path / ".omp/secretary"
-    assert garden_state_json_write(tmp_path) == tmp_path / ".omp/garden-state.json"
-
-
-def test_write_goes_new_for_a_project_anchored_from_scratch(tmp_path):
-    """Neither path holds the artifact and there is no legacy store to orphan —
-    this is the only case where the new path wins by default."""
-    _seed_anchor(tmp_path)
-    assert secretary_dir_write(tmp_path) == tmp_path / ".hq/config/project/secretary"
+    assert rules_json(tmp_path) == tmp_path / ".omp/rules.json"
 
 
 # --- is_inside_store now covers both roots ----------------------------------

@@ -11,27 +11,23 @@ Reference: ~/oh-my-orchestrator/skills/harness/references/store-spec.md
   per-file layer assignment · §9.5 the six declaration sites.
 
 P3 (2026-08-28) switched this module from "legacy only" to the cutover shape.
-Three rules govern every helper below, and they are not interchangeable:
+P7 (2026-08-28) closed store-spec §7 stage 2 — fallback removal. Two rules
+govern every helper below, and they are not interchangeable:
 
-**1. The anchor is the switch, not the release.** A write goes to `.hq/` when —
-and only when — the project root carries a parseable `.hq/.anchor`. Without one
-it goes to `.omp/`, exactly where it went before. The plan's phrase "writes
-always go to the new path" is store-spec §7 *stage 1*, which an anchor enters
-per project after its files have been copied. Making the write unconditional at
-release time instead would split-brain every project on the machine that has a
-`.omp/` and no anchor yet: reads would still resolve to the legacy store (it is
-the only one with content) while writes landed in a new one nobody reads. That
-is precisely the state store-spec §6 row 2 calls "warn + read via fallback" —
-read, not write.
+**1. The anchor decides, per project, in both directions.** A project whose
+root carries a parseable `.hq/.anchor` resolves every read *and* every write
+to `.hq/` — no existence check, no legacy fallback. A project without one
+resolves both to `.omp/`, exactly as it always did. Stage 1 needed a split
+between the two (a write-only gate, plus a read that tried `.hq/` first only
+if the specific file already existed there) because an anchor could be seeded
+before its files were copied over; a reader had to keep finding content on
+whichever path actually held it. Stage 2 declares that transition window
+closed: an anchor is only created once its project's files are copied and
+verified (`migrate-om-store.sh apply`), so there is nothing left for a
+per-file existence check to protect. `_read` and `_write` collapse into one
+`_resolve`, gated on `has_anchor` alone.
 
-**2. Reads resolve per file, new first, legacy second.** Not per directory: a
-machine that pulls the anchor commit gets the tracked layers (`config/`,
-`community/`) but never the ignored ones (`work/`, `runtime/`), so its own
-`.omp/state/verify-throttle.json` must still be readable while
-`.hq/config/project/rules.json` is already live. Existence of the specific path
-is the only test; absence of the new one is not evidence of anything.
-
-**3. The layer is per file, never per directory** (§3). `.omp/` is one flat
+**2. The layer is per file, never per directory** (§3). `.omp/` is one flat
 directory today and it fans out into four layers: rules/manifest/STRUCTURE/
 DATASETS/learned/secretary -> `config/project/`, wiki -> `community/`,
 garden-state and the old `state/` contents -> `runtime/project/`, and `work/`
@@ -168,7 +164,10 @@ def gate_state(base: Path) -> str:
     marker.
 
     off      no legacy store, no anchor   — not an omp project; hooks exit 0
-    legacy   legacy store, no anchor      — warn, read via fallback
+    legacy   legacy store, no anchor      — warn: unmigrated. Every read and
+             write stays on `.omp/` — stage 2 removed the per-file existence
+             fallback, so a `.hq/` file that happens to exist here already
+             (partially seeded, or a stray copy) is never read
     normal   anchor present and parseable
     corrupt  anchor present, unparseable  — loud, never silent
 
@@ -185,71 +184,53 @@ def gate_state(base: Path) -> str:
     return GATE_LEGACY if has_legacy_store(base) else GATE_OFF
 
 
-# --- resolution: read new-then-legacy, write anchor-gated -------------------
+# --- resolution: the anchor decides, in both directions ---------------------
 
-def _read(new: Path, legacy: Path) -> Path:
-    """Rule 2. Existence of the specific new path is the whole test."""
-    return new if new.exists() else legacy
-
-
-def _write(base: Path, new: Path, legacy: Path) -> Path:
-    """Rule 1. The anchor, not the release, decides — and an anchored root whose
-    files have not been copied yet keeps writing where the content still is.
-
-    The middle branch is the one that matters. Seeding an anchor is a separate
-    step from copying the store (store-spec section 7 stage 1 is copy *then*
-    switch), so between the two an anchored root has a populated legacy path and
-    an empty new one. Writing to the new path there would orphan every write
-    from a reader that still resolves to the legacy path — the same split-brain
-    the anchor gate exists to prevent, one level down. Only when neither path
-    holds this artifact — a project anchored from scratch — does the new path
-    win by default.
-    """
-    if not has_anchor(base):
-        return legacy
-    if new.exists():
-        return new
-    return legacy if legacy.exists() else new
+def _resolve(base: Path, new: Path, legacy: Path) -> Path:
+    """Rule 1, stage 2. `has_anchor(base)` is the only test — not existence of
+    either path. An anchored root resolves here whether or not this specific
+    artifact has been copied yet; an unanchored root resolves to legacy even if
+    a `.hq/` file already happens to exist. The per-file existence check stage 1
+    needed to protect the seed-then-copy window is gone because that window is
+    gone: an anchor is only ever created after its files are copied and
+    verified (store-spec §7)."""
+    return new if has_anchor(base) else legacy
 
 
 # --- config/project/ layer --------------------------------------------------
 
 def rules_json(base: Path) -> Path:
-    return _read(config_dir(base) / "rules.json", legacy_root(base) / "rules.json")
+    return _resolve(base, config_dir(base) / "rules.json",
+                     legacy_root(base) / "rules.json")
 
 
 def manifest_json(base: Path) -> Path:
-    return _read(config_dir(base) / "manifest.json",
-                 legacy_root(base) / "manifest.json")
+    return _resolve(base, config_dir(base) / "manifest.json",
+                     legacy_root(base) / "manifest.json")
 
 
 def structure_md(base: Path) -> Path:
-    return _read(config_dir(base) / "STRUCTURE.md",
-                 legacy_root(base) / "STRUCTURE.md")
+    return _resolve(base, config_dir(base) / "STRUCTURE.md",
+                     legacy_root(base) / "STRUCTURE.md")
 
 
 def datasets_md(base: Path) -> Path:
-    return _read(config_dir(base) / "DATASETS.md",
-                 legacy_root(base) / "DATASETS.md")
+    return _resolve(base, config_dir(base) / "DATASETS.md",
+                     legacy_root(base) / "DATASETS.md")
 
 
 def learned_md(base: Path) -> Path:
-    return _read(config_dir(base) / "learned.md", legacy_root(base) / "learned.md")
+    return _resolve(base, config_dir(base) / "learned.md",
+                     legacy_root(base) / "learned.md")
 
 
 def secretary_dir(base: Path) -> Path:
-    """Read-resolving. Writers under an anchored root land in `config/project/`
-    because the migration copied the directory there, so the new path exists;
-    an unanchored root has no new path and stays on the legacy store."""
-    return _read(config_dir(base) / "secretary", legacy_root(base) / "secretary")
-
-
-def secretary_dir_write(base: Path) -> Path:
-    """The write form — needed for the first write into a freshly anchored root
-    whose secretary/ has not been created yet, where `_read` would still point
-    at the legacy path."""
-    return _write(base, config_dir(base) / "secretary",
-                  legacy_root(base) / "secretary")
+    """The anchor decides — no existence check. An anchored root's secretary/
+    lives in `config/project/` whether or not it has been created there yet;
+    callers `mkdir(parents=True, exist_ok=True)` as needed. Serves both readers
+    and writers now that stage 2 makes them the same computation."""
+    return _resolve(base, config_dir(base) / "secretary",
+                     legacy_root(base) / "secretary")
 
 
 def brief_md(base: Path) -> Path:
@@ -259,36 +240,28 @@ def brief_md(base: Path) -> Path:
 # --- community/ layer -------------------------------------------------------
 
 def wiki_dir(base: Path) -> Path:
-    return _read(community_dir(base) / "wiki", legacy_root(base) / "wiki")
+    return _resolve(base, community_dir(base) / "wiki", legacy_root(base) / "wiki")
 
 
 # --- runtime/project/ layer -------------------------------------------------
 
 def garden_state_json(base: Path) -> Path:
-    return _read(runtime_dir(base) / "garden-state.json",
-                 legacy_root(base) / "garden-state.json")
-
-
-def garden_state_json_write(base: Path) -> Path:
-    return _write(base, runtime_dir(base) / "garden-state.json",
-                  legacy_root(base) / "garden-state.json")
+    return _resolve(base, runtime_dir(base) / "garden-state.json",
+                     legacy_root(base) / "garden-state.json")
 
 
 def verify_throttle_json(base: Path) -> Path:
-    return _read(runtime_dir(base) / "verify-throttle.json",
-                 legacy_root(base) / "state" / "verify-throttle.json")
-
-
-def verify_throttle_json_write(base: Path) -> Path:
-    return _write(base, runtime_dir(base) / "verify-throttle.json",
-                  legacy_root(base) / "state" / "verify-throttle.json")
+    return _resolve(base, runtime_dir(base) / "verify-throttle.json",
+                     legacy_root(base) / "state" / "verify-throttle.json")
 
 
 # --- relative-string forms --------------------------------------------------
 # For callers that compare against a `path.relative_to(root).as_posix()` string
 # rather than joining onto a base (omp_doc_garden's OWNED_BY_AUDIT) or that
 # need a glob pattern (its DEFAULT_DOC_GLOBS). Both stores are listed because
-# during the fallback window either path may be the live one.
+# an anchored project's copy lives under `_CONFIG_REL`/`_COMMUNITY_REL` and an
+# unanchored one's still lives under `LEGACY_ROOT` — whichever this project is,
+# not both at once (rule 1).
 
 STRUCTURE_MD_RELS = (f"{_CONFIG_REL}/STRUCTURE.md", f"{LEGACY_ROOT}/STRUCTURE.md")
 DATASETS_MD_RELS = (f"{_CONFIG_REL}/DATASETS.md", f"{LEGACY_ROOT}/DATASETS.md")

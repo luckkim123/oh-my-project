@@ -54,7 +54,7 @@ from omp_paths import has_store  # noqa: E402
 # 부재 전용 마커 — CHECKPOINT 의 일반 stage 열거("init")와 구별되는 고유 문구
 # (테스트가 같은 문구를 본다: tests/test_omp_route_emit.py NO_OMP_MARKER).
 NO_OMP_HINT = (
-    "\n\n⚠️ 이 폴더엔 아직 .omp/가 없다 — 먼저 `omp-init`으로 부트스트랩해야 "
+    "\n\n⚠️ 이 폴더엔 아직 .hq/가 없다 — 먼저 `omp-init`으로 부트스트랩해야 "
     "관리·검증·정리가 가능하다(스캔→프리셋 합성→사람 승인 게이트). "
     "통째로 맡기려면 omp-pilot 이 init 을 먼저 흡수한다."
 )
@@ -71,11 +71,11 @@ def _omp_missing() -> bool:
 CHECKPOINT = (
     "<omp-routing>\n"
     "프로젝트 폴더 관리 요청(구조 파악·정리, 명명 규칙, 파일 재배치, dataset 추적, "
-    "초기화, .omp 관리)이면, 행동 전에 한 줄로 판정하라:\n"
-    "- 단계: init(1회 부트스트랩·.omp 생성) / codify(구조·명명 규칙 성문화) / "
+    "초기화, .hq 관리)이면, 행동 전에 한 줄로 판정하라:\n"
+    "- 단계: init(1회 부트스트랩·.hq 생성) / codify(구조·명명 규칙 성문화) / "
     "style(기존 코드에서 관용구 귀납→content_conventions 제안, 쓰기는 codify) / "
     "organize(규칙 위반 탐지→안전 재배치) / dataset(등록·체크섬·split·lineage) / "
-    "env(환경 자산 Dockerfile/compose 정본을 .omp/env/에 생성·관리) / "
+    "env(환경 자산 Dockerfile/compose 정본을 .hq/config/project/env/에 생성·관리) / "
     "doc(사람용 문서 생성·갱신) / learn(관찰→규칙 승격, 승인 게이트) / "
     "audit(규칙 준수 검증, read-only PASS/FAIL) / "
     "log(비서 캡처 — 사건·할일·막힘·결정 기록) / brief(현황 브리핑 — 어디까지 왔고 "
@@ -86,12 +86,13 @@ CHECKPOINT = (
     "설치/작동 문제 진단이면 omp-doctor.\n"
     "⚠️ 안전: 파일 이동은 mv→검증→삭제·trash 경유, 실제 dataset은 안 옮김(메타만).\n"
     "⚠️ 인덱스 정합: 구조에 영향 주는 이동·리네임(폴더 이름·계층·존재 변경)을 **어느 레인에서 "
-    "했든**, .omp/(STRUCTURE.md·rules.json·DATASETS.md) *와* 그 경로를 적어둔 문서(README·인계문·"
+    "했든**, .hq/config/project/(STRUCTURE.md·rules.json·DATASETS.md) *와* 그 경로를 적어둔 문서(README·인계문·"
     "형제 하네스 wiki)의 갱신을 같은 작업 안에서 끝낸다 — 옛 경로가 남는 drift 금지(사용자가 "
     "다시 지시하게 만들지 말 것). 규칙 위반 재배치가 목적이면 organize 단계로.\n"
     "⚠️ 지식 SSOT 우선(구조·명명·컨벤션 판단 전 필독): '이 프로젝트는 어떻게 조직되나'를 "
-    "판단해야 하면, 일반 관행·내 기억보다 먼저 .omp/(rules.json·STRUCTURE.md·NAMING.md·"
-    "CONVENTIONS.md)와 축적된 .omp/wiki/·learned.md를 SSOT로 읽어라. .omp에 규칙이 있는데 "
+    "판단해야 하면, 일반 관행·내 기억보다 먼저 .hq/config/project/(rules.json·STRUCTURE.md)와 "
+    ".hq/community/(NAMING.md·CONVENTIONS.md), 그리고 축적된 .hq/community/wiki/·"
+    ".hq/config/project/learned.md를 SSOT로 읽어라. .hq에 규칙이 있는데 "
     "즉흥적으로 구조를 정하는 것은 결함이다.\n\n"
     "프로젝트 관리 작업이면, 판정을 응답 맨 앞 omha ROUTE 줄 바로 다음에 이 한 줄로 "
     "출력하라(누락 금지):\n"
@@ -120,7 +121,7 @@ CHECKPOINT = (
 # a file move or a structure rename can happen in any lane.
 BRIEF = (
     "<omp-routing>\n"
-    "프로젝트 폴더 관리 요청(구조·명명·재배치·dataset·환경자산·.omp 관리)이면 응답 맨 앞 "
+    "프로젝트 폴더 관리 요청(구조·명명·재배치·dataset·환경자산·.hq 관리)이면 응답 맨 앞 "
     "omha ROUTE 줄 바로 다음에 이 한 줄을 출력하라:\n"
     "STAGE(project) → <init|codify|style|organize|dataset|env|doc|learn|audit|log|brief|"
     "review|handoff|garden|omp-pilot|omp-doctor> · <한 줄 근거>\n"
@@ -128,11 +129,11 @@ BRIEF = (
     "추측하지 말고 그 스킬을 읽어라. 프로젝트 관리 작업이 아니면 이 줄을 생략한다.\n"
     "⚠️ 아래 3개는 레인과 무관하게 상시 유효하다 — '내 레인이 아니다'로 넘기지 말 것: "
     "(1) 파일 이동은 mv→검증→삭제·trash 경유, 실제 dataset은 안 옮김(메타만). "
-    "(2) 구조에 영향 주는 이동·리네임은 .omp/(STRUCTURE.md·rules.json·DATASETS.md)와 "
+    "(2) 구조에 영향 주는 이동·리네임은 .hq/config/project/(STRUCTURE.md·rules.json·DATASETS.md)와 "
     "그 경로를 적어둔 문서(README·인계문·형제 하네스 wiki)까지 같은 작업 안에서 갱신 — "
     "옛 경로가 남는 drift 금지. (3) 구조·명명·컨벤션을 판단하기 전에 일반 관행·내 기억보다 "
-    "먼저 .omp/(rules.json·STRUCTURE.md·NAMING.md·CONVENTIONS.md)와 .omp/wiki/·learned.md를 "
-    "SSOT로 읽어라.\n"
+    "먼저 .hq/config/project/(rules.json·STRUCTURE.md)와 .hq/community/(NAMING.md·CONVENTIONS.md), "
+    ".hq/community/wiki/·.hq/config/project/learned.md를 SSOT로 읽어라.\n"
     "</omp-routing>"
 )
 

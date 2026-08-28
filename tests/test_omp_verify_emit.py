@@ -121,8 +121,22 @@ def test_reminds_on_omp_file_edit():
         "tool_input": {"file_path": "/proj/.omp/rules.json"},
     }))
     assert "[omp integrity reminder]" in out   # 리마인더 레이블 고정
-    assert ".omp/ SSOT 파일이 수정됨" in out    # .omp 편집 감지 사유 고정
+    assert "SSOT 파일이 수정됨" in out          # 편집 감지 사유 고정
     assert "audit" in out                       # 후속 audit 안내
+
+
+def test_reminds_on_hq_file_edit_without_claiming_omp():
+    """①b stage 2: `.hq/` 파일 수정도 같은 리마인더를 내되, 실제로는 `.hq/`가
+    수정됐는데 ".omp/ SSOT 파일이 수정됨"이라고 고정 문구를 반환하던 결함의
+    회귀 방지 — is_inside_store()는 두 루트를 다 감지하므로 reason 문구도
+    루트를 특정하지 않아야 한다."""
+    out = context_of(run_hook({
+        "tool_name": "Write",
+        "tool_input": {"file_path": "/proj/.hq/config/project/rules.json"},
+    }))
+    assert "[omp integrity reminder]" in out
+    assert "SSOT 파일이 수정됨" in out
+    assert ".omp/ SSOT 파일이 수정됨" not in out  # .hq/ 편집을 .omp/ 라 오표기 금지
 
 
 def test_reminds_on_move_command():

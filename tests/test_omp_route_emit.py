@@ -123,8 +123,9 @@ def test_fail_open_when_emit_raises(monkeypatch, capsys):
 
 
 # 부재 전용 마커 — CHECKPOINT 의 일반 stage 열거("init")와 구별되는 고유 문구.
-# hook 과 테스트가 같은 상수를 봐야 drift 가 없다.
-NO_OMP_MARKER = "아직 .omp/가 없"
+# hook 과 테스트가 같은 상수를 봐야 drift 가 없다. omp-init 은 P3 부터 .hq/ 만
+# 생성하므로(레거시 .omp/ 는 만들지 않음) 부재 힌트도 .hq/ 를 가리킨다.
+NO_OMP_MARKER = "아직 .hq/가 없"
 
 
 def test_uninitialized_folder_surfaces_init_hint(tmp_path):

@@ -33,7 +33,8 @@ from omp_secretary import find_omp_root  # noqa: E402
 
 LEGACY_WARN = (
     "[omp store] 이 프로젝트는 아직 통합 스토어로 이주하지 않았다 — 구 스토어는 "
-    "있는데 `.hq/.anchor` 가 없다. 지금은 읽기 fallback 으로 정상 동작하지만, "
+    "있는데 `.hq/.anchor` 가 없다. 읽기·쓰기 모두 구 스토어(.omp/)에 그대로 머문다 "
+    "(fallback 아님 — .hq/ 에 파일이 이미 있어도 앵커가 없으면 읽지 않는다, stage 2). "
     "이 상태는 '기능 꺼짐'이 아니라 '이주 미완'이다 (store-spec.md section 6 row 2)."
 )
 

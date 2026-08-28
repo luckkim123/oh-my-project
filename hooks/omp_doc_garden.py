@@ -44,7 +44,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from omp_atomic import atomic_write_json  # noqa: E402
 from omp_content_audit import _BACKTICK_PATH, _PLACEHOLDER_PATH  # noqa: E402
 from omp_paths import DEFAULT_DOC_GLOBS, OWNED_BY_AUDIT_RELS, garden_state_json  # noqa: E402
-from omp_paths import garden_state_json_write  # noqa: E402
 
 STATE_VERSION = 1
 
@@ -220,7 +219,7 @@ def merge(state: dict, findings: list, now: datetime) -> tuple:
 
 
 def record(root, state: dict) -> None:
-    atomic_write_json(garden_state_json_write(root), state)
+    atomic_write_json(garden_state_json(root), state)
 
 
 def format_report(annotated: list, resolved: list, doc_count: int) -> str:
@@ -251,7 +250,8 @@ def main(argv=None) -> int:
                              f"default: {' '.join(DEFAULT_DOC_GLOBS)})")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument("--no-state", action="store_true",
-                        help="do not read or write .omp/garden-state.json")
+                        help="do not read or write garden-state.json "
+                             "(.hq/, or legacy .omp/ on an unmigrated project)")
     args = parser.parse_args(argv)
 
     root = Path(args.root).expanduser()

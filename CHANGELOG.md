@@ -5,6 +5,94 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-08-28 — fallback removal (stage 2)
+
+Store-spec §7 stage 2 for omp: an anchored project's reads stop consulting the
+legacy store. P3 (0.14.0) shipped stage 1 — writes gated on the anchor, reads
+falling back to `.hq/` only if the specific file already existed there. This
+release closes that transition window.
+
+### Changed
+- **`_read`/`_write` collapse into `_resolve(base, new, legacy)`** —
+  `has_anchor(base)` is now the only test, for both reads and writes. Every
+  getter in `hooks/omp_paths.py` (`rules_json`, `manifest_json`,
+  `structure_md`, `datasets_md`, `learned_md`, `secretary_dir`, `wiki_dir`,
+  `garden_state_json`, `verify_throttle_json`) resolves through it. The
+  per-file existence check stage 1 needed to protect the window between
+  seeding an anchor and copying its files is gone: an anchor is only ever
+  created once its project's files are copied and verified
+  (`migrate-om-store.sh apply`), so there is no window left to protect.
+- **`secretary_dir_write`, `garden_state_json_write`, `verify_throttle_json_write`
+  removed.** Under stage 2 they compute exactly the same path as their
+  read-resolving counterparts — keeping both names would have been a duplicate
+  alias. `omp_secretary.py`, `omp_doc_garden.py`, `omp_verify_emit.py` now call
+  the one getter for both reads and writes.
+- `gate_state()`'s `GATE_LEGACY` docstring: an unmigrated project's reads (and
+  writes) now stay on `.omp/` unconditionally — even a `.hq/` file that
+  happens to already exist (a stray copy, or a shared layer another harness
+  wrote) is never picked up. Detection is unchanged; only the meaning of
+  "warn" moved from "read via fallback" to "reads will not find it."
+
+- **Every injected hook string that named `.omp/` paths now names the correct
+  `.hq/` layer** (`omp_route_emit.py`'s `NO_OMP_HINT`/`CHECKPOINT`/`BRIEF`,
+  `omp_verify_emit.py`'s `build_reminder()`). This is the consequential half of
+  the release: these strings are the per-turn `<omp-routing>` block and the
+  post-edit integrity reminder every session (and every subagent, which
+  inherits hooks but not `CLAUDE.md`) receives, so a stale `.omp/` path in them
+  is the harness aiming sessions at a store that no longer exists on a migrated
+  project. `rules.json`/`STRUCTURE.md`/`DATASETS.md`/`learned.md`/`env/` stay
+  grouped under one `.hq/config/project/` prefix; `NAMING.md`/`CONVENTIONS.md`
+  moved to a *different* layer than `STRUCTURE.md` under this store (per
+  store-spec §9.3 — `PROJECT.md`/`NAMING.md`/`CONVENTIONS.md` are `community/`,
+  everything else in that list is `config/project/`), so groupings that used to
+  share one path prefix now split into two. `NO_OMP_HINT` (fires when neither
+  store exists at all) now names `.hq/`, matching what `omp-init` has created
+  since P3 — it never created `.omp/` for a fresh project to begin with.
+  `omp_session_brief.py`'s `LEGACY_WARN` (the `GATE_LEGACY` warning) keeps
+  naming `.omp/` — correctly, it is specifically about the legacy store — but
+  its claim that reads "fall back" is corrected: stage 2 removed that fallback,
+  so an unmigrated project's reads (and writes) now stay on `.omp/`
+  unconditionally, never picking up a `.hq/` file that happens to already
+  exist. Measured char cost of the sweep: `CHECKPOINT` 1,593→1,681 (+88),
+  `BRIEF` 725→797 (+72), `NO_OMP_HINT` 123→122 (−1, `.hq/` is one character
+  shorter than `.omp/`) — worst-case per-turn injection (an unmigrated project,
+  a project-management prompt) grows 1,716→1,803 chars (+5.1%). No test caps
+  this size; the growth is the unavoidable cost of the `config/project/` vs
+  `community/` split now being named correctly instead of glossed over.
+
+### Removed
+- `tests/test_omp_store_cutover.py`'s write-branch tests (4) and the
+  per-file-not-per-directory fallback test (1) — all five asserted the now-closed
+  stage-1 window. Replaced with 2 tests asserting the anchor decides regardless
+  of what exists on disk on either side.
+
+### Notes
+- **`.gitignore` — nothing to remove.** This repo carries no `.omp/*`
+  legacy-store family; store-spec §9.4 lists `oh-my-project` as "no own store;
+  two new lines only," already shipped with the `**/.hq/work/`/`**/.hq/runtime/`
+  pair. Verified with `git check-ignore -v` on sample paths before and after —
+  unchanged either way. The `.omp/*` + `!.omp/rules.json` pattern in §9.4 is
+  `claudebase`'s own repo, not this one.
+- No caller outside `hooks/omp_paths.py` computes a legacy path inline —
+  every `.omp/` string literal found by grepping `hooks/`/`scripts/` is prose
+  (docstrings, comments, user-facing hint text in `omp_route_emit.py`), not a
+  path construction that would break once the legacy store is purged.
+- **Widened the same audit past quoted literals** to attribute/constant-shaped
+  reaches (`grep -rn "legacy_root\|LEGACY_ROOT\|omp_dir\|has_legacy_store"
+  hooks/ scripts/`), the shape that let a sibling harness's `paths.omx_dir`
+  attribute reach the legacy store outside its resolver with no `.omx/` in
+  quotes nearby. omp has no such shape: `omp_paths.py` exposes only free
+  functions (no class/object caching a `.omp_dir`-style attribute), every
+  `legacy_root(...)` call site is inside `omp_paths.py` itself (as `_resolve`'s
+  fallback argument — confirmed zero external callers), and every other
+  `LEGACY_ROOT`/`HQ_ROOT` reference is legitimate legacy-or-either-store
+  detection that must survive: `has_legacy_store`/`has_store`/`gate_state`'s
+  `GATE_LEGACY` row, `is_inside_store`'s both-roots check, `STRUCTURE_MD_RELS`/
+  `DATASETS_MD_RELS`/`DEFAULT_DOC_GLOBS` (both roots listed on purpose — an
+  unanchored project's SSOT still lives under `.omp/`), and `omp_route_emit.py`'s
+  `_DOT_TOKENS` keyword-gate check. `scripts/sync_version.py` doesn't touch
+  either store at all. No fix required from this pass.
+
 ## [0.15.0] — 2026-08-28 — the layers become a rule
 
 Phase 6 of the `.hq/` store unification. P3 moved omp's files into the four
