@@ -1,6 +1,12 @@
-"""Re-entry lint: fails the build if a new `.omp` root-literal string constant
-lands anywhere outside hooks/omp_paths.py (the single declaration point, spec
+"""Re-entry lint: fails the build if a new root-literal string constant — for
+EITHER store, the legacy one or the unified one — lands anywhere outside
+hooks/omp_paths.py (the single declaration point, spec
 ~/oh-my-orchestrator/skills/harness/references/store-spec.md §9.5).
+
+P3 widened this from one literal to two. Guarding only the legacy root would
+have left the new root free to spread through the hooks during the very
+refactor that exists to prevent exactly that — the cutover is when a root
+string is most likely to be re-typed, not least.
 
 Violation rule (ast-based, not regex-on-text): a `str` ast.Constant — including
 one nested inside an f-string's JoinedStr, since ast.walk descends into those
@@ -31,7 +37,9 @@ omp has no `.phase0-scratch/**` (that exclusion in the spec is omo-only).
 import ast
 from pathlib import Path
 
-from hooks.omp_paths import LEGACY_ROOT
+from hooks.omp_paths import HQ_ROOT, LEGACY_ROOT
+
+ROOTS = (LEGACY_ROOT, HQ_ROOT)
 
 REPO_ROOT = Path(__file__).parent.parent
 PATHS_MODULE = REPO_ROOT / "hooks" / "omp_paths.py"
@@ -39,7 +47,7 @@ EXCLUDED_DIRS = {"tests", "references"}
 
 
 def _is_violation(value: str) -> bool:
-    return LEGACY_ROOT in value and not any(ch.isspace() for ch in value)
+    return any(r in value for r in ROOTS) and not any(ch.isspace() for ch in value)
 
 
 def _docstring_constant_ids(tree: ast.AST) -> set:
@@ -94,7 +102,8 @@ def test_no_root_literal_reentry():
         for lineno, value in violations_in_source(path.read_text(encoding="utf-8"), str(rel)):
             offenders.append(f"{rel}:{lineno}: {value!r}")
     assert not offenders, (
-        f"new '{LEGACY_ROOT}' literal(s) outside hooks/omp_paths.py — "
+        f"new {' or '.join(repr(r) for r in ROOTS)} literal(s) outside "
+        "hooks/omp_paths.py — "
         "add a named helper there instead:\n" + "\n".join(offenders)
     )
 
@@ -128,6 +137,16 @@ def test_meta_module_docstring_is_exempt():
 
 def test_meta_function_docstring_is_exempt():
     v = violations_in_source('def f():\n    """.omp/wiki holds notes."""\n    return 1\n')
+    assert v == []
+
+
+def test_meta_hq_literal_bites():
+    v = violations_in_source('X = ".hq/config/project/rules.json"\n')
+    assert len(v) == 1 and v[0][1] == ".hq/config/project/rules.json"
+
+
+def test_meta_hq_prose_with_whitespace_is_not_a_violation():
+    v = violations_in_source('X = "이 앵커는 .hq 루트를 가리킨다"\n')
     assert v == []
 
 

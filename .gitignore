@@ -16,3 +16,9 @@ Thumbs.db
 # scratch — superpowers design/plan artifacts & sdd progress ledger
 .sp/
 .superpowers/
+
+# .hq unified store: work/ is regenerable output, runtime/ is session state,
+# locks and logs. Both layers die with the machine; config/ and community/ are
+# tracked. `**/` because anchors nest (store-spec.md §5).
+**/.hq/work/
+**/.hq/runtime/

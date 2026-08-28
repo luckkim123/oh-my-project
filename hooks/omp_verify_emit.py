@@ -26,6 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from omp_atomic import atomic_write_json  # noqa: E402
 from omp_paths import is_inside_store, verify_throttle_json  # noqa: E402
+from omp_paths import verify_throttle_json_write  # noqa: E402
 from omp_paths import rules_json as omp_rules_json  # noqa: E402
 from omp_secretary import find_omp_root  # noqa: E402
 
@@ -103,6 +104,10 @@ def _throttle_path(root):
     return verify_throttle_json(root)
 
 
+def _throttle_path_write(root):
+    return verify_throttle_json_write(root)
+
+
 def should_throttle(root, reason: str, now: float = None) -> bool:
     """True if `reason` was already emitted within COOLDOWN_S. Any IO/parse
     failure returns False (re-emit — a safety signal must not go silent)."""
@@ -124,16 +129,18 @@ def record_emit(root, reason: str, now: float = None) -> None:
         return
     now = time.time() if now is None else now
     key = hashlib.sha256(reason.encode("utf-8")).hexdigest()
-    path = _throttle_path(root)
+    # read where the state IS, write where it must GO — the two differ only in
+    # the window between an anchor being seeded and this file being copied, and
+    # reading the old one there is what carries the cooldown across the move.
     try:
-        state = json.loads(path.read_text(encoding="utf-8"))
+        state = json.loads(_throttle_path(root).read_text(encoding="utf-8"))
         if not isinstance(state, dict):
             state = {}
     except Exception:
         state = {}
     state[key] = now
     try:
-        atomic_write_json(path, state)
+        atomic_write_json(_throttle_path_write(root), state)
     except Exception:
         pass  # best-effort state; never let this fail the hook
 

@@ -5,6 +5,69 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-08-28 — the store moves
+
+Phase 3 of the `.hq/` store unification, and the first phase in this campaign
+that moves a file. `hooks/omp_paths.py` now knows both roots and every hook
+resolves through it.
+
+### Added
+- **Four-state store gate** (`gate_state`, store-spec.md §6): `off` (neither
+  store — silent), `legacy` (legacy store, no anchor — warn, read via
+  fallback), `normal` (anchor parses), `corrupt` (anchor does not parse —
+  loud). `omp_session_brief.py` is the surface: row 2 prepends one warn line to
+  the brief, row 4 writes to stderr and exits 2. Row 4 is the one place omp's
+  blanket fail-open does not apply — a store that will not parse is not an
+  absent store.
+- `parse_anchor_id` / `has_anchor` / `has_store` / `AnchorError` — a 10-line
+  local anchor parser rather than a cross-plugin import of omo's `hq.anchor`:
+  omp cannot assume oh-my-orchestrator is installed, and an ImportError in a
+  SessionStart hook is a worse failure than a duplicated regex.
+- Write-form helpers (`secretary_dir_write`, `garden_state_json_write`,
+  `verify_throttle_json_write`) alongside the read-resolving ones.
+- `tests/test_omp_store_cutover.py` — 28 cases: all four gate rows as units and
+  again through the hook, per-file read fallback, and the three write branches.
+
+### Changed
+- `hooks/omp_paths.py` declares both roots and fans the flat legacy store into
+  the four layers (store-spec.md §9.3): rules/manifest/STRUCTURE/DATASETS/
+  learned/secretary → `config/project/`, wiki → `community/`, garden-state and
+  the old `state/` contents → `runtime/project/`, `work/` → `work/project/`.
+- Reads resolve **per file**, new path first: a machine that pulls the anchor
+  commit has the tracked layers but not the ignored ones, so `rules.json` can
+  be new while `verify-throttle.json` is still legacy.
+- Writes are gated on the **anchor**, not on this release, and an anchored root
+  whose files have not been copied yet keeps writing where the content is.
+  Making writes unconditional at release time would split-brain every project
+  on the machine that has a legacy store and no anchor: reads would resolve to
+  the old store (the only one with content) while writes landed in a new one
+  nobody reads.
+- `is_inside_store` matches both roots.
+- `tests/test_omp_paths_lint.py` guards **both** root literals. Guarding only
+  the legacy one would leave the new root free to spread during the very
+  refactor meant to prevent that.
+- `.gitignore` — `**/.hq/work/` and `**/.hq/runtime/`.
+
+### Verification
+- 276 passed, 5 skipped, exit 0 read without a pipe.
+- The 28 new fixtures were discrimination-checked, not just passed: four
+  planted defects (corrupt collapsed into legacy, the write middle branch
+  removed, `is_inside_store` narrowed back to one root, the read fallback
+  removed) each produced exit 1 (6, 1, 2 and 3 failures), and restoring the
+  file returned exit 0.
+
+### Notes
+- `secretary/` moves whole into `config/project/`. store-spec §9.3 marks its
+  narrative half a "community candidate — P6 approval item" needing a
+  chronicler revision; splitting it here would force that decision instead of
+  preserving it.
+- `wiki/` lands at `community/wiki/`, not `community/posts/`. §9.3 assigns the
+  *layer*; the `posts/` shape additionally needs each page converted into the
+  post schema with a `subject:` field, which is P6 work.
+- The legacy store is not deleted. Removal is a separate `--purge` after the
+  fallback-removal release (store-spec §7).
+
+
 ## [0.13.0] — 2026-08-28 — one place that knows where `.omp/` is
 
 Phase 2 of the `.hq/` store unification. Behavior is unchanged: every helper

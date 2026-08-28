@@ -13,9 +13,10 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from omp_paths import root as omp_root  # noqa: E402
+from omp_paths import has_store  # noqa: E402
 from omp_paths import rules_json as omp_rules_json  # noqa: E402
 from omp_paths import secretary_dir  # noqa: E402
+from omp_paths import secretary_dir_write  # noqa: E402
 
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 TAG_RE = re.compile(r"\[(BLOCKER|LESSON|DECISION):([A-Za-z0-9_-]+)\]")
@@ -49,7 +50,7 @@ def find_omp_root(start):
         cur = Path(start).resolve()
         home = Path.home().resolve()
         for cand in (cur, *cur.parents):
-            if omp_root(cand).is_dir():
+            if has_store(cand):
                 return cand
             if cand == home:
                 break
@@ -91,13 +92,21 @@ def parse_todo_line(line):
 
 
 def _sec(root):
+    """Read-resolving. Every reader below uses this."""
     return secretary_dir(root)
+
+
+def _sec_write(root):
+    """Write-resolving — append_ledger and session_stub only. Splitting the two
+    is what keeps a freshly anchored, not-yet-copied root from growing a second
+    secretary/ that no reader sees (omp_paths._write)."""
+    return secretary_dir_write(root)
 
 
 def append_ledger(root, event):
     """O_APPEND single complete JSON line (+newline). NOT via omp_atomic —
     atomic_write_json is whole-file replace, reserved for todo/done rewrites."""
-    sec = _sec(root)
+    sec = _sec_write(root)
     sec.mkdir(parents=True, exist_ok=True)
     event = dict(event)
     event.setdefault("ts", datetime.now().isoformat(timespec="seconds"))
@@ -319,7 +328,7 @@ def session_stub(root, session_id, changed, last_stage=None):
     sid = sanitize_session_id(session_id)
     if sid is None:
         return  # silent no-op — never write with an unsanitized id
-    sec = _sec(root)
+    sec = _sec_write(root)
     (sec / "journal").mkdir(parents=True, exist_ok=True)
     day = datetime.now().strftime("%Y-%m-%d")
     stub = "- %s session `%s` ended%s%s\n" % (

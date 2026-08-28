@@ -43,7 +43,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from omp_atomic import atomic_write_json  # noqa: E402
 from omp_content_audit import _BACKTICK_PATH, _PLACEHOLDER_PATH  # noqa: E402
-from omp_paths import DATASETS_MD_REL, DEFAULT_DOC_GLOBS, STRUCTURE_MD_REL, garden_state_json  # noqa: E402
+from omp_paths import DEFAULT_DOC_GLOBS, OWNED_BY_AUDIT_RELS, garden_state_json  # noqa: E402
+from omp_paths import garden_state_json_write  # noqa: E402
 
 STATE_VERSION = 1
 
@@ -62,7 +63,7 @@ STATE_VERSION = 1
 # `omp-audit`'s scan_structure_drift owns these two. Scanning them here would
 # report one drift under two stages, and the duplicate outlives whichever copy
 # gets fixed.
-OWNED_BY_AUDIT = {STRUCTURE_MD_REL, DATASETS_MD_REL}
+OWNED_BY_AUDIT = OWNED_BY_AUDIT_RELS
 
 SUPPRESS_MARKER = "GARDEN_OK"
 ESCALATE_AFTER = 3       # sweeps a finding may survive before it needs a decision
@@ -219,7 +220,7 @@ def merge(state: dict, findings: list, now: datetime) -> tuple:
 
 
 def record(root, state: dict) -> None:
-    atomic_write_json(garden_state_json(root), state)
+    atomic_write_json(garden_state_json_write(root), state)
 
 
 def format_report(annotated: list, resolved: list, doc_count: int) -> str:
