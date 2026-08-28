@@ -151,7 +151,7 @@ The procedure by which rule-architect **synthesizes** project-scanner's inductiv
    so audit doesn't flag them as "unclassified files".
 4. **Determine naming notation**: count the frequency of the order-prefix variant vs plain variant, activate only the dominant side's regex,
    adopting from the §2 table. Add daily note/concept note naming as `info` if the pattern is clear in the scan, otherwise omit.
-5. **Fill ignore**: put `.git/**`, `.omp/**`, `.obsidian/**` (Obsidian settings), `.smart-env/**`,
+5. **Fill ignore**: put `.git/**`, `.hq/**`, `.obsidian/**` (Obsidian settings), `.smart-env/**`,
    OS noise (`.DS_Store`, `*.tmp`, `*.backup`), gitignored embedded repos, and large folders awaiting external HDD migration
    into `ignore` to block audit noise / scan bloat. If a `.gitignore` exists, reflect its entries
    first (the ignore list the user has already declared).
@@ -189,7 +189,7 @@ The procedure by which rule-architect **synthesizes** project-scanner's inductiv
       { "applies_to": "*/", "regex": "^[0-3]_[A-Z][A-Za-z]+$", "description": "top-level PARA category is N_Singular (order-prefix variant)", "origin": "preset", "severity": "warn" }
     ]
   },
-  "ignore": [".git/**", ".omp/**", ".obsidian/**", "**/.DS_Store", "**/*.tmp", "**/*.backup"]
+  "ignore": [".git/**", ".hq/**", ".obsidian/**", "**/.DS_Store", "**/*.tmp", "**/*.backup"]
 }
 ```
 

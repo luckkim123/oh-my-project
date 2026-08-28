@@ -166,7 +166,7 @@ coverage/**
 *.log
 .env*
 .git/**
-.omp/**
+.hq/**
 ```
 
 > `.env*` is both an ignore and a §2 naming observation target (the double listing is intentional —
@@ -226,7 +226,7 @@ layout:
         "description": "lib modules are kebab-case", "severity": "warn" }
     ]
   },
-  "ignore": ["node_modules/**", ".next/**", "dist/**", ".env*", ".git/**", ".omp/**"]
+  "ignore": ["node_modules/**", ".next/**", "dist/**", ".env*", ".git/**", ".hq/**"]
 }
 ```
 

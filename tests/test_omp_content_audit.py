@@ -2,10 +2,13 @@
 from datetime import datetime
 from pathlib import Path
 
+import subprocess
+
 from hooks.omp_content_audit import (
     check_content_rule,
     find_dead_links,
     lint_wiki,
+    scan_layers,
     scan_structure_drift,
     split_frontmatter,
 )
@@ -354,3 +357,75 @@ def test_learned_user_overridden_blocks_ready_to_promote(tmp_path):
     )
     finds = lint_wiki(tmp_path, now=datetime(2026, 7, 11))
     assert not [f for f in finds if f["kind"] == "ready_to_promote"]
+
+
+# ---------------------------------------------------------------------------
+# scan_layers -- the `.hq/` store-layer axis (store-spec sections 3 and 5).
+# ---------------------------------------------------------------------------
+
+LAYERS = {"layers": {"root": ".hq", "tracked": ["community", "config"],
+                     "ignored": ["work", "runtime"]}}
+
+
+def _repo(tmp_path, gitignore):
+    """A git repo carrying one four-layer .hq anchor and the given .gitignore."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / ".gitignore").write_text(gitignore)
+    hq = tmp_path / ".hq"
+    (hq).mkdir()
+    (hq / ".anchor").write_text("id: fixture\n")
+    for layer in ("community", "config", "work", "runtime"):
+        (hq / layer).mkdir()
+        (hq / layer / "keep.md").write_text("x\n")
+    return tmp_path
+
+
+GOOD_IGNORE = "**/.hq/work/\n**/.hq/runtime/\n"
+
+
+def test_layers_axis_is_inert_without_the_rule(tmp_path):
+    """A project that never adopted the unified store is not in violation of it."""
+    _repo(tmp_path, GOOD_IGNORE)
+    assert scan_layers(tmp_path, {}) == []
+
+
+def test_layers_clean_repo_has_no_findings(tmp_path):
+    assert scan_layers(_repo(tmp_path, GOOD_IGNORE), LAYERS) == []
+
+
+def test_layers_flags_a_tracked_layer_that_git_ignores(tmp_path):
+    """The silent one: an over-broad rule ignores community/ and the record dies."""
+    root = _repo(tmp_path, "**/.hq/\n")
+    kinds = {f["kind"] for f in scan_layers(root, LAYERS)}
+    assert "layer_tracked" in kinds
+
+
+def test_layers_flags_an_ignored_layer_that_git_tracks(tmp_path):
+    """runtime/ holds locks and session state; committing it dirties every sync."""
+    root = _repo(tmp_path, "**/.hq/work/\n")
+    finds = scan_layers(root, LAYERS)
+    assert [f["path"] for f in finds if f["kind"] == "layer_ignored"] == [".hq/runtime"]
+
+
+def test_layers_flags_an_undeclared_fifth_layer(tmp_path):
+    root = _repo(tmp_path, GOOD_IGNORE)
+    (root / ".hq" / "scratch").mkdir()
+    finds = [f for f in scan_layers(root, LAYERS) if f["kind"] == "layer_unknown"]
+    assert len(finds) == 1 and finds[0]["path"].endswith(".hq/scratch")
+
+
+def test_layers_flags_an_unparseable_anchor(tmp_path):
+    root = _repo(tmp_path, GOOD_IGNORE)
+    (root / ".hq" / ".anchor").write_text("id: fixture\nmigrated: 2026-08-28\n")
+    assert [f["kind"] for f in scan_layers(root, LAYERS)] == ["anchor_parse"]
+
+
+def test_layers_reaches_a_nested_anchor(tmp_path):
+    """Anchors nest -- workspace runs a three-deep chain, so root-only is wrong."""
+    root = _repo(tmp_path, GOOD_IGNORE)
+    inner = root / "sub" / "project" / ".hq"
+    inner.mkdir(parents=True)
+    (inner / ".anchor").write_text("id: inner\n")
+    (inner / "scratch").mkdir()
+    finds = [f for f in scan_layers(root, LAYERS) if f["kind"] == "layer_unknown"]
+    assert len(finds) == 1 and "sub/project" in finds[0]["path"]

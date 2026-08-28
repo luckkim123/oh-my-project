@@ -5,6 +5,54 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-08-28 — the layers become a rule
+
+Phase 6 of the `.hq/` store unification. P3 moved omp's files into the four
+layers; nothing has checked since then that they *stay* in them. This release
+adds that check, so the next anchor to migrate is audited rather than trusted.
+
+### Added
+- **`rules.json.layers`** — a new optional rule type declaring the store root
+  and which top-level layers are tracked vs gitignored. Absent = the axis is
+  inert, because a project that never adopted the unified store is not in
+  violation of a layout it never adopted.
+- **`omp_content_audit.scan_layers(root, rules)`** — the audit axis for it.
+  Walks every `.hq/` anchor at or below root (anchors nest — one workspace here
+  runs a three-deep chain, so a root-only check is wrong) and reports four
+  finding kinds: `layer_unknown` (a top-level entry under the store root that no
+  declared layer claims), `layer_tracked` (a layer declared tracked that git
+  actually ignores), `layer_ignored` (a layer declared ignored that git does
+  not), `anchor_parse` (`.anchor` is not exactly one `id: <slug>` line).
+- 7 tests for the axis and 1 for the schema.
+
+### Changed
+- **The store-existence checks were a live false negative, not just stale prose.**
+  `omp_paths.has_store()` is `anchor OR legacy`, but ~47 sentences across the
+  skills and agents phrased the check as "does not yet have `.omp/`" — which
+  reads a *migrated* project as uninitialised. They now name the store rather
+  than one root. A token swap to `.hq/` would have inverted the same bug onto
+  every project still on the legacy store.
+- **`.gitignore` is no longer a choice to ask about.** Tracked-vs-ignored is
+  fixed by layer (`config/`+`community/` always tracked, `work/`+`runtime/`
+  always ignored via the two `**/.hq/` lines), so `output-layout.md`,
+  `omp-init`, and `omp-pilot` no longer ask the user and record an answer.
+- `skills/omp-audit/SKILL.md` and `agents/auditor.md` list the new axis.
+  **error-default**, unlike the docker/secretary/governance/graph hygiene axes:
+  an over-broad ignore rule over `community/` destroys the human record on the
+  next clone and nothing anywhere errors, which is data loss rather than
+  untidiness.
+- Doc paths that asserted a *current* location under `.omp/` now name the `.hq/`
+  layer. History and the documented dual-read resolution are untouched — the
+  legacy store is still read until the fallback-removal release.
+
+### Notes
+- **Per-file layer assignment is deliberately NOT re-derived here.**
+  `claudebase`'s `migrate-om-store.sh` owns that table; a second copy in omp
+  would drift invisibly, which is the defect that tool's own header warns about.
+  This axis checks the boundary, not the contents.
+- The P2 re-entry lint caught the first draft's bare `".hq"` literal in
+  `omp_content_audit.py` and sent it to `omp_paths.HQ_ROOT`. Working as intended.
+
 ## [0.14.0] — 2026-08-28 — the store moves
 
 Phase 3 of the `.hq/` store unification, and the first phase in this campaign

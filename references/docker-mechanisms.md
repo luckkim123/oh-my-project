@@ -7,7 +7,7 @@ multi-user dev-server methodology, and remote-training knowledge.
 
 ---
 
-## §1 Scaffold gate (omp-env writing to .omp/env/)
+## §1 Scaffold gate (omp-env writing to .hq/config/project/env/)
 
 omp-env generates docker assets; it does **not** run `docker build`/`up`/`push`.
 Every write goes through a four-step gate — no exceptions.
@@ -18,7 +18,7 @@ Every write goes through a four-step gate — no exceptions.
    Never silently overwrite.
 2. **Human approval** — wait for explicit approval before writing. This reuses the
    same dry-run→approve pattern as omp-organize (references/safe-fileops.md).
-3. **Write** — write the file to `.omp/env/` (canonical location) and the
+3. **Write** — write the file to `.hq/config/project/env/` (canonical location) and the
    root view (§3). Single-pass, careful; never parallel writes to the same target.
 4. **Disk verify** — after writing, confirm existence and non-emptiness on disk
    (`test -f`). For compose assets, additionally run `docker compose config` if the
@@ -56,15 +56,15 @@ use a placeholder (`<registry>/<image>:<version>`), not a real value.
 
 ---
 
-## §3 Canonical-view pattern (.omp/env/ → project root)
+## §3 Canonical-view pattern (.hq/config/project/env/ → project root)
 
 The **canonical Dockerfile (and compose, .env, .dockerignore)** lives in
-`.omp/env/`. The project root holds only a **build-tool view** — the file a
+`.hq/config/project/env/`. The project root holds only a **build-tool view** — the file a
 build tool needs to find at the conventional root path.
 
 | Platform | Root view | Drift behaviour |
 |:---|:---|:---|
-| Unix / macOS (default) | Symlink pointing at `.omp/env/<file>` | Drift structurally impossible — single backing file |
+| Unix / macOS (default) | Symlink pointing at `.hq/config/project/env/<file>` | Drift structurally impossible — single backing file |
 | Windows (fallback) | Sync copy written in the **same pass** as the canonical | Drift detected by hash compare on next omp-env run |
 
 **One-pass write rule for sync copies:** write canonical and root copy in the
@@ -80,7 +80,7 @@ Track image assets in two complementary stores — split by data type, not size.
 (md reads ~34–38% more token-efficiently than JSON for grep-first access; JSON
 wins for homogeneous keyed records. Verdict: hybrid, not wholesale conversion.)
 
-**`.omp/manifest.json` — `docker_images[]` array** (keyed facts, closed schema)
+**`.hq/config/project/manifest.json` — `docker_images[]` array** (keyed facts, closed schema)
 
 ```json
 {
@@ -88,8 +88,8 @@ wins for homogeneous keyed records. Verdict: hybrid, not wholesale conversion.)
     {
       "ref":        "${DOCKER_REGISTRY}/<purpose>-<base>",
       "tag":        "<semantic-version>",
-      "dockerfile": ".omp/env/<name>.Dockerfile",
-      "compose":    ".omp/env/<name>.compose.yml",
+      "dockerfile": ".hq/config/project/env/<name>.Dockerfile",
+      "compose":    ".hq/config/project/env/<name>.compose.yml",
       "backup":     "$DOCKER_BACKUP_DIR or registry ref",
       "size":       null,
       "digest":     null
@@ -102,7 +102,7 @@ Fields `size` and `digest` are **opt-in, nullable.** They require a live daemon
 (`docker images`/`inspect`). Default: leave `null`; fill only when the user
 opts into a read-only daemon query. Never guess or fabricate them.
 
-**`.omp/wiki/docker-*.md` — narrative knowledge** (heterogeneous prose, grep-recalled)
+**`.hq/community/wiki/docker-*.md` — narrative knowledge** (heterogeneous prose, grep-recalled)
 
 Store here: *why* this base image was chosen, GUI/GPU domain rationale, build
 pitfalls encountered, domain-specific setup notes. Use a small YAML frontmatter
@@ -135,7 +135,7 @@ break non-root, distroless, and privileged rules — that is correct for those
 domains, not a violation. Audit **warns**; it does not fail the build.
 
 A project may suppress a specific rule by adding a `rule_id → "off"` entry to
-`.omp/env/audit.toml`. Rule ids are data: the suppress list is auditable and
+`.hq/config/project/env/audit.toml`. Rule ids are data: the suppress list is auditable and
 reviewable, unlike a magic number override.
 
 **Parse structure, not regex.** Handle line continuations, heredocs, multi-stage
@@ -226,7 +226,7 @@ outside omp's scope.
   verify uniqueness before first launch.
 - **Host-port clash** — each user needs a distinct `BASE_PORT` offset. A port
   conflict silently routes traffic to the wrong container. Document the
-  allocation in `.omp/wiki/docker-multiuser-ports.md`.
+  allocation in `.hq/community/wiki/docker-multiuser-ports.md`.
 - **SSHFS UID mapping and stale mounts** — SSHFS mounts survive container
   restarts but not daemon restarts. Stale mounts show `Transport endpoint is not
   connected`; unmount and remount. UID remapping (`-o uid=…`) must match the
@@ -244,7 +244,7 @@ Docker `userns-remap` (daemon-level UID isolation).
 
 **What stays per-project only** (never in a distributed card): concrete
 usernames, actual UIDs/GIDs, assigned GPU IDs, host port numbers, data-directory
-paths. These belong in `.omp/wiki/docker-multiuser-*.md` in the specific project.
+paths. These belong in `.hq/community/wiki/docker-multiuser-*.md` in the specific project.
 
 ---
 

@@ -2,7 +2,7 @@
 name: omp-learn
 description: |
   Observation → rule promotion (omp's core evolution gate) — rule-architect reviews the observations
-  accumulated in `.omp/learned.md` during operation plus the auto-accumulated patterns in `.omp/wiki/`,
+  accumulated in `.hq/config/project/learned.md` during operation plus the auto-accumulated patterns in `.hq/community/wiki/`,
   and judges which of them qualify to be promoted into `rules.json` rules. The heavy channel (rules)
   must always pass a human approval gate, and each promotion raises rules.json's specificity, advancing
   "generic → specialized to this project" by one notch.
@@ -15,7 +15,7 @@ description: |
 
 <Purpose>
 This is the step where omp's asymmetry — "generic at deploy, specialized as you use it" — is *recorded*.
-rule-architect reads the observations accumulated in `.omp/learned.md` during operation (e.g. "in this
+rule-architect reads the observations accumulated in `.hq/config/project/learned.md` during operation (e.g. "in this
 folder .pkl always goes into data/processed/ — repeated 3 times") and judges which observations qualify
 to be **promoted** into rules.json's enforced rules. Promotion is a **one-way ratchet** that affects
 actual files (a wrongly promoted rule triggers a flood of omp-audit false violations + organizer's actual
@@ -26,19 +26,19 @@ disk.
 </Purpose>
 
 <Use_When>
-- During operation, enough observations have accumulated in `.omp/learned.md` to judge "shall we solidify these into rules now?"
+- During operation, enough observations have accumulated in `.hq/config/project/learned.md` to judge "shall we solidify these into rules now?"
 - The same pattern (folder placement, naming) has been repeatedly observed and you want to elevate it to an enforced rule
 - You want to raise specificity so omp becomes more specialized to this project
 - omp-pilot calls the learn step during its operating loop
 </Use_When>
 
 <Do_Not_Use_When>
-- If `.omp/` does not exist yet → run `omp-init` first (bootstrap + draft rules.json approval). learned.md
+- If no omp store exists yet → run `omp-init` first (bootstrap + draft rules.json approval). learned.md
   accumulates only during operation after init.
 - If you are *designing rules for the first time* or directly editing structure/naming rules → `omp-codify`
   (learn is *observation → evolving existing rules*, codify is *codifying/updating rules*).
 - If it is just a lightweight pattern/decision memo and not an enforced rule → do not promote; leave it to
-  auto-accumulate in `.omp/wiki/` (no gate needed, recalled via grep next session). Not every observation
+  auto-accumulate in `.hq/community/wiki/` (no gate needed, recalled via grep next session). Not every observation
   becomes a rule.
 - If it is rule *compliance verification* (PASS/FAIL) → `omp-audit` (auditor). learn *creates* rules, audit
   *adjudicates* them — different lanes.
@@ -56,7 +56,7 @@ disk.
   again at the next learn).
 - ⚠️ **Respect the 2-channel separation** — only the *heavy channel* (rules: learned.md → promotion →
   rules.json) is this skill's target and passes the gate. The *light channel* (patterns/decisions:
-  `.omp/wiki/*.md` auto-append) needs no gate — leave it untouched. Do not force-promote an observation
+  `.hq/community/wiki/*.md` auto-append) needs no gate — leave it untouched. Do not force-promote an observation
   that is not worth solidifying into a rule.
 - ⚠️ **Provenance enforced** — each promoted rule records the learned.md observation id that was its basis in
   `rules.json.learned_refs[]` (the schema's tracing field). A rule without provenance = a guess = silent file
@@ -74,17 +74,17 @@ disk.
 - **Present as a diff** — since `rules.json` already exists, rule-architect proposes as a *delta* (Added /
   Changed / Removed rules) rather than the whole file, so the human reviews only the changes.
 - The canonical procedure for the learning channels and promotion criteria is in
-  `references/learning-protocol.md` (2-channel definitions, evidence bar); the SSOT for `.omp/` path
+  `references/learning-protocol.md` (2-channel definitions, evidence bar); the SSOT for `.hq/` path
   conventions is `references/output-layout.md`.
 </Execution_Policy>
 
 <Steps>
-1. **Confirm SSOT and preconditions**: verify the project root and `<project>/.omp/` exist. If not, stop and
+1. **Confirm SSOT and preconditions**: verify the project root and that the store exists (`<project>/.hq/.anchor` or a legacy `<project>/.omp/`). If neither exists, stop and
    recommend running `omp-init` first (learned.md accumulates only during operation after init). Read the
    following files:
-   - `<project>/.omp/learned.md` — observations awaiting promotion (this skill's input)
-   - `<project>/.omp/rules.json` — existing rules to evolve (not a blind replacement, but *evolve*)
-   - `<project>/.omp/wiki/*.md` — light channel. grep to recall whether signals worth solidifying into rules
+   - `<project>/.hq/config/project/learned.md` — observations awaiting promotion (this skill's input)
+   - `<project>/.hq/config/project/rules.json` — existing rules to evolve (not a blind replacement, but *evolve*)
+   - `<project>/.hq/community/wiki/*.md` — light channel. grep to recall whether signals worth solidifying into rules
      have accumulated here (but wiki is an area that auto-accumulates without a gate, so *read* only — leave it untouched)
 2. **Classify observations (2-channel discrimination)**: for each observation in learned.md, separate into
    (a) candidate for promotion into a rule (heavy channel — subject to the gate) vs (b) pattern/decision memo
@@ -104,16 +104,16 @@ disk.
      subagent_type="oh-my-project:rule-architect",
      description="omp-learn: judge learned.md observations for promotion into rules.json",
      prompt="""
-     Role: omp-learn promotion judgment. Read the .omp/ SSOT below and judge which of the
+     Role: omp-learn promotion judgment. Read the .hq/ SSOT below and judge which of the
      learned.md observations qualify to be promoted into rules.json enforced rules, then emit
      a **proposal (diff)**. You are read-only — do not write rules.json directly, do not move
      files, and do not adjudicate compliance. A human approval gate sits between your proposal
      and the disk.
 
      Input (to read):
-     - <project>/.omp/learned.md      # observations awaiting promotion (incl. occurrence·counterexamples)
-     - <project>/.omp/rules.json      # existing rules to evolve (evolve, not replace)
-     - <project>/.omp/wiki/*.md       # light-channel signals (read only)
+     - <project>/.hq/config/project/learned.md      # observations awaiting promotion (incl. occurrence·counterexamples)
+     - <project>/.hq/config/project/rules.json      # existing rules to evolve (evolve, not replace)
+     - <project>/.hq/community/wiki/*.md       # light-channel signals (read only)
      - references/schemas/rules.schema.json   # draft must conform exactly here (additionalProperties:false)
      - references/learning-protocol.md        # 2-channel definitions + evidence bar (SSOT for promotion criteria)
 
@@ -138,19 +138,19 @@ disk.
    one this time", that is also decided here. ━━━
 5. **Apply approved items (only after passing the gate)**: only rules the human approved are written to disk by
    this skill.
-   - **First** snapshot the existing `.omp/rules.json` to `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json`
+   - **First** snapshot the existing `.hq/config/project/rules.json` to `.hq/work/project/versions/rules-v{NN}-{YYYY-MM-DD}.json`
      (promotion is a one-way ratchet — a rollback point if wrongly promoted; `references/output-layout.md` work
-     layer). After the snapshot, apply retention to `.omp/work/versions/`: keep only the latest N=10, prune
+     layer). After the snapshot, apply retention to `.hq/work/project/versions/`: keep only the latest N=10, prune
      older ones via trash (no permanent `rm`), and report one line "pruned X old snapshots" — the same skill
      that wrote the snapshot trims its own subfolder in the same pass (`output-layout.md`).
-   - `<project>/.omp/rules.json` — add/change approved rules, record source observation ids in
+   - `<project>/.hq/config/project/rules.json` — add/change approved rules, record source observation ids in
      `learned_refs[]`, update `specificity`, update `project.last_codified`. (Re-confirm schema conformance.
      rules.json and snapshot writes go through the `hooks/omp_atomic.py` atomic write to prevent partial-write
      corruption — T20.)
    - Synchronously regenerate the paired .md (the .md↔.json pairing rule in output-layout.md): if rules.json
      structure/naming rules change, update `STRUCTURE.md`·`NAMING.md`; if content_conventions change, update
      `CONVENTIONS.md` in the same pass to prevent drift (CONVENTIONS.md only when content_conventions exist).
-   - `<project>/.omp/learned.md` — mark promoted observations as "promoted → rules.json (date)"; held ones keep
+   - `<project>/.hq/config/project/learned.md` — mark promoted observations as "promoted → rules.json (date)"; held ones keep
      candidate status (re-evaluated at the next learn).
 6. **Follow-up guidance**: since the rules changed, advise checking the new rule compliance with `omp-audit`, and
    if violations arise, re-placing files with `omp-organize` (safe-fileops.md + dry-run + approval before moving).
@@ -161,7 +161,7 @@ disk.
 - rule-architect's **promotion proposal diff** (Added/Changed/Removed rules) + provenance table (each rule →
   learned.md observation id) + specificity-change rationale + human decision list.
 - GATE decision history (promote/hold/edit/abort).
-- On passing the gate: the updated `<project>/.omp/rules.json` (learned_refs[]·specificity·last_codified) +
+- On passing the gate: the updated `<project>/.hq/config/project/rules.json` (learned_refs[]·specificity·last_codified) +
   the synchronously regenerated `STRUCTURE.md`/`NAMING.md` + the marked `learned.md` path.
 - The held candidate list (observations to re-evaluate at the next learn) + guidance "recommend checking new
   rule compliance with omp-audit". Note explicitly that rule-architect does not self-approve — promotion was

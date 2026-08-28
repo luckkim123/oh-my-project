@@ -124,7 +124,7 @@ The procedure by which rule-architect **synthesizes** project-scanner's inductiv
    **adopt it as authoritative** — reflect its `role` sentences and empty-number reservations verbatim.
    This is johnny-decimal's core specialization point (a human-authored SSOT that code repos lack).
 4. **Confirm naming notation**: count dot-notation vs shorthand-notation frequency, activate only the dominant side's regex, adopt from the §2 table.
-5. **Fill ignore**: put `.git/**`, `.omp/**`, OS noise (`.DS_Store`, `.Trash/**`, `*.nosync`, `Icon?`),
+5. **Fill ignore**: put `.git/**`, `.hq/**`, OS noise (`.DS_Store`, `.Trash/**`, `*.nosync`, `Icon?`),
    and sync-conflict byproducts (`* (1).*`, `*conflicted*`) into `ignore` to block audit noise.
 6. **specificity**: don't hammer in a value — *compute* it with the formula in `learning-protocol.md` §4 — the weighted ratio of each rule's `origin`
    (`preset`/`inductive`/`learned`). The `directories[]` baked from the measured directories are
@@ -154,7 +154,7 @@ The procedure by which rule-architect **synthesizes** project-scanner's inductiv
       { "applies_to": "*/*/", "regex": "^[0-9]{2}_[A-Za-z0-9][A-Za-z0-9_]*$",       "description": "Category folder (one level down) is BB_Name",        "origin": "preset", "severity": "warn" }
     ]
   },
-  "ignore": [".git/**", ".omp/**", "**/.DS_Store", "**/*.nosync", "**/* (1).*"]
+  "ignore": [".git/**", ".hq/**", "**/.DS_Store", "**/*.nosync", "**/* (1).*"]
 }
 ```
 

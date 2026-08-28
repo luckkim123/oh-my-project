@@ -20,7 +20,7 @@ it instead: every backtick-quoted path in the project's prose is resolved agains
 and what does not resolve is reported with its line and its sentence.
 
 The stage exists **beside** `omp-audit`, not inside it. `scan_structure_drift` already covers declared
-paths — `rules.json structure.directories[]` and `.omp/STRUCTURE.md` / `.omp/DATASETS.md` — and this
+paths — `rules.json structure.directories[]` and `.hq/config/project/STRUCTURE.md` / `.hq/config/project/DATASETS.md` — and this
 sweep deliberately skips those two files so one drift is never reported under two stages. What was
 uncovered is everything else: the README, `docs/`, handoff notes, a sibling harness's page.
 </Purpose>
@@ -36,10 +36,10 @@ uncovered is everything else: the README, `docs/`, handoff notes, a sibling harn
 - Checking rule compliance, checksums, or split leakage → `omp-audit` (this stage checks prose against
   the tree, not the tree against the rules).
 - Moving or renaming files to satisfy a rule → `omp-organize` (this stage never moves anything).
-- Regenerating `.omp/PROJECT.md`·`STRUCTURE.md`·`NAMING.md` from the scanner inventory → `omp-doc`.
+- Regenerating `.hq/community/PROJECT.md`·`STRUCTURE.md`·`NAMING.md` from the scanner inventory → `omp-doc`.
 - Re-triaging `todo.txt`/`raid.md` staleness → `omp-review` (a different axis: the secretary's time
   axis, not the documents).
-- `.omp/` doesn't exist yet → `omp-init` first; there is no project knowledge to garden.
+- No omp store exists yet → `omp-init` first; there is no project knowledge to garden.
 </Do_Not_Use_When>
 
 <Execution_Policy>
@@ -52,7 +52,7 @@ uncovered is everything else: the README, `docs/`, handoff notes, a sibling harn
   historical and correct as written → mark the line `GARDEN_OK: <reason>`). A sweep that only ever
   repoints launders stale documents as checked ones.
 - ⚠️ **The stop condition is "no new findings", and it is read from state, not judged.** Every sweep
-  writes `.omp/garden-state.json`, which counts the sweeps each finding has survived. A finding at
+  writes `.hq/runtime/project/garden-state.json`, which counts the sweeps each finding has survived. A finding at
   **3 sweeps** is marked `ESCALATE` — it has been shown twice and nobody acted, so it needs a decision
   rather than a fourth report. Do not silently carry it forward.
 - ⚠️ **omp does not schedule anything.** Claude Code already provides the periodic substrate; making
@@ -63,7 +63,7 @@ uncovered is everything else: the README, `docs/`, handoff notes, a sibling harn
 </Execution_Policy>
 
 <Steps>
-1. Confirm `.omp/` exists. If not, say so and STOP (`omp-init` first).
+1. Confirm the store exists (`.hq/.anchor` or a legacy `.omp/`). If neither exists, say so and STOP (`omp-init` first).
 2. Run the sweep — the deterministic core, never eyeballed:
 
    ```bash
@@ -72,7 +72,7 @@ uncovered is everything else: the README, `docs/`, handoff notes, a sibling harn
    python3 hooks/omp_doc_garden.py --root <project> --doc-glob 'notes/**/*.md'
    ```
 
-   Default sweep set is `*.md`, `.omp/*.md`, `docs/*.md` — deliberately not `docs/**`, because a
+   Default sweep set is `*.md`, `.hq/community/*.md`, `.hq/config/project/*.md`, `docs/*.md` — deliberately not `docs/**`, because a
    docs subtree is often a vendored analysis of *another* repo and every path it cites is
    correctly absent here. Add `--doc-glob` for prose that lives elsewhere (a vault's
    `0_Project/`, a repo's `notes/`). Repeatable.
@@ -92,6 +92,6 @@ uncovered is everything else: the README, `docs/`, handoff notes, a sibling harn
 - The per-finding verdict the human chose, and what was edited for it.
 - If nothing drifted: say so plainly with the document count — a quiet sweep is the result, not a
   non-answer.
-- `.omp/garden-state.json` is updated by the script itself. Never hand-edit it; it is the activity
+- `.hq/runtime/project/garden-state.json` is updated by the script itself. Never hand-edit it; it is the activity
   evidence that distinguishes a loop that runs from one that was only scaffolded.
 </Output>

@@ -245,3 +245,19 @@ def test_code_graphs_instance_validates():
         "convention": "notes (.md) are absent from this graph — query prose with tokensave",
     }]}
     jsonschema.validate(ok, load(RULES_SCHEMA))
+
+
+def test_rules_schema_has_layers():
+    """layers: the `.hq/` tracked/ignored boundary, declared so audit can check it."""
+    s = load(RULES_SCHEMA)
+    ly = s["properties"]["layers"]
+    assert ly["type"] == "object"
+    assert ly["additionalProperties"] is False
+    props = ly["properties"]
+    assert props["root"]["default"] == ".hq"
+    assert props["tracked"]["default"] == ["community", "config"]
+    assert props["ignored"]["default"] == ["work", "runtime"]
+    # error, not warn: a mis-ignored layer loses data rather than being untidy
+    assert props["severity"]["default"] == "error"
+    assert set(props["origin"]["enum"]) == {"preset", "inductive", "learned", "standard"}
+    assert "layers" not in s["required"]

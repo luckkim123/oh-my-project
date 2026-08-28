@@ -93,7 +93,7 @@ The procedure by which `omp-init` overlays a folder onto this preset. **rule-arc
 2. **dir mapping**: actual dirs found by the scan → mapped to this card's role vocabulary. If the name differs, **keep the actual name + adopt only the role** (`outputs/`→role="result numbers", `exp/`→role="experiment unit"). A dir present in the card but absent from the scan is **not** put into `rules.json`.
 3. **naming induction**: validate/narrow the §2 seed regexes against the majority of observed basenames. Adopt if they match, re-extract the pattern from observations if they don't. At the init stage severity is `warn`/`info` only.
 4. **dataset seed**: when `data/`·`results/` exist, leave a recommendation note in STRUCTURE.md to call `omp-dataset` (no auto-registration — registration is a human-confirm gate). Also record the DVC detection result.
-5. **specificity = 0** for the draft + `project.preset_origin = "research-lab"`. After passing the human gate (draft rules.json approval), `.omp/rules.json` is finalized.
+5. **specificity = 0** for the draft + `project.preset_origin = "research-lab"`. After passing the human gate (draft rules.json approval), `.hq/config/project/rules.json` is finalized.
 6. **STRUCTURE.md / NAMING.md**: transcribe this card's role boundaries (§1) and date conventions (§2) into prose in the human-facing documents — so a human can read them and correct any mismatched rule.
 
 **Synthesis vs enforcement, one line**: this card is a dictionary of *what to expect*, not a command of *what to create*. On conflict, **the observations win** — the preset provides only vocabulary and defaults.
@@ -117,7 +117,7 @@ Each time learn promotes one item, `specificity` shifts from 0 toward 1, and the
 
 ## 6. wiki auto-accumulation examples (lightweight channel, no approval needed)
 
-Lightweight patterns/decisions auto-appended to `.omp/wiki/` during `research-lab` operation (recalled by grep in the next session):
+Lightweight patterns/decisions auto-appended to `.hq/community/wiki/` during `research-lab` operation (recalled by grep in the next session):
 - "Started writing the seed into config.yaml from exp-013 on — earlier experiments have unknown seeds"
 - "data/raw/ is a NAS mirror, local keeps only processed — original hash is UNHASHED in the manifest"
 - "Figure font fixed at 16pt for presentations (rcParams in make_figures.py)"

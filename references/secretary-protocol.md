@@ -1,9 +1,9 @@
-# Secretary Protocol — the `.omp/secretary/` file contract (SSOT)
+# Secretary Protocol — the `.hq/config/project/secretary/` file contract (SSOT)
 
 This card is the single source of truth for the **secretary axis** — the time axis
 (progress tracking, session journal, todo/RAID, decisions, briefing) that sits alongside
 omp's existing space axis (folder structure/naming governance). Every skill or agent that
-reads or writes `.omp/secretary/**` MUST obey this card — `omp-log`, `omp-brief`,
+reads or writes `.hq/config/project/secretary/**` MUST obey this card — `omp-log`, `omp-brief`,
 `omp-review`, the `chronicler` agent, and the `omp_session_brief.py` / `omp_session_capture.py`
 hooks.
 
@@ -12,15 +12,15 @@ hooks.
 > source for everything in this card. Where this card and the design doc ever appear to
 > disagree, the design doc's D-table wins and this card should be corrected to match.
 
-The path contract for where `.omp/` (governance) lives is `references/output-layout.md`.
-This card is that same kind of contract, scoped to `.omp/secretary/`.
+The path contract for where `.hq/` (governance) lives is `references/output-layout.md`.
+This card is that same kind of contract, scoped to `.hq/config/project/secretary/`.
 
 ---
 
 ## Layout
 
 ```
-<project>/.omp/secretary/
+<project>/.hq/config/project/secretary/
 ├── BRIEF.md              # ≤30 lines AND ≤2000 chars, regenerated, omp-managed marker+hash
 ├── todo.txt              # todo.txt schema, one line = one task (done moves to done.txt at review)
 ├── done.txt              # completed-task archive (todo.txt convention)
@@ -182,7 +182,7 @@ targets in `rules.json`:
 
 ## ADR format
 
-`.omp/secretary/decisions/NNNN-slug.md`, zero-padded 4-digit sequence number + slug.
+`.hq/config/project/secretary/decisions/NNNN-slug.md`, zero-padded 4-digit sequence number + slug.
 5 fields (Nygard 2011 form), created once and never edited except via a new superseding
 ADR:
 
@@ -219,7 +219,7 @@ digest):
 Per D7: the secretary axis has **two disjoint writers**, split at line granularity, never
 by file:
 
-- **`chronicler`** (the only LLM writer, scope `.omp/secretary/**`) owns narrative/judgment
+- **`chronicler`** (the only LLM writer, scope `.hq/config/project/secretary/**`) owns narrative/judgment
   content: journal prose, `decisions/`, `todo.txt`, `raid.md`, `BRIEF.md`.
 - **Hooks** (`omp_session_brief.py`, `omp_session_capture.py` — no LLM call) own machine
   append: `ledger.jsonl` in full, and the session-stub lines appended to
@@ -235,7 +235,7 @@ wrote.
 
 ## See also
 
-- `references/output-layout.md` — the `.omp/` SSOT vs work-layer boundary; this card's
+- `references/output-layout.md` — the `.hq/` SSOT vs work-layer boundary; this card's
   `secretary/` entry there is the pointer back to this document.
 - `references/learning-protocol.md` — the heavy/light channel boundary; secretary files
   are **not** a third learning channel — a promoted journal lesson or raid pattern still

@@ -153,7 +153,7 @@ The **inductive signals (scan signals)** by which rule-architect selects this ca
 2. **Project the card's generic layout onto the scanned actual tree** — put only directories·packages that exist into `structure.directories[]` (don't enforce nonexistent folders).
 3. Look at the actual manifest filename·actual package naming pattern and substitute `applies_to`/`regex` in `naming.patterns[]` (e.g., if it's `snake_case` rather than kebab, swap the regex).
 4. Start with `specificity = 0` (pure preset). The more you fill via induction, the higher the effective specialization; but explicit specificity is raised by omp-learn promotion.
-5. Present the draft `rules.json` + STRUCTURE.md/NAMING.md at the human gate. Write to `.omp/` only after approval.
+5. Present the draft `rules.json` + STRUCTURE.md/NAMING.md at the human gate. Write to `.hq/` only after approval.
 
 **When uncertain**: Don't hardcode card rules as enforced; leave them as `severity: "info"` or
 learned.md candidates — monorepos vary widely in convention across teams, so seed conservatively

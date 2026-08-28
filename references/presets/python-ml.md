@@ -5,7 +5,7 @@
 > **inductive scan** (the actual folder tree, extensions, and naming patterns). This card is a
 > **generic seed** — it is distributed identically to every user.
 > Do not bake a specific project's unique rules in here. Those are promoted by `omp-learn` into
-> `<project>/.omp/rules.json`.
+> `<project>/.hq/config/project/rules.json`.
 >
 > **Synthesis principle**: This card is only a **prior** stating "a project of this type usually looks
 > like this." When the actual scanned folders disagree with the card, **the actual folders win**
@@ -177,7 +177,7 @@ recorded in `learned_refs`):
 | "notebook number prefixes are actually consistent" | promote §2's `info` notebook rule to `warn` |
 | "this repo uses an `experiments/` directory (not in the preset)" | add a new `directories[]` entry, specificity rises |
 
-What accumulates automatically into the light channel (`.omp/wiki/`) without approval: **reference notes** like
+What accumulates automatically into the light channel (`.hq/community/wiki/`) without approval: **reference notes** like
 "this project uses parquet", "the seed=42 convention", "the train script reads a hydra config". **Context** that
 isn't a rule (doesn't trigger file moves) goes to the wiki.
 

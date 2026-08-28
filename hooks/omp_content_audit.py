@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 sys.path.insert(0, str(Path(__file__).parent))
-from omp_paths import datasets_md, learned_md, structure_md, wiki_dir  # noqa: E402
+from omp_paths import HQ_ROOT, datasets_md, learned_md, structure_md, wiki_dir  # noqa: E402
 
 _FM = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
@@ -252,4 +252,84 @@ def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
                               "detail": "conflicting path_constraint across %s" %
                                         ", ".join(b["id"] for b in group)})
 
+    return finds
+
+
+# --------------------------------------------------------------------------
+# Store-layer audit (`rules.json.layers`, store-spec §3/§5).
+#
+# The `.hq/` cutover assigns every file to one of four layers, and two of them
+# are gitignored on purpose. That split is enforced by nothing at rest: a
+# `.gitignore` that misses `community/` deletes the human record on the next
+# clone, and neither git nor the migration tool says a word — the store looks
+# healthy right up until another machine reads it. This axis is that missing
+# detector, and it deliberately does NOT re-derive per-file layer assignment:
+# `migrate-om-store.sh` owns that table, and a second copy of it here would
+# drift invisibly (which is the defect the tool's own header warns about).
+#
+# Absent `rules.json.layers`, the axis returns nothing — a project with no
+# unified store is not in violation of a layout it never adopted.
+# --------------------------------------------------------------------------
+
+_ANCHOR_LINE = re.compile(r"\Aid: (\S+)\n?\Z")
+
+
+def _git_ignores(repo: Path, rel: str) -> Optional[bool]:
+    """True/False if git can answer, None outside a work tree (no-git anchors)."""
+    import subprocess
+    try:
+        p = subprocess.run(["git", "-C", str(repo), "check-ignore", "-q", rel],
+                           capture_output=True)
+    except (OSError, ValueError):
+        return None
+    # 0 = ignored, 1 = not ignored, 128 = not a repo / other fatal
+    return True if p.returncode == 0 else (False if p.returncode == 1 else None)
+
+
+def scan_layers(root: Path, rules: dict) -> list[dict]:
+    """Check every `.hq/` anchor at or below root against rules.json.layers.
+
+    Finding kinds:
+      layer_unknown   a top-level entry under the store root that is not a
+                      declared layer -- a fifth layer nobody agreed to
+      layer_tracked   a layer declared tracked that git actually ignores
+                      (the silent one: the record dies on the next clone)
+      layer_ignored   a layer declared ignored that git does not ignore
+                      (session state and locks leak into commits)
+      anchor_parse    `.anchor` is not exactly one `id: <slug>` line
+    """
+    cfg = rules.get("layers")
+    if not cfg:
+        return []
+    root = Path(root)
+    store = cfg.get("root", HQ_ROOT)
+    tracked = list(cfg.get("tracked", ["community", "config"]))
+    ignored = list(cfg.get("ignored", ["work", "runtime"]))
+    known = set(tracked) | set(ignored) | {".anchor"}
+    finds: list[dict] = []
+
+    anchors = sorted({p.parent.parent for p in root.rglob(f"{store}/.anchor")})
+    for anchor in anchors:
+        hq = anchor / store
+        rel_anchor = str(anchor.relative_to(root)) if anchor != root else "."
+        text = (hq / ".anchor").read_text(encoding="utf-8", errors="replace")
+        if not _ANCHOR_LINE.match(text):
+            finds.append({"kind": "anchor_parse", "path": f"{rel_anchor}/{store}/.anchor",
+                          "detail": "expected exactly one 'id: <slug>' line"})
+        for entry in sorted(hq.iterdir()):
+            if entry.name not in known:
+                finds.append({"kind": "layer_unknown", "path": f"{rel_anchor}/{store}/{entry.name}",
+                              "detail": "not one of %s" % ", ".join(sorted(known))})
+        for layer, want_ignored in [(l, False) for l in tracked] + [(l, True) for l in ignored]:
+            if not (hq / layer).exists():
+                continue
+            rel = str((hq / layer).relative_to(root))
+            got = _git_ignores(root, rel)
+            if got is None or got == want_ignored:
+                continue
+            finds.append({"kind": "layer_ignored" if want_ignored else "layer_tracked",
+                          "path": rel,
+                          "detail": "declared %s but git says %s" % (
+                              "ignored" if want_ignored else "tracked",
+                              "tracked" if got is False else "ignored")})
     return finds

@@ -1,7 +1,7 @@
 ---
 name: omp-organize
 description: |
-  Rule-violation detection → safe relocation — the auditor detects violations against .omp/rules.json,
+  Rule-violation detection → safe relocation — the auditor detects violations against .hq/config/project/rules.json,
   and the organizer moves files via the mv→verify→delete safety protocol. Human approval + dry-run enforced before any move.
   Detection (auditor read-only) ≠ execution (organizer write) separation. The only stage that moves files.
   Triggers: 정리해줘, 규칙대로 정리, 재배치, 파일 옮겨, 위반 정리, 폴더 정리,
@@ -11,7 +11,7 @@ description: |
 # omp-organize — Rule-violation detection → safe relocation
 
 <Purpose>
-Find files that break the structure/naming rules codified in `.omp/rules.json`, and safely move them to the place the rules require. This splits into two lanes: **the auditor (read-only) detects violations**, and **the organizer (write) executes the moves**. Because this is the only stage in all of omp that actually moves files, it never bypasses the mv→verify→delete protocol, trash routing, rename avoidance, human approval, and dry-run defined in `references/safe-fileops.md`. If "organizing" loses a file, the entire value of omp collapses — every safeguard in this stage exists to prevent that one thing.
+Find files that break the structure/naming rules codified in `.hq/config/project/rules.json`, and safely move them to the place the rules require. This splits into two lanes: **the auditor (read-only) detects violations**, and **the organizer (write) executes the moves**. Because this is the only stage in all of omp that actually moves files, it never bypasses the mv→verify→delete protocol, trash routing, rename avoidance, human approval, and dry-run defined in `references/safe-fileops.md`. If "organizing" loses a file, the entire value of omp collapses — every safeguard in this stage exists to prevent that one thing.
 </Purpose>
 
 <Use_When>
@@ -25,7 +25,7 @@ Find files that break the structure/naming rules codified in `.omp/rules.json`, 
 - If you only need a **verdict** on rule compliance (PASS/FAIL with no moving) → `omp-audit`
 - If you're going to change the rules themselves or create new ones → `omp-codify` (fix the rules first, then organize)
 - If it's dataset metadata registration/tracking → `omp-dataset` (the organizer doesn't move data; the dataset-curator handles metadata only)
-- If `.omp/` doesn't exist yet → `omp-init` first (with no rules, you can't define a violation)
+- If no omp store exists yet → `omp-init` first (with no rules, you can't define a violation)
 - If you're promoting observations into rules → `omp-learn`
 </Do_Not_Use_When>
 
@@ -38,16 +38,16 @@ Find files that break the structure/naming rules codified in `.omp/rules.json`, 
 - ⚠️ **dry-run first**: every batch move/delete first outputs the full plan (from → to, with the violated rule cited) and the verification commands *that will run*, with **0 mutation**, via dry-run. Actual execution is entered only after showing the dry-run output to a human and getting approval.
 - ⚠️ **Human approval gate (before moving)**: the organizer never auto-moves. It presents the move plan, and a human must approve before it touches the filesystem at all.
 - All paths are `pathlib`-based, OS-neutral. No hardcoded absolute paths or `~` (`Path.home()`/`Path.cwd()`).
-- Lightweight patterns discovered along the way (e.g. "this extension always gathers into this folder") are auto-appended to `.omp/wiki/` per the light channel of `references/learning-protocol.md` (no approval needed). Heavy observations worth hardening into rules are written only as candidates to `.omp/learned.md` → handed to the `omp-learn` gate (rules.json is not edited directly here).
+- Lightweight patterns discovered along the way (e.g. "this extension always gathers into this folder") are auto-appended to `.hq/community/wiki/` per the light channel of `references/learning-protocol.md` (no approval needed). Heavy observations worth hardening into rules are written only as candidates to `.hq/config/project/learned.md` → handed to the `omp-learn` gate (rules.json is not edited directly here).
 </Execution_Policy>
 
 <Steps>
-1. **Confirm target and scope**: confirm the project root to organize and the existence of `.omp/rules.json`·`.omp/STRUCTURE.md`·`.omp/NAMING.md`. Decide the scope (whole tree / a specific subfolder) and the severity filter (error only / error+warn). If `.omp/` is missing, stop immediately and point to `omp-init`.
+1. **Confirm target and scope**: confirm the project root to organize and the existence of `.hq/config/project/rules.json`·`.hq/config/project/STRUCTURE.md`·`.hq/community/NAMING.md`. Decide the scope (whole tree / a specific subfolder) and the severity filter (error only / error+warn). If the store is missing (neither `.hq/.anchor` nor a legacy `.omp/`), stop immediately and point to `omp-init`.
 2. **Delegate the detection lane (auditor, read-only)**: delegate violation detection via `Task(subagent_type="oh-my-project:auditor", ...)`.
-   - Inputs: project root, `.omp/rules.json` (the machine-rule SSOT), `references/schemas/rules.schema.json` (schema), scope, severity filter.
+   - Inputs: project root, `.hq/config/project/rules.json` (the machine-rule SSOT), `references/schemas/rules.schema.json` (schema), scope, severity filter.
    - Instructions: inspect the actual tree according to rules.json's `structure.directories[].enforced`·`naming.patterns[].regex` (Python re)·`ignore` globs. For each violation, output {violating file path, the rule it breaks (structure/naming + rule id), severity (error/warn/info), proposed destination (which rule requires it to go where)}. **Does not move files — detection only**.
 3. **Receive the violation list + draft the move plan**: take the auditor output, aggregate by severity, and organize each violation into a `from → to` move plan (with the violated rule cited). Ambiguous destinations (where no single place is pinned down by a rule) are split out as **human-question items**, not move candidates.
-4. **Present the dry-run (0 mutation)**: ask the organizer for a dry-run that outputs the full move plan + the verification commands *that will run* (`find`/`ls`/SHA-256 comparison) and delete paths (trash branch). This step does not touch the user's filesystem. The dry-run plan (from→to + violated rule cited + verification commands) is recorded to `.omp/work/plans/organize-{YYYY-MM-DD-HHMM}.md` as undo provenance (`references/output-layout.md` work layer — this record is a write to omp's own workspace, not a user file). After recording, prune `.omp/work/plans/` per retention: keep only the latest N=10 and trash-route older plans (no permanent `rm`), reporting one line "pruned X old plans" — the skill that records trims its own subfolder.
+4. **Present the dry-run (0 mutation)**: ask the organizer for a dry-run that outputs the full move plan + the verification commands *that will run* (`find`/`ls`/SHA-256 comparison) and delete paths (trash branch). This step does not touch the user's filesystem. The dry-run plan (from→to + violated rule cited + verification commands) is recorded to `.hq/work/project/plans/organize-{YYYY-MM-DD-HHMM}.md` as undo provenance (`references/output-layout.md` work layer — this record is a write to omp's own workspace, not a user file). After recording, prune `.hq/work/project/plans/` per retention: keep only the latest N=10 and trash-route older plans (no permanent `rm`), reporting one line "pruned X old plans" — the skill that records trims its own subfolder.
 
 #### wikilink inbound 카운트 (para preset 한정 — Release 2)
 
@@ -86,8 +86,8 @@ inbound 위키링크 수를 dry-run 계획서에 병기한다 — 파일시스�
 6. **Delegate the execution lane (organizer, write)**: only for the approved plan, delegate the actual moves via `Task(subagent_type="oh-my-project:organizer", ...)`.
    - Inputs: the approved move plan (from→to + rule citation), `references/safe-fileops.md` (absolute protocol), target OS info.
    - Instructions: execute each move in **copy-verify-delete** order — mv/copy → verify the destination with `find`/`ls`+SHA-256 → delete the source via trash only after passing. Avoid rename; for sync folders, confirm superset. If even one item fails verification, **STOP that item in a rollback-able state** and report (whether to proceed with the rest goes to the human).
-7. **Post-verification + recording**: after moving, confirm with `omp-audit` (or auditor re-detection) that the violations were actually resolved (target: 0 residual violations). Lightweight patterns surfaced during organizing are appended to `.omp/wiki/`; heavy observations worth turning into rules are written as candidates to `.omp/learned.md` and handed to `omp-learn`.
-8. **Index synchronization (mandatory if you changed structure)**: if a move/rename **changed the name, hierarchy, or existence of a folder that appears by name in rules.json `structure.directories[].path` or the STRUCTURE.md tree**, that change makes the index *inconsistent* — `.omp/STRUCTURE.md`·`rules.json` (+ `DATASETS.md` if the path is written there) end up pointing at the old path (drift). This synchronization is **part of organize's definition of done**: finish it inside organize without a separate user request (it's a failure if you make the user say "fix the index too" again). Decision — *is the folder you just moved/renamed written by name in rules.json·STRUCTURE.md?* **No** (you merely moved files into place per the rules, structure definition unchanged) → no-op, the index is already correct. **Yes** → if it's a simple path-string substitution, sync directly with Edit; if the rule *meaning* changed (e.g. new `enforced`·`role`·section) hand it to the `omp-codify` gate (rule-architect proposal → human approval). State the synced files and old→new paths in the Output.
+7. **Post-verification + recording**: after moving, confirm with `omp-audit` (or auditor re-detection) that the violations were actually resolved (target: 0 residual violations). Lightweight patterns surfaced during organizing are appended to `.hq/community/wiki/`; heavy observations worth turning into rules are written as candidates to `.hq/config/project/learned.md` and handed to `omp-learn`.
+8. **Index synchronization (mandatory if you changed structure)**: if a move/rename **changed the name, hierarchy, or existence of a folder that appears by name in rules.json `structure.directories[].path` or the STRUCTURE.md tree**, that change makes the index *inconsistent* — `.hq/config/project/STRUCTURE.md`·`rules.json` (+ `DATASETS.md` if the path is written there) end up pointing at the old path (drift). This synchronization is **part of organize's definition of done**: finish it inside organize without a separate user request (it's a failure if you make the user say "fix the index too" again). Decision — *is the folder you just moved/renamed written by name in rules.json·STRUCTURE.md?* **No** (you merely moved files into place per the rules, structure definition unchanged) → no-op, the index is already correct. **Yes** → if it's a simple path-string substitution, sync directly with Edit; if the rule *meaning* changed (e.g. new `enforced`·`role`·section) hand it to the `omp-codify` gate (rule-architect proposal → human approval). State the synced files and old→new paths in the Output.
 
 > **Order is invariant**: auditor (detect) → move plan → dry-run → **human approval** → organizer (execute) → post-audit → **index sync**. Under no circumstances does the detection context execute directly, or skip approval/dry-run. **A move that changed structure is one task that runs through index sync** — don't move on to the next task with the old path still in the index.
 </Steps>
@@ -98,7 +98,7 @@ inbound 위키링크 수를 dry-run 계획서에 병기한다 — 파일시스�
 - Human approval decision history (proceed/some/revise/abort)
 - Execution results: copy-verify-delete verification evidence for each move (count·SHA-256 match), trash-routed delete paths, failed/rolled-back items (if any)
 - Post-audit result (residual violation count) + human-question items split out for ambiguous destinations
-- **Index sync result**: the `.omp/` files updated if structure changed (STRUCTURE.md·rules.json·DATASETS.md) with old→new paths / if structure unchanged, state "index sync not needed (no-op)"
-- `.omp/wiki/` auto-append entries / `.omp/learned.md` promotion candidates (→ point to omp-learn)
+- **Index sync result**: the `.hq/config/project/` files updated if structure changed (STRUCTURE.md·rules.json·DATASETS.md) with old→new paths / if structure unchanged, state "index sync not needed (no-op)"
+- `.hq/community/wiki/` auto-append entries / `.hq/config/project/learned.md` promotion candidates (→ point to omp-learn)
 - ⚠️ State that no move was executed without approval / no safe-fileops.md bypass
 </Output>

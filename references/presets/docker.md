@@ -5,7 +5,7 @@
 > **inductive scan** (the actual folder tree, extensions, and naming patterns). This card is a
 > **generic seed** — it is distributed identically to every user.
 > Do not bake a specific project's unique rules in here. Those are promoted by `omp-learn` into
-> `<project>/.omp/rules.json`.
+> `<project>/.hq/config/project/rules.json`.
 >
 > **Synthesis principle**: This card is only a **prior** stating "a project of this type usually looks
 > like this." When the actual scanned folders disagree with the card, **the actual folders win**

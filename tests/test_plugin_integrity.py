@@ -68,7 +68,7 @@ def test_omp_env_skill_registered():
     assert text.startswith("---")
     assert "name: omp-env" in text
     # 생성 게이트·정본 위치 불변계약이 본문에 명시되어야 함
-    assert ".omp/env/" in text
+    assert ".hq/config/project/env/" in text
     assert "dry-run" in text.lower()
     assert "not-a-build-runner" in text.lower() or "not a build runner" in text.lower()
 
@@ -112,7 +112,7 @@ def test_omp_handoff_skill_registered():
         assert element in text, f"packet element missing: {element}"
     assert "omx" in text          # explicit target lane (user request 2026-07-11)
     assert "handoff_prepared" in text
-    assert ".omp/work/handoffs/" in text
+    assert ".hq/work/project/handoffs/" in text
     assert "복붙" in text or "인라인하지 않는다" in text  # reference-only, never inline full docs
 
 

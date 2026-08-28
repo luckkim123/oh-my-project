@@ -3,7 +3,7 @@ name: omp-doctor
 description: |
   omp installation/prerequisite self-diagnosis — checks hook registration, python3 availability,
   and the presence of reference cards to report "is omp ready to work in this environment" as
-  PASS/WARN/FAIL. Unlike omp-audit, which *assumes .omp already exists* and inspects rule
+  PASS/WARN/FAIL. Unlike omp-audit, which *assumes the store already exists* and inspects rule
   compliance, doctor looks at the installation layer that comes before that (it does NOT perform
   the rules.json schema validation that overlaps with audit). read-only, no auto-fix.
   Triggers: omp 진단, doctor, 설치 점검, omp 작동 확인, 왜 안 되지, hooks 확인,
@@ -15,7 +15,7 @@ description: |
 # omp-doctor — installation/prerequisite self-diagnosis (read-only)
 
 <Purpose>
-Checks whether omp is *ready to work*. `omp-audit` assumes `.omp/` already exists and judges
+Checks whether omp is *ready to work*. `omp-audit` assumes the store already exists and judges
 whether the project folder follows the rules (structure/naming/dataset), but doctor inspects the
 **layer before that** — is the hook installed, is python3 present, are omp's own reference cards
 intact. The goal is to catch *installation* problems like "I installed omp but the STAGE line
@@ -31,11 +31,11 @@ doesn't appear / a skill can't find its card."
 </When_To_Use>
 
 <When_Not_To_Use>
-- If you want to check whether the project folder follows the `.omp/rules.json` rules → `omp-audit`
+- If you want to check whether the project folder follows the `.hq/config/project/rules.json` rules → `omp-audit`
   (that's the rule-compliance gate). doctor **does not perform rules.json schema validation** — it's
   deliberately excluded as overlap (audit's domain).
-- If you want to create `.omp/` for the first time → `omp-init`. doctor only diagnoses; it does not
-  create `.omp/`.
+- If you want to create the omp store for the first time → `omp-init`. doctor only diagnoses; it does not
+  create it.
 - If you want to change the rules → `omp-codify`.
 </When_Not_To_Use>
 
@@ -49,7 +49,7 @@ doesn't appear / a skill can't find its card."
 - **fail-soft**: if one item's check fails, the other items still run (one FAIL does not stop the
   whole diagnosis).
 - **audit-overlap excluded**: doctor does NOT inspect rules.json/manifest.json *schema validity or
-  specificity consistency* (that's the domain of omp-audit Step 1·2). doctor's .omp-related checks
+  specificity consistency* (that's the domain of omp-audit Step 1·2). doctor's store-related checks
   go only as far as "does the file exist."
 </Execution_Policy>
 

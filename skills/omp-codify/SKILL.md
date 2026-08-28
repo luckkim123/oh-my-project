@@ -2,9 +2,9 @@
 name: omp-codify
 description: |
   The management stage that codifies and updates structure/naming rules — writes rules.json (machine) +
-  STRUCTURE.md/NAMING.md (human) together in one pass to prevent drift. Takes the existing .omp/rules.json
+  STRUCTURE.md/NAMING.md (human) together in one pass to prevent drift. Takes the existing .hq/config/project/rules.json
   as input, has rule-architect propose changes, and any rule change (a heavy decision that triggers file moves)
-  must pass a human approval gate. Not a generation pipeline but a loop that updates a living .omp/ — rules are
+  must pass a human approval gate. Not a generation pipeline but a loop that updates a living .hq/ — rules are
   only proposed; the human gates enforcement.
   Triggers: 규칙 성문화, 규칙 갱신, codify, 구조 규칙 정리, 명명 규칙 정리, rules 갱신,
   STRUCTURE 갱신, NAMING 갱신, 규칙 바꿔, 폴더 규칙 명문화, codify rules, update rules,
@@ -14,18 +14,18 @@ description: |
 # omp-codify — Codify/Update Structure & Naming Rules (Management Loop, Stage 1)
 
 <Purpose>
-Codifies and updates a project's structure rules (which folder holds what) and naming rules (filename patterns). Updates `.omp/rules.json` (the machine truth the audit hook reads) and `.omp/STRUCTURE.md`/`.omp/NAMING.md` (the human-readable narrative) **together in one pass** so the two never drift apart. Delegates to rule-architect to receive the proposed change, and rule changes pass through a human approval gate. This is the code equivalent of "defining lint rules" — the stage that first nails down what counts as a violation.
+Codifies and updates a project's structure rules (which folder holds what) and naming rules (filename patterns). Updates `.hq/config/project/rules.json` (the machine truth the audit hook reads) and `.hq/config/project/STRUCTURE.md`/`.hq/community/NAMING.md` (the human-readable narrative) **together in one pass** so the two never drift apart. Delegates to rule-architect to receive the proposed change, and rule changes pass through a human approval gate. This is the code equivalent of "defining lint rules" — the stage that first nails down what counts as a violation.
 </Purpose>
 
 <Use_When>
-- `.omp/` already exists (= omp-init done) and you want to add/modify/remove structure or naming rules.
+- The store already exists (= omp-init done) and you want to add/modify/remove structure or naming rules.
 - You want to codify rules like "this folder holds only X" or "filenames of this kind follow this pattern".
 - The project has evolved and the existing rules.json no longer matches the real structure (re-codification).
 - Right after omp-learn promotes an observation into a rule, to formally reflect rule-architect's proposed rule into rules.json.
 </Use_When>
 
 <Do_Not_Use_When>
-- `.omp/` does not exist yet → **omp-init first** (bootstrap + preset synthesis). codify is the stage that *updates* the rules.json that init created.
+- No omp store exists yet → **omp-init first** (bootstrap + preset synthesis). codify is the stage that *updates* the rules.json that init created.
 - You want to leave rules as-is and only find violating *files* → omp-audit (read-only verdict).
 - You want to actually *relocate* rule-violating files → omp-organize (moves happen only there, safe-fileops enforced).
 - You are dealing with dataset metadata (SHA256/split/lineage) → omp-dataset (manifest.json dedicated).
@@ -38,17 +38,17 @@ Codifies and updates a project's structure rules (which folder holds what) and n
 - ⚠️ **Schema compliance.** rules.json must satisfy `references/schemas/rules.schema.json` (required: omp_version/project/specificity/structure/naming, additionalProperties:false). regex uses Python `re` syntax, severity ∈ {error,warn,info}. Not "done" until it passes schema validation after the change.
 - ⚠️ **codify does not move files.** It writes only rule text (.json/.md). Relocating user files is done only by omp-organize's organizer, which enforces `references/safe-fileops.md`. Even if a move is proposed within codify, execution is handed off to organize.
 - **specificity tracking.** When a learn promotion replaces/extends a preset rule with a project-specific rule, raise the `specificity` in rules.json (0 = pure preset → 1 = fully custom) accordingly. Record the promotion source in `learned_refs[]` (provenance). The evolution mechanism is in design §4.
-- rule-architect is read-only (disallowedTools=[Write,Edit,NotebookEdit]) — it *designs* and returns the proposed rule, and the actual `.omp/` write is performed by this skill (the controller) after human approval. It does not self-approve its own design.
-- Light decisions/patterns (e.g., "why this rule was added this time") may be auto-appended to `.omp/wiki/` (no approval needed, recoverable via grep next session). Only heavy rule changes go through the gate (design §4, 2 channels).
+- rule-architect is read-only (disallowedTools=[Write,Edit,NotebookEdit]) — it *designs* and returns the proposed rule, and the actual `.hq/` write is performed by this skill (the controller) after human approval. It does not self-approve its own design.
+- Light decisions/patterns (e.g., "why this rule was added this time") may be auto-appended to `.hq/community/wiki/` (no approval needed, recoverable via grep next session). Only heavy rule changes go through the gate (design §4, 2 channels).
 </Execution_Policy>
 
 <Steps>
-1. **Load current rules.** Read `.omp/rules.json` (schema: `references/schemas/rules.schema.json`), and read the paired `.omp/STRUCTURE.md`/`.omp/NAMING.md` to grasp the current state and specificity/preset_origin/learned_refs. If `.omp/` is absent, stop immediately and direct to "omp-init first" (codify is the update stage).
+1. **Load current rules.** Read `.hq/config/project/rules.json` (schema: `references/schemas/rules.schema.json`), and read the paired `.hq/config/project/STRUCTURE.md`/`.hq/community/NAMING.md` to grasp the current state and specificity/preset_origin/learned_refs. If neither `.hq/.anchor` nor a legacy `.omp/` exists, stop immediately and direct to "omp-init first" (codify is the update stage).
 2. **Confirm the change intent.** What is being added/modified/removed — a new directory role, naming pattern (regex), severity adjustment, file-content convention (content_conventions[] — note bodies **or** code: the axis is glob-scoped and `check_content_rule` applies its regex to any file with no extension restriction; idioms induced from existing *source* arrive here pre-measured from **omp-style**, which proposes but never writes), docker_naming rule (image_ref_template/container_name_template/service_name_template/version_scheme), provenance entry (origin:standard, standards-registry id), code-graph registration (`code_graphs.indexes[]` — a local code index registered as a READ target: `tool`/`path`/`covers`/`excludes`/`refresh`/`convention`), convention change, etc. ⚠️ **A code-graph entry is registered, never built**: record where the artifact already is and what it actually holds — do not run a build or refresh command as part of codifying, and never invoke the `tokensave` binary (its CLI re-installs agent integration as a side effect of read-only-looking commands). Fill `covers` from what the index actually contains, not from what the repo contains; the audit graph axis contradicts an aspirational `covers` (`graph_coverage_mismatch`), which is exactly why it is worth recording. If it came from an omp-learn promotion, include that observation ID and its rationale in the input.
 3. **Delegate the proposed change to rule-architect** (Task dispatch below). Input: current rules.json/STRUCTURE.md/NAMING.md, the change intent, the relevant preset (`references/presets/<preset_origin>.md`), and (if a promotion) the learned.md observation. Output: ① the updated rules.json **draft** (schema-compliant), ② the STRUCTURE.md/NAMING.md body that corresponds exactly to it (plus the CONVENTIONS.md body if content_conventions exist), ③ a diff summary (which rules were added/changed/deleted, how specificity changes, and a rough outline of affected files).
 4. ━━━ **GATE — Rule change approval (human).** Present rule-architect's diff summary to the human: proceed / revise / abort. No auto-pass. No file is written before approval. ━━━
-5. **Write together (drift prevention).** ⚠️ **Managed-hash check first (§2.6 governance improvement).** Before touching disk, compare the current on-disk `rules.json`/`STRUCTURE.md`/`NAMING.md` content hash against the latest snapshot in `.omp/work/versions/` (the same `brief_hash_check`-style sha256 comparison the secretary axis uses for `BRIEF.md`). A mismatch means a human hand-edited the SSOT since the last codify pass — **STOP** and surface a one-line gate: "human-edited since last regeneration — overwrite / merge / skip?" before proceeding. Only a hash match (or no prior snapshot) continues. Once cleared, **first** snapshot the existing `.omp/rules.json` to `.omp/work/versions/rules-v{NN}-{YYYY-MM-DD}.json` (a pre-edit rollback point — `references/output-layout.md` work layer). Then write the three together in the same pass: `.omp/rules.json` (+ update `project.last_codified`, and update `specificity`/`learned_refs` if needed) **and** `.omp/STRUCTURE.md`/`.omp/NAMING.md` (also include `.omp/CONVENTIONS.md` in the same pass if you touched content_conventions — only when content_conventions exist; not every project has them). If any one of the set is missing, it is incomplete. (Snapshot and rules.json writes go through the atomic write of `hooks/omp_atomic.py` to prevent partial-write corruption — T20.) **After writing the snapshot,** apply retention cleanup to `.omp/work/versions/` (`output-layout.md`): keep only the latest N=10 and prune older snapshots via trash (no permanent `rm`), reporting one line "pruned X old snapshots". This trim is performed by this skill — the one that wrote the snapshot — on its own subfolder in the same pass.
-6. **Validate.** Schema-validate rules.json against `references/schemas/rules.schema.json` (Python stdlib). Verify regex compiles. Round-trip-check that the .md matches the .json (rule count/role/pattern reflected on both sides; if content_conventions exist, include the content_conventions↔CONVENTIONS.md pair too). Append the light decision memo to `.omp/wiki/`.
+5. **Write together (drift prevention).** ⚠️ **Managed-hash check first (§2.6 governance improvement).** Before touching disk, compare the current on-disk `rules.json`/`STRUCTURE.md`/`NAMING.md` content hash against the latest snapshot in `.hq/work/project/versions/` (the same `brief_hash_check`-style sha256 comparison the secretary axis uses for `BRIEF.md`). A mismatch means a human hand-edited the SSOT since the last codify pass — **STOP** and surface a one-line gate: "human-edited since last regeneration — overwrite / merge / skip?" before proceeding. Only a hash match (or no prior snapshot) continues. Once cleared, **first** snapshot the existing `.hq/config/project/rules.json` to `.hq/work/project/versions/rules-v{NN}-{YYYY-MM-DD}.json` (a pre-edit rollback point — `references/output-layout.md` work layer). Then write the three together in the same pass: `.hq/config/project/rules.json` (+ update `project.last_codified`, and update `specificity`/`learned_refs` if needed) **and** `.hq/config/project/STRUCTURE.md`/`.hq/community/NAMING.md` (also include `.hq/community/CONVENTIONS.md` in the same pass if you touched content_conventions — only when content_conventions exist; not every project has them). If any one of the set is missing, it is incomplete. (Snapshot and rules.json writes go through the atomic write of `hooks/omp_atomic.py` to prevent partial-write corruption — T20.) **After writing the snapshot,** apply retention cleanup to `.hq/work/project/versions/` (`output-layout.md`): keep only the latest N=10 and prune older snapshots via trash (no permanent `rm`), reporting one line "pruned X old snapshots". This trim is performed by this skill — the one that wrote the snapshot — on its own subfolder in the same pass.
+6. **Validate.** Schema-validate rules.json against `references/schemas/rules.schema.json` (Python stdlib). Verify regex compiles. Round-trip-check that the .md matches the .json (rule count/role/pattern reflected on both sides; if content_conventions exist, include the content_conventions↔CONVENTIONS.md pair too). Append the light decision memo to `.hq/community/wiki/`.
 7. **Follow-up guidance.** If rules changed, explain the continuation: "whether existing files now break the new rules" goes to omp-audit (verdict) → relocating violations goes to omp-organize (safe-fileops enforced). codify only nails down rules and stops.
 
 **Final step — Task dispatch (rule-architect):**
@@ -62,11 +62,11 @@ Task(
   the controller writes them to disk).
 
   Input:
-  - Current .omp/rules.json (schema: references/schemas/rules.schema.json)
-  - Current .omp/STRUCTURE.md, .omp/NAMING.md (pair)
+  - Current .hq/config/project/rules.json (schema: references/schemas/rules.schema.json)
+  - Current .hq/config/project/STRUCTURE.md, .hq/community/NAMING.md (pair)
   - Change intent: <structure/naming rule to add/modify/remove>
   - Applied preset: references/presets/<preset_origin>.md
-  - (If an omp-learn promotion) the corresponding observation + ID in .omp/learned.md
+  - (If an omp-learn promotion) the corresponding observation + ID in .hq/config/project/learned.md
 
   Requirements:
   1) Updated rules.json draft — satisfies rules.schema.json (required fields, additionalProperties:false,
@@ -88,5 +88,5 @@ Task(
 </Steps>
 
 <Output>
-`.omp/rules.json` with the approved change reflected + the paired `.omp/STRUCTURE.md`/`.omp/NAMING.md` (all three updated together, drift 0) + rule-architect's diff summary (rules added/changed/deleted, specificity change, affected files) + evidence of schema validation passing + the GATE decision history (proceed/revise/abort). The impact of the rule change on existing files is closed out with the follow-up guidance "check violations with omp-audit → relocate with omp-organize (safe-fileops enforced)" (codify itself does not move files). The light decision memo is auto-accumulated in `.omp/wiki/`.
+`.hq/config/project/rules.json` with the approved change reflected + the paired `.hq/config/project/STRUCTURE.md`/`.hq/community/NAMING.md` (all three updated together, drift 0) + rule-architect's diff summary (rules added/changed/deleted, specificity change, affected files) + evidence of schema validation passing + the GATE decision history (proceed/revise/abort). The impact of the rule change on existing files is closed out with the follow-up guidance "check violations with omp-audit → relocate with omp-organize (safe-fileops enforced)" (codify itself does not move files). The light decision memo is auto-accumulated in `.hq/community/wiki/`.
 </Output>

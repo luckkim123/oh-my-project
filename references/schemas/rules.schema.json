@@ -373,6 +373,60 @@
         }
       }
     },
+    "layers": {
+      "type": "object",
+      "description": "Unified-store layer layout (store-spec sections 3 and 5). Declares the store root and which top-level layers are tracked vs gitignored, so omp-audit can catch a layer nobody declared and a tracked/ignored boundary that drifted. Absent = this project has no unified store and the axis is inert. Per-file layer ASSIGNMENT is not declared here -- migrate-om-store.sh owns that table, and a second copy would drift invisibly.",
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "type": "string",
+          "default": ".hq",
+          "description": "Store root directory name, relative to each anchor."
+        },
+        "tracked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "community",
+            "config"
+          ],
+          "description": "Layers that MUST NOT be gitignored. A tracked layer that git ignores is the silent failure this axis exists for: the human record dies on the next clone and nothing errors."
+        },
+        "ignored": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "work",
+            "runtime"
+          ],
+          "description": "Layers that MUST be gitignored -- regenerable output, session state, locks, and anything sensitive."
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info"
+          ],
+          "default": "error",
+          "description": "error blocks an overall PASS. Unlike the docker/secretary/governance hygiene axes this defaults to error: a mis-ignored layer loses data rather than merely being untidy."
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "preset",
+            "inductive",
+            "learned",
+            "standard"
+          ],
+          "default": "preset"
+        }
+      }
+    },
     "ignore": {
       "type": "array",
       "items": {

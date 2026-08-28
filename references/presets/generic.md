@@ -71,7 +71,7 @@ generic assumes the project **may not** be dataset-centric. Therefore dataset ru
    Put only what can be inferred into `directories[]`; when uncertain, mark `role` as "scan inferred — needs confirmation."
 3. **Case induction**: Tally the dominant case of existing filenames → if ≥60%, create an `info` naming rule.
 4. **Data detection**: Apply the §3 conditional rules.
-5. **ignore seed**: Always put `.git/**`, `.omp/**`, `node_modules/**`,
+5. **ignore seed**: Always put `.git/**`, `.hq/**`, `node_modules/**`,
    `__pycache__/**`, `.venv/**`, `*.pyc`, `.DS_Store` into `rules.json.ignore[]` (noise common to all types).
 6. **specificity = 0**: Make explicit that it's a pure-preset starting point. preset_origin = `"generic"`.
 7. **Human gate**: Present the synthesized draft rules.json to the human. Confirm "is this really your project?" before finalizing.
@@ -90,7 +90,7 @@ generic is the preset with the greatest divergence (since it starts nearly empty
   rule-architect proposes to the human "wouldn't it be better to reinitialize with the python-ml preset now?"
   generic can **graduate** to a more specific preset.
 
-> Every promotion goes through `learned.md` → a human approval gate (heavy channel). A promoted rule leaves its source in `rules.json`'s `learned_refs[]`. Light patterns/decisions accumulate automatically in `.omp/wiki/` (no approval needed).
+> Every promotion goes through `learned.md` → a human approval gate (heavy channel). A promoted rule leaves its source in `rules.json`'s `learned_refs[]`. Light patterns/decisions accumulate automatically in `.hq/community/wiki/` (no approval needed).
 
 ## Draft rules.json skeleton (generic seed)
 
@@ -117,7 +117,7 @@ if the scan can't fill one, omit that entry (don't make it up). Conforms to `rul
       { "applies_to": "*", "regex": "^[A-Za-z0-9._-]+$", "description": "Portable, safe names without spaces or special characters.", "severity": "warn" }
     ]
   },
-  "ignore": [".git/**", ".omp/**", "node_modules/**", "__pycache__/**", ".venv/**", "*.pyc", ".DS_Store"],
+  "ignore": [".git/**", ".hq/**", "node_modules/**", "__pycache__/**", ".venv/**", "*.pyc", ".DS_Store"],
   "learned_refs": []
 }
 ```

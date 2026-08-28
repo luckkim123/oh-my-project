@@ -22,14 +22,14 @@ The mechanism is deliberately **not new**. `rules.json.content_conventions[]` is
 </Purpose>
 
 <Use_When>
-- `.omp/` exists and an agent is about to write code in a codebase a human hand-wrote — before the first feature, not after the style has already drifted.
+- The store exists and an agent is about to write code in a codebase a human hand-wrote — before the first feature, not after the style has already drifted.
 - Generated code keeps coming back "not wrong, but not how we write it here", and review comments repeat the same correction.
 - Onboarding a subagent fleet onto a legacy tree: they inherit hooks, not your resolve, and not your reading of a prose style guide.
 - A convention exists but only in a reviewer's head, so `omp-audit` cannot fail anything when it is broken.
 </Use_When>
 
 <Do_Not_Use_When>
-- `.omp/` does not exist → **omp-init first**. This stage updates rules that init created.
+- No omp store exists → **omp-init first**. This stage updates rules that init created.
 - The convention is about *which folder* or *what filename* → that is `omp-codify` (structure/naming), not contents.
 - The convention is about note or document bodies rather than code → also `omp-codify`, same `content_conventions[]` axis; you do not need this stage to reach it.
 - You want to find files that already violate an existing rule → `omp-audit` (read-only verdict).
@@ -39,18 +39,18 @@ The mechanism is deliberately **not new**. `rules.json.content_conventions[]` is
 
 <Execution_Policy>
 - ⚠️ **Induce, never invent.** Every proposed rule cites the files it was induced from — at least **3 existing files** agreeing, or it is not a convention, it is a preference. A rule with 1 witness is a coincidence; with 2, a habit; the floor is 3. State the witness count per rule and drop anything below it.
-- ⚠️ **Machine-checkable or prose, never a fake rule.** A proposed `content_conventions[]` entry must be a regex `check_content_rule` can actually run. If an idiom cannot be expressed that way ("errors are handled at the boundary, not inline"), it goes into `.omp/CONVENTIONS.md` as prose and **must not** be smuggled into `rules.json` as an approximate regex — an approximate rule produces false violations, and a rule nobody trusts is worse than a documented habit.
-- ⚠️ **Detection ≠ write.** This stage proposes; `omp-codify` writes `rules.json` + `CONVENTIONS.md` together in one pass with its managed-hash check, snapshot, and schema validation. Do not write `.omp/rules.json` here, and do not write half of the pair.
+- ⚠️ **Machine-checkable or prose, never a fake rule.** A proposed `content_conventions[]` entry must be a regex `check_content_rule` can actually run. If an idiom cannot be expressed that way ("errors are handled at the boundary, not inline"), it goes into `.hq/community/CONVENTIONS.md` as prose and **must not** be smuggled into `rules.json` as an approximate regex — an approximate rule produces false violations, and a rule nobody trusts is worse than a documented habit.
+- ⚠️ **Detection ≠ write.** This stage proposes; `omp-codify` writes `rules.json` + `CONVENTIONS.md` together in one pass with its managed-hash check, snapshot, and schema validation. Do not write `.hq/config/project/rules.json` here, and do not write half of the pair.
 - ⚠️ **Human approval gate.** A code-idiom rule makes `omp-audit` fail on existing files, which is a heavy consequence. Present the proposal with its per-rule witness count and predicted violation count on the current tree; proceed / revise / abort. No auto-pass.
 - ⚠️ **Predict the violations before proposing.** Run the candidate regex over the tree and report how many files it would fail *today*. A rule that fails 200 of 210 files is not the house style — it is the inverse of the house style, or the regex is wrong. This check is what stops a confidently backwards rule from entering the SSOT.
 - ⚠️ **Never edit source.** Not to "demonstrate" the convention, not to fix a violation found while scanning. `omp-organize` is the only stage that touches user files at all, and even that only moves them.
 - **specificity + provenance.** An induced rule is `origin: "inductive"` (never `preset`). Raise `specificity` and record the source in `learned_refs[]` through codify, exactly as a learn promotion does.
-- Light observations ("this tree splits helpers by layer, unusually") append to `.omp/wiki/` without a gate. Only the rule change is gated.
+- Light observations ("this tree splits helpers by layer, unusually") append to `.hq/community/wiki/` without a gate. Only the rule change is gated.
 </Execution_Policy>
 
 <Steps>
 
-1. **Confirm scope and pick the sample.** Read `.omp/rules.json` (existing `content_conventions[]` — never re-propose one that is already there) and `.omp/STRUCTURE.md` for the layer map. Then size the code surface per language:
+1. **Confirm scope and pick the sample.** Read `.hq/config/project/rules.json` (existing `content_conventions[]` — never re-propose one that is already there) and `.hq/config/project/STRUCTURE.md` for the layer map. Then size the code surface per language:
 
    ```bash
    git ls-files -z | tr '\0' '\n' | sed -n 's/.*\.\([A-Za-z0-9_+]*\)$/\1/p' | sort | uniq -c | sort -rn | head
@@ -91,7 +91,7 @@ The mechanism is deliberately **not new**. `rules.json.content_conventions[]` is
 
 5. ━━━ **GATE — code-idiom rule approval (human).** Present, per rule: the dimension, the induced pattern, the witness count, `violations/total` today, `severity`, and the prose-only leftovers. Then: proceed / revise / abort. Nothing is written before approval. ━━━
 
-6. **Hand the write to `omp-codify`.** Pass the approved `content_conventions[]` entries plus the `CONVENTIONS.md` prose section. codify performs the managed-hash check, the `.omp/work/versions/` snapshot, the paired `rules.json` + `CONVENTIONS.md` write, and schema validation. Do not duplicate any of that here.
+6. **Hand the write to `omp-codify`.** Pass the approved `content_conventions[]` entries plus the `CONVENTIONS.md` prose section. codify performs the managed-hash check, the `.hq/work/project/versions/` snapshot, the paired `rules.json` + `CONVENTIONS.md` write, and schema validation. Do not duplicate any of that here.
 
 7. **Follow-up guidance.** Point at the continuation and stop: `omp-audit` for which files break the new rules; a formatter or a human for actually reshaping code (never an omp stage); `omp-learn` if a reviewer keeps correcting something this scan did not catch, so the next promotion carries evidence.
 
@@ -105,7 +105,7 @@ Task(
   propose, never write.
 
   INPUT
-  - current .omp/rules.json (respect existing content_conventions[]; never duplicate one)
+  - current .hq/config/project/rules.json (respect existing content_conventions[]; never duplicate one)
   - the four-dimension scan: per idiom, the observed pattern, the witness files, the witness count
   - per candidate regex, the measured violations/total on the current tree
 

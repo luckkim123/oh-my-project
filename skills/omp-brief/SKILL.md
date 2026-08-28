@@ -1,7 +1,7 @@
 ---
 name: omp-brief
 description: |
-  Pull-style briefing — regenerates `.omp/secretary/BRIEF.md` from current ledger/todo/raid/journal
+  Pull-style briefing — regenerates `.hq/config/project/secretary/BRIEF.md` from current ledger/todo/raid/journal
   state: traffic light, state-of-play, top-5 tasks, open blockers, a next-session goal suggestion,
   and decision paths. Every number is `derive_status(root)` output quoted verbatim — never an
   LLM-authored count or percentage (D8). Gated by `brief_hash_check`: a hand-edited BRIEF.md STOPs
@@ -13,7 +13,7 @@ description: |
 # omp-brief — pull-style briefing (BRIEF.md regeneration)
 
 <Purpose>
-Regenerates `.omp/secretary/BRIEF.md`, the always-loaded index over the secretary axis (design §3:
+Regenerates `.hq/config/project/secretary/BRIEF.md`, the always-loaded index over the secretary axis (design §3:
 "세션 핸드오프 필드" pattern — 2-minute scan, reference only, never paste-in-full). BRIEF is a
 **derived view**, not a source: its content comes from `derive_status(root)` plus recent
 `journal/`, `raid.md`, and `todo.txt`, never from the LLM's own judgment of "how much is done."
@@ -32,7 +32,7 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
   only regenerates the derived view from what's already recorded).
 - A weekly review (BuJo migration, stale scan, `todo.txt`→`done.txt`, raid reconfirmation) →
   `omp-review`.
-- `.omp/secretary/` doesn't exist yet → `omp-init` first; there is nothing to summarize.
+- `.hq/config/project/secretary/` doesn't exist yet → `omp-init` first; there is nothing to summarize.
 </Do_Not_Use_When>
 
 <Execution_Policy>
@@ -93,7 +93,7 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
      subagent_type="oh-my-project:chronicler",
      description="omp-brief: regenerate BRIEF.md",
      prompt="""
-     Role: omp-brief regeneration. Rewrite .omp/secretary/BRIEF.md wholesale, following the fixed
+     Role: omp-brief regeneration. Rewrite .hq/config/project/secretary/BRIEF.md wholesale, following the fixed
      section order and double cap (<=30 lines AND <=2000 chars) in references/secretary-protocol.md.
      Use only these derive_status(root) values for every number — do not compute or estimate any
      count or percentage yourself:

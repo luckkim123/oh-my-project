@@ -37,7 +37,7 @@ writing; it classifies and delegates to `chronicler` (the sole narrative writer,
 - Regenerating `BRIEF.md` from current state → `omp-brief` (a separate skill; `omp-log` only appends,
   never rebuilds the derived view).
 - A weekly review, stale scan, or `todo.txt`→`done.txt` migration → `omp-review`.
-- `.omp/` doesn't exist yet → `omp-init` first; there is no `.omp/secretary/` to write into.
+- No omp store exists yet → `omp-init` first; there is no `.hq/config/project/secretary/` to write into.
 </Do_Not_Use_When>
 
 <Execution_Policy>

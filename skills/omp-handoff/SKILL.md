@@ -4,7 +4,7 @@ description: |
   위임 직전 1회 실행하는 브리핑 조립기 — 형제 하네스(oms·omd·omx·omc·superpowers 등)에 작업을
   맡기기 전, 이 프로젝트에 대한 지식을 Anthropic multi-agent 4요소 패킷(Objective / Output format
   / Tool·source guidance / Boundaries)으로 조립해 전수한다. 세션 내 브리핑 블록 + 감사용
-  `.omp/work/handoffs/YYYY-MM-DD-<target>.md` 사본 + ledger `handoff_prepared` 이벤트,
+  `.hq/work/project/handoffs/YYYY-MM-DD-<target>.md` 사본 + ledger `handoff_prepared` 이벤트,
   세 산출물을 한 pass 에서 만든다. 참조만 담고 원문 전체를 복붙하지 않는다.
   Triggers: 위임 브리핑, 인수인계, 맡기기 전 브리핑, 형제 하네스에 넘겨, handoff,
   delegation briefing, brief the sibling, hand off to, prepare a briefing
@@ -54,7 +54,7 @@ description: |
   것이 먼저이고, 이 스킬이 wiki 스키마를 확장하지 않는다.
 - ⚠️ **세 산출물, 한 pass**:
   1. 세션 내 브리핑 블록 — 위임받는 스킬이 같은 컨텍스트에서 바로 소비(D12: IPC 아님, 파일 왕복 없음).
-  2. `.omp/work/handoffs/YYYY-MM-DD-<target>.md` — 감사용 사본. retention 10, 쓰는 이 pass 에서
+  2. `.hq/work/project/handoffs/YYYY-MM-DD-<target>.md` — 감사용 사본. retention 10, 쓰는 이 pass 에서
      자기 폴더를 trim한다(output-layout.md 의 work-layer retention 관례를 그대로 따름).
   3. ledger `handoff_prepared {"target": <lane>, "topic": <slug>}` — `hooks/omp_secretary.py` 의
      `append_ledger(root, event)` 를 `python3 -c` 로 호출(기계 append, 이 스킬이 JSON 을 직접
@@ -77,7 +77,7 @@ description: |
      파생, 스키마 무변경); 실제 promote 는 omp-learn 의 human gate 소관. 열린 항목 없으면 생략.
 3. **세션 내 브리핑 블록 출력**: 4요소 표 형태로 응답에 직접 작성 — 위임받는 스킬이 이 턴에서
    바로 읽는다.
-4. **감사 사본 기록**: `.omp/work/handoffs/YYYY-MM-DD-<target>.md` 에 같은 내용을 쓴다. 기존
+4. **감사 사본 기록**: `.hq/work/project/handoffs/YYYY-MM-DD-<target>.md` 에 같은 내용을 쓴다. 기존
    파일이 10개를 넘으면 가장 오래된 것부터 trash 로 정리(같은 pass).
 5. **ledger 기록**:
    ```bash
@@ -93,7 +93,7 @@ description: |
 <Output>
 - 대상 레인 + 임무 한 줄
 - 조립된 4요소 브리핑 블록 (세션 내 소비용, 이 응답에 그대로 포함)
-- 기록된 파일 경로: `.omp/work/handoffs/YYYY-MM-DD-<target>.md`
+- 기록된 파일 경로: `.hq/work/project/handoffs/YYYY-MM-DD-<target>.md`
 - retention trim 여부 (10개 초과 시 trash 로 넘긴 파일 수)
 - ledger `handoff_prepared` 이벤트 기록 확인 (target/topic 값 인용)
 </Output>

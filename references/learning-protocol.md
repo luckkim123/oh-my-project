@@ -7,7 +7,7 @@ this card — `omp-learn`, `omp-codify`, `omp-init`, the `rule-architect` agent,
 `wiki/` accumulation behavior.
 
 > **Identity in one line.** omp ships as a *generic* harness (same logic for everyone) and
-> becomes *specialized* purely through the contents of `<project>/.omp/`. Specialization is
+> becomes *specialized* purely through the contents of `<project>/.hq/`. Specialization is
 > data, not code. This card defines exactly how that data accumulates — safely, with the
 > right friction in the right place.
 
@@ -50,7 +50,7 @@ role, a naming pattern, a content convention, an ignore glob. Because a promoted
 to be flagged or *moved*, it is a heavy, consequential decision. It therefore travels the
 gated path:
 
-1. Observations accrue in `.omp/learned.md` (any read-only stage may append; see §2).
+1. Observations accrue in `.hq/config/project/learned.md` (any read-only stage may append; see §2).
 2. `omp-learn` dispatches `rule-architect` (opus, read-only) to judge which observations
    are ripe (§3) and to draft the rule edit + the specificity recompute (§4).
 3. **A human approves the promotion.** This is the single most important gate in omp.
@@ -67,7 +67,7 @@ the human gate plus `omp-codify` perform the write. (Design §3: "규칙은 제�
 A **pattern or decision** is a note about the project that is useful to *remember* but is
 not an enforceable rule: "we decided to keep raw dumps even after cleaning", "the figures
 script expects PNG not SVG", "exp-2026-05 used the 80/20 split". These are cheap. They
-auto-append to `.omp/wiki/<topic>.md` during any stage, with **no approval gate**, and are
+auto-append to `.hq/community/wiki/<topic>.md` during any stage, with **no approval gate**, and are
 recalled next session by **deterministic grep** over `wiki/` (§5). A wiki note is *context*,
 never an enforced rule — it can inform a future rule proposal, but it cannot itself cause a
 file to be flagged or moved. That promotion (wiki insight → candidate rule) only happens by
@@ -110,7 +110,7 @@ a running skill — capture it the same turn, before moving on:
 3. **Do it without being asked.** Writing the note is part of honoring the correction, not a
    separate favor the user must request. "Update the harness to learn better" means *use this
    mechanism*, not "dump this specific learning into a global rules file" — project knowledge
-   goes to *this project's* `.omp/`, never to a distributed/user-scope config (that pollutes
+   goes to *this project's* `.hq/`, never to a distributed/user-scope config (that pollutes
    every other project; see the household CLAUDE.md "write knowledge to the repo that owns it").
 
 This makes user feedback a first-class source on equal footing with init-time induction and
@@ -120,7 +120,7 @@ audit-time observation — the three feeders of `specificity` toward 1.
 
 ## 2. The `learned.md` observation format (heavy-channel staging)
 
-`.omp/learned.md` is an append-only ledger of candidate rules awaiting promotion. It is
+`.hq/config/project/learned.md` is an append-only ledger of candidate rules awaiting promotion. It is
 human-readable Markdown with a fixed per-observation block. Stages append; only `omp-learn`
 (via the human gate) consumes/retires entries.
 
@@ -273,7 +273,7 @@ silently lower it.)
 This is the "기술적 정의" (technical definition) from Design §4 made operational: *"specificity 0(순수 프리셋)→1(완전
 고유). learn 승격마다 프리셋 규칙이 프로젝트 규칙으로 대체·확장."* (specificity 0 = pure preset → 1 = fully unique;
 each learn promotion replaces/extends a preset rule with a project rule.) The number is not cosmetic —
-it lets a human (and `omp-audit`) see at a glance whether `.omp/` still mostly speaks
+it lets a human (and `omp-audit`) see at a glance whether `.hq/` still mostly speaks
 generic-preset or has genuinely learned this project.
 
 ---
@@ -422,7 +422,7 @@ not a new rule.
 
 ## See also
 
-- `references/output-layout.md` — where `.omp/` files live; the .md ↔ .json pairing rule.
+- `references/output-layout.md` — where `.hq/` files live; the .md ↔ .json pairing rule.
 - `references/schemas/rules.schema.json` — machine shape of rules (`specificity`,
   `learned_refs`, structure/naming entries).
 - `references/schemas/manifest.schema.json` — dataset inventory (separate from learning).

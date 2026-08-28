@@ -37,7 +37,7 @@ is always a human's call). This is the GTD "get current" moment for the secretar
   it does not create new ones).
 - Regenerating `BRIEF.md` from current state → `omp-brief` (this skill recommends running it last,
   it does not regenerate BRIEF itself).
-- `.omp/secretary/` doesn't exist yet → `omp-init` first; there is nothing to review.
+- `.hq/config/project/secretary/` doesn't exist yet → `omp-init` first; there is nothing to review.
 - Actually promoting a wiki/learned.md candidate → `omp-learn`'s promotion gate; this skill only
   names candidates, it never writes `learned.md`/`wiki/`.
 </Do_Not_Use_When>
