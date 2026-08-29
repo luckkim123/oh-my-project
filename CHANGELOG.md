@@ -5,6 +5,33 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.16.1] — 2026-08-29 — the surfaces that route agents were still on `.omp/`
+
+### Fixed
+- **`skills/omp-audit/SKILL.md` and `agents/auditor.md` told the auditor to read
+  `.omp/rules.json` and `.omp/manifest.json`.** `omp_paths.py` has resolved those
+  to `.hq/config/project/` since the cutover, and `references/output-layout.md` —
+  the layout SSOT — was already fully migrated (12 `.hq/` references, zero
+  `.omp/`). The drift was in the layer that *points at* the SSOT, so an agent
+  following the card audits a path that does not exist. Mapping taken from
+  `omp_paths.py`, not from memory: rules/manifest/STRUCTURE/DATASETS/learned,
+  `secretary/` and `env/` to `.hq/config/project/`; `NAMING.md` and `wiki/` to
+  `.hq/community/`; work to `.hq/work/project/`; state to `.hq/runtime/project/`.
+  Legacy-branch prose keeps the old path — it is the subject of the sentence.
+- `.claude-plugin/plugin.json` description named `.omp/env/`, `.omp/secretary/`
+  and "SSOT lives in a hidden `.omp/` folder". It is the marketplace line a user
+  reads before installing.
+
+### Known
+- `skills/omp-pilot/SKILL.md` still names `<project>/.omp/notepad.md`. Left in
+  place and annotated rather than relocated: no omp code resolves or writes it
+  (zero `notepad` hits across `hooks/*.py`) and `output-layout.md` does not cover
+  it, so there is no evidence for which layer it belongs to. OMC's own notepad
+  tooling writes `.omc/notepad.md` — a different path — which is the likeliest
+  reason nothing has ever been written at either. Wiring question, not a dead
+  feature; do not delete it on non-use.
+
+
 ## [0.16.0] — 2026-08-28 — fallback removal (stage 2)
 
 Store-spec §7 stage 2 for omp: an anchored project's reads stop consulting the
