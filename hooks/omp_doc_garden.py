@@ -13,8 +13,8 @@ MANUAL — not wired to any hook event, same as `omp_content_audit.py`. The
 (omp_content_audit.py:103) already flags declared paths that vanished, but only
 from `rules.json structure.directories[]` and `.omp/STRUCTURE.md` /
 `.omp/DATASETS.md`. Every path this project has actually lost track of was
-somewhere else — a README, a handoff note, a sibling harness's wiki page. Those
-files are this module's target, and the two `.omp/` documents the audit stage
+somewhere else — a README, a handoff note, a sibling harness's knowledge post.
+Those files are this module's target, and the two `.omp/` documents the audit stage
 already owns are deliberately excluded so one drift is never reported twice.
 
 **It carries state, which is the other half of the job.** A stateless sweep

@@ -76,7 +76,7 @@ generic assumes the project **may not** be dataset-centric. Therefore dataset ru
 6. **specificity = 0**: Make explicit that it's a pure-preset starting point. preset_origin = `"generic"`.
 7. **Human gate**: Present the synthesized draft rules.json to the human. Confirm "is this really your project?" before finalizing.
 
-> **Synthesis posture**: In generic, init's mission is not "create lots of rules" but "encode only the minimum we are certain of right now, and defer the rest to learn." When in doubt, **don't add** a rule — just leave the observation in wiki/learned. An incorrect enforced rule (one that moves files to the wrong place) is far more harmful than an empty rule.
+> **Synthesis posture**: In generic, init's mission is not "create lots of rules" but "encode only the minimum we are certain of right now, and defer the rest to learn." When in doubt, **don't add** a rule — just leave the observation as a post or in learned.md. An incorrect enforced rule (one that moves files to the wrong place) is far more harmful than an empty rule.
 
 ## (5) What omp-learn typically specializes here
 
@@ -90,7 +90,7 @@ generic is the preset with the greatest divergence (since it starts nearly empty
   rule-architect proposes to the human "wouldn't it be better to reinitialize with the python-ml preset now?"
   generic can **graduate** to a more specific preset.
 
-> Every promotion goes through `learned.md` → a human approval gate (heavy channel). A promoted rule leaves its source in `rules.json`'s `learned_refs[]`. Light patterns/decisions accumulate automatically in `.hq/community/wiki/` (no approval needed).
+> Every promotion goes through `learned.md` → a human approval gate (heavy channel). A promoted rule leaves its source in `rules.json`'s `learned_refs[]`. Light patterns/decisions accumulate automatically as posts (`hq post`) under `.hq/community/posts/` (no approval needed).
 
 ## Draft rules.json skeleton (generic seed)
 

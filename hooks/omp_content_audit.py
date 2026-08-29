@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 sys.path.insert(0, str(Path(__file__).parent))
-from omp_paths import HQ_ROOT, datasets_md, learned_md, structure_md, wiki_dir  # noqa: E402
+from omp_paths import HQ_ROOT, datasets_md, learned_md, posts_dir, structure_md  # noqa: E402
 
 _FM = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 
@@ -88,11 +88,9 @@ _BACKTICK_PATH = re.compile(r"`([\w.\-]+(?:/[\w.\-]+)+/?)`")
 # YYYY in a date template already carries the match.
 _PLACEHOLDER_PATH = re.compile(r"YYYY|NNNN|\.\.\.")
 
-WIKI_STALE_DAYS = 30
-WIKI_OVERSIZED_BYTES = 50_000
 LEARNED_STUCK_DAYS = 30
 
-# An unresolved commitment in a wiki note, written as a markdown checkbox.
+# An unresolved commitment in a post body, written as a markdown checkbox.
 # Deliberately NOT a prose scan: matching words like 미결/TODO/pending in running
 # text measured 3 false positives out of 7 hits on one vault -- a heading that
 # *declares the item resolved* matches, and so does a filename containing "TODO".
@@ -102,6 +100,37 @@ LEARNED_STUCK_DAYS = 30
 _OPEN_ITEM = re.compile(r"^[ \t]*[-*+][ \t]+\[ \][ \t]+(\S.*)$", re.M)
 OPEN_ITEM_PREVIEW = 3   # how many item texts a finding quotes
 OPEN_ITEM_CHARS = 60    # per-item quote budget
+
+
+def scan_open_items(root: Path) -> list[dict]:
+    """Unchecked `- [ ]` commitments across every post body in `posts_dir(root)`.
+
+    This is `open_item`, load-bearing since it was added as `lint_wiki`'s 8th
+    kind (docs/design/2026-08-14-resurfacing-detector-measurement.md) as "the
+    resurfacing channel for actions the notes promised" -- unlike `orphan`/
+    `stale`/`oversized` (retired with the wiki page-tree they described; a
+    supersede chain has no backlink graph and no single growing file to age or
+    outgrow), this channel had no wiki-specific premise, so r7 (2026-08-30)
+    retargets it at post bodies instead of dropping it. Reads files directly
+    with pathlib -- same as every other function in this module -- rather than
+    shelling out to `hq query`: `omp_paths.py` already refuses to import omo
+    for its own getters ("omp cannot assume oh-my-orchestrator is installed"),
+    and a post body is just a `.md` file under `posts_dir(root)`, recursively
+    (posts nest one level under a post-directory: `posts/<kind>/<id>.md`)."""
+    posts = posts_dir(root)
+    if not posts.is_dir():
+        return []
+    finds: list[dict] = []
+    for f in sorted(posts.rglob("*.md")):
+        body = f.read_text(encoding="utf-8", errors="replace")
+        open_items = [t.strip() for t in _OPEN_ITEM.findall(body)]
+        if open_items:
+            preview = "; ".join(t[:OPEN_ITEM_CHARS] for t in open_items[:OPEN_ITEM_PREVIEW])
+            if len(open_items) > OPEN_ITEM_PREVIEW:
+                preview += "; ..."
+            finds.append({"kind": "open_item", "path": str(f),
+                          "detail": "%d unchecked: %s" % (len(open_items), preview)})
+    return finds
 
 
 def scan_structure_drift(root: Path, rules: dict) -> list[dict]:
@@ -150,56 +179,24 @@ def _parse_obs_blocks(text: str) -> list[dict]:
 
 
 def lint_wiki(root: Path, now: Optional[datetime] = None) -> list[dict]:
-    """Wiki + learned.md hygiene lint. Returns finding dicts {"kind":..., "path":..., "detail":...}.
+    """`learned.md` OBS-block hygiene lint. Returns finding dicts {"kind":..., "path":..., "detail":...}.
 
-    kinds: orphan (no backlink from another note), stale (mtime > WIKI_STALE_DAYS),
-    oversized (> WIKI_OVERSIZED_BYTES), open_item (unchecked `- [ ]` commitments in a
-    wiki note -- the resurfacing channel for actions the notes promised; no age gate,
-    see _OPEN_ITEM), broken-ref (documented alias for find_dead_links,
-    not re-run here to avoid duplicate reporting), stuck_candidate / ready_to_promote /
-    contradiction (learned.md OBS blocks — see references/learning-protocol.md §2 for the
-    block format; ready_to_promote = candidate at evidence_count>=3 with
-    counter_examples==0 and user_overridden false, per §3 — ripe for omp-learn).
+    kinds: stuck_candidate / ready_to_promote / contradiction (learned.md OBS blocks —
+    see references/learning-protocol.md §2 for the block format; ready_to_promote =
+    candidate at evidence_count>=3 with counter_examples==0 and user_overridden false,
+    per §3 — ripe for omp-learn).
+
+    Retains the name and signature `lint_wiki(root, now)` even though it no longer
+    touches wiki -- r7 (2026-08-30) retired the wiki page-tree lint half (orphan /
+    stale / oversized -- page-tree-shape checks with no analogue in the post-supersede
+    model, gone with the directory they described) and the open_item half (retargeted
+    to post bodies, see scan_open_items above). This function's remaining behavior --
+    everything below -- is unchanged from before the split; only the wiki loop that
+    used to precede it was removed.
     """
     root = Path(root)
     now = now or datetime.now()
-    wiki = wiki_dir(root)
     finds: list[dict] = []
-
-    if wiki.is_dir():
-        notes = sorted(wiki.glob("*.md"))
-        linked = set()
-        for f in notes:
-            text = f.read_text(encoding="utf-8", errors="replace")
-            for m in _WIKILINK.finditer(text):
-                target = m.group(1).strip().rstrip("\\").strip().rsplit("/", 1)[-1]
-                ext = _EXT.search(target)
-                stem = target[: ext.start()] if ext else target
-                linked.add(stem.casefold())
-        for f in notes:
-            if f.stem.casefold() not in linked:
-                finds.append({"kind": "orphan", "path": str(f), "detail": "no backlink from another wiki note"})
-            age_days = (now - datetime.fromtimestamp(f.stat().st_mtime)).days
-            if age_days > WIKI_STALE_DAYS:
-                finds.append({"kind": "stale", "path": str(f), "detail": "%dd since last edit" % age_days})
-            if f.stat().st_size > WIKI_OVERSIZED_BYTES:
-                finds.append({"kind": "oversized", "path": str(f), "detail": "%d bytes" % f.stat().st_size})
-            # Unresolved commitments recorded in this note. No age gate: file mtime
-            # answers "was the page edited", not "how long has this item sat" -- the
-            # motivating vault case had a 3-month-old item in a file whose mtime was
-            # 0.0d because a different session appended a section that morning. An
-            # unchecked box is actionable on sight; omp-brief enumerates it and the
-            # human decides. Reporting is per-file so one note cannot flood the brief.
-            # Re-read rather than reusing the backlink pass's `text`: that name holds
-            # whatever the LAST note in the first loop bound, not this file's body.
-            body = f.read_text(encoding="utf-8", errors="replace")
-            open_items = [t.strip() for t in _OPEN_ITEM.findall(body)]
-            if open_items:
-                preview = "; ".join(t[:OPEN_ITEM_CHARS] for t in open_items[:OPEN_ITEM_PREVIEW])
-                if len(open_items) > OPEN_ITEM_PREVIEW:
-                    preview += "; ..."
-                finds.append({"kind": "open_item", "path": str(f),
-                              "detail": "%d unchecked: %s" % (len(open_items), preview)})
 
     learned = learned_md(root)
     if learned.is_file():

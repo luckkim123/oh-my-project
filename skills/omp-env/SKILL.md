@@ -5,8 +5,8 @@ description: |
   into .hq/config/project/env/ — enforcing a generation gate (dry-run diff → human approval → write → disk verify),
   personal-value resolver (.env/${VAR} substitution, never hardcode), and a strict not-a-build-runner
   boundary (omp proposes commands, the user executes them). docker_naming rules are delegated to
-  omp-codify; docker_images inventory to omp-dataset. Generation observations auto-accumulate to
-  .hq/community/wiki/docker-*.md; rule promotion goes through omp-learn's human gate.
+  omp-codify; docker_images inventory to omp-dataset. Generation observations auto-accumulate as
+  posts (`hq post --topic technique`); rule promotion goes through omp-learn's human gate.
   Triggers: docker 환경 만들어, dockerfile 생성, compose 생성, 환경 자산, omp env,
   provision env, docker scaffold, 도커 환경, 도커파일, compose 파일 생성, env stage,
   generate dockerfile, generate compose, docker asset, 환경 파일 만들어
@@ -32,8 +32,8 @@ usernames are ever hardcoded (`references/docker-mechanisms.md` §2). Seeds gene
   hand-edited ad hoc files.
 - You are setting up a GPU/GUI-capable container and need pitfall-aware scaffolding
   (base image selection, DISPLAY/NVIDIA flags, user UID matching).
-- You want to record *why* this base image or compose topology was chosen in
-  `.hq/community/wiki/docker-*.md` for future sessions.
+- You want to record *why* this base image or compose topology was chosen —
+  `hq post --topic technique --subject docker-<...>` — for future sessions.
 </Use_When>
 
 <Do_Not_Use_When>
@@ -71,10 +71,10 @@ usernames are ever hardcoded (`references/docker-mechanisms.md` §2). Seeds gene
   (SHA digest, registry, lineage) is written by omp-dataset into `.hq/config/project/manifest.json`. omp-env
   creates only the canonical asset files and points to those two stages for their concerns.
   Do not conflate the three stages in a single pass.
-- **Wiki learning is automatic, rule promotion is gated.** Generation observations — why this
+- **Post learning is automatic, rule promotion is gated.** Generation observations — why this
   base image was chosen, which GUI/GPU pitfalls were avoided, which compose topology was selected
-  — are auto-appended to `.hq/community/wiki/docker-*.md` after each generation (no approval needed,
-  recoverable via grep). Promotion of an observation into a formal rule goes through omp-learn's
+  — are posted (`hq post --topic technique`) after each generation (no approval needed,
+  recoverable via `hq query --ascend`). Promotion of an observation into a formal rule goes through omp-learn's
   human gate.
 - **Preset seeds generation.** Start from `references/presets/docker.md` for base image
   recommendations, GPU/GUI flag patterns, and compose topology templates. Never invent values
@@ -104,9 +104,9 @@ usernames are ever hardcoded (`references/docker-mechanisms.md` §2). Seeds gene
    to validate syntax. Report pass or fail explicitly; do not silently skip verification.
 7. **Delegate and accumulate.** Propose the follow-up commands the user should run
    (e.g., `docker build -f .hq/config/project/env/Dockerfile -t ${IMAGE_NAME} .`). Remind the user to
-   register image metadata via omp-dataset (docker_images block in manifest.json). Append a
+   register image metadata via omp-dataset (docker_images block in manifest.json). Post a
    one-line generation observation (base image rationale, pitfalls avoided, topology chosen)
-   to `.hq/community/wiki/docker-<YYYY-MM-DD>.md`. If the observation suggests a reusable rule,
+   with `hq post --topic technique --subject docker-<YYYY-MM-DD>`. If the observation suggests a reusable rule,
    mention it as a candidate for omp-learn promotion — do not promote it automatically.
 </Steps>
 
@@ -116,6 +116,6 @@ in-place invariant preserved) + dry-run diff shown and human approval recorded +
 evidence (`test -f` pass + `docker compose config` pass if applicable) + proposed build/run
 commands for the user to execute (not-a-build-runner: omp proposes, user runs) + delegation
 reminders (omp-codify for docker_naming, omp-dataset for docker_images inventory) + one-line
-observation appended to `.hq/community/wiki/docker-*.md` (auto-accumulated, no gate). Rule promotion
+observation posted (`hq post --topic technique`) (auto-accumulated, no gate). Rule promotion
 candidates flagged for omp-learn but not auto-promoted.
 </Output>

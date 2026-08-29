@@ -70,14 +70,15 @@ performs the weekly BuJo-style reevaluation (`omp-review`).
    - Open items in `raid.md` (blockers)
    - `todo.txt`, sorted by priority letter, top 5
    - `decisions/` directory listing (paths only, no content read needed for the summary line)
-   - **Actionable-knowledge reconcile (family wiki-status convention)**: enumerate the open
+   - **Actionable-knowledge reconcile (family status convention)**: enumerate the open
      actionable findings from `omp_content_audit.lint_wiki(root)` — `ready_to_promote` (a
      `learned.md` candidate at `evidence_count>=3` with `counter_examples==0` and
-     `user_overridden` false per protocol §3, ripe for omp-learn), `stuck_candidate`,
-     `open_item` (an unchecked `- [ ]` commitment in a wiki note — what the notes promised
-     to do later; see `references/output-layout.md`. This is the resurfacing channel: the
-     motivating case was a commitment recorded in a wiki note and then not read again for
-     three months, so surfacing it here is the whole point. omp never closes one), and
+     `user_overridden` false per protocol §3, ripe for omp-learn) and `stuck_candidate` — plus
+     `open_item` from `omp_content_audit.scan_open_items(root)` (an unchecked `- [ ]`
+     commitment in a post body — what the notes promised to do later; see
+     `references/output-layout.md`. This is the resurfacing channel: the motivating case was
+     a commitment recorded in a wiki note and then not read again for three months, so
+     surfacing it here is the whole point. omp never closes one), and
      `contradiction`. Any open one must be reflected in the next-session goal / top-5 tasks or
      consciously deferred — a recorded-but-actionable item must not silently vanish from the brief.
      This is enumeration-only (derived from existing fields, no schema change); the human gate still

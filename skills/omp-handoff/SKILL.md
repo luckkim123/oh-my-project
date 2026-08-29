@@ -39,19 +39,19 @@ description: |
 |:--|:--|
 | Objective (임무 + 완료 기준 1줄) | 사용자 인자 + `todo.txt`/`raid.md` 관련 항목 |
 | Output format · 산출물 위치 계약 | `output-layout.md` + NAMING/STRUCTURE 의 경계 결정 |
-| Tool·source guidance (어디를 읽어라) | PROJECT.md 1줄 + wiki grep-by-topic + `derive_status(root)["sources"]` read-map + `rules.json.code_graphs.indexes[]` (등록된 코드 인덱스의 `tool`·`covers`·`convention` 1줄 — "이 저장소엔 CRG 가 있고 `.md` 는 안 덮는다" 같은 것) |
+| Tool·source guidance (어디를 읽어라) | PROJECT.md 1줄 + `hq query --keyword <말> --ascend` + `derive_status(root)["sources"]` read-map + `rules.json.code_graphs.indexes[]` (등록된 코드 인덱스의 `tool`·`covers`·`convention` 1줄 — "이 저장소엔 CRG 가 있고 `.md` 는 안 덮는다" 같은 것) |
 | Boundaries (하지 말 것) | rules.json 관련 규칙 + raid.md open blocker 발췌 |
 
 - ⚠️ **참조만, 복붙 금지**: 브리핑은 경로와 발췌 요지만 담고, 원문 전체(PROJECT.md·rules.json·
-  wiki 문서 전체 등)를 인라인하지 않는다. 위임받는 스킬이 필요하면 그 경로를 직접 연다.
+  post 본문 전체 등)를 인라인하지 않는다. 위임받는 스킬이 필요하면 그 경로를 직접 연다.
 - ⚠️ **코드 인덱스는 "무엇을 덮는가"까지 넘긴다**: `code_graphs.indexes[]` 를 전할 때 존재
   여부만 말하면 형제 레인이 "그래프가 있으니 그래프에 물어보면 된다"로 읽고, 그 인덱스가
   담지 않는 것(예: 산문 `.md`)을 조회한 뒤 빈 결과를 "없음"으로 오독한다 — 이 축이 생긴
   이유가 그 오독이다. `covers`·`convention` 을 함께 싣고, 직전 audit 이 `graph_stale` /
   `graph_coverage_mismatch` 를 냈다면 그 사실도 같이 싣는다. 이 스킬은 인덱스를 갱신하지
   않는다(사람이 `refresh` 실행).
-- ⚠️ **wiki 는 scope/audience 필드를 만들지 않는다** — grep-by-topic 으로 관련 wiki 문서를 찾는
-  것이 먼저이고, 이 스킬이 wiki 스키마를 확장하지 않는다.
+- ⚠️ **post 는 scope/audience 필드를 만들지 않는다** — `hq query --keyword <말> --ascend` 로 관련
+  post 를 찾는 것이 먼저이고, 이 스킬이 post 스키마를 확장하지 않는다.
 - ⚠️ **세 산출물, 한 pass**:
   1. 세션 내 브리핑 블록 — 위임받는 스킬이 같은 컨텍스트에서 바로 소비(D12: IPC 아님, 파일 왕복 없음).
   2. `.hq/work/project/handoffs/YYYY-MM-DD-<target>.md` — 감사용 사본. retention 10, 쓰는 이 pass 에서
@@ -70,7 +70,7 @@ description: |
    - `derive_status(root)["sources"]` 로 read-map(`{path, kind, open}`) 을 얻어 Tool·source
      guidance 에 `읽을 곳: <path> (<kind>, open N)` 형태로 넣는다.
    - `raid.md` 의 open 항목을 발췌해 Boundaries 에 붙인다(전체 파일 인라인 금지 — 관련 줄만).
-   - **actionable-knowledge reconcile (family wiki-status convention)**: `omp_content_audit.lint_wiki(root)`
+   - **actionable-knowledge reconcile (family status convention)**: `omp_content_audit.lint_wiki(root)`
      의 열린 actionable finding(`ready_to_promote` = `learned.md` 후보가 `evidence_count>=3` 도달 + `counter_examples==0` + `user_overridden` false (§3),
      `stuck_candidate`, `contradiction`) 을 열거해, 인계 임무·Boundaries 에 반영하거나 의식적으로
      defer 한다 — 기록된 actionable 항목이 패킷에서 조용히 누락되면 안 된다. 열거 전용(기존 필드에서
@@ -101,9 +101,9 @@ description: |
 <Examples>
 - **예시 1** — "omx 에 실험 분석 맡기기 전 이 프로젝트 지식 패킷 준비해줘": target=`omx`,
   topic=`exp-analyze-2026-07`. Objective="런 A/B 비교 리포트", Tool guidance 에
-  `derive_status(root)["sources"]` read-map 과 관련 wiki grep 결과, Boundaries 에 raid.md 의
+  `derive_status(root)["sources"]` read-map 과 관련 `hq query` 결과, Boundaries 에 raid.md 의
   open blocker(예: "GPU 메모리 제약") 발췌.
 - **예시 2** — "oms 에 논문 섹션 초안 맡기기 전 브리핑": target=`oms`, topic=`section3-draft`.
   Objective="§3 실험 섹션 초안", Output format 에 `sections/*.tex` 경로 계약, Tool guidance 에
-  PROJECT.md 한 줄 + 관련 wiki 문서 경로.
+  PROJECT.md 한 줄 + 관련 post 경로.
 </Examples>

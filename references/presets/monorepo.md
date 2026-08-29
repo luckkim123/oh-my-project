@@ -182,6 +182,7 @@ approval → promotion to enforced rules in rules.json:
 - **New-package scaffold rule**: A new package must have `src/` + `tests/` + `package.json` +
   `README.md` → promote to audit error when missing.
 
-Light channel (wiki/): patterns·decisions such as "this repo uses pnpm + turbo", "CI runs only
+Light channel (posts): patterns·decisions such as "this repo uses pnpm + turbo", "CI runs only
 affected builds", "found 1 circular dependency between packages (`auth`↔`session`)" accumulate
-automatically into the wiki without a gate, recoverable via grep in the next session.
+automatically as posts (`hq post`) without a gate, recoverable via `hq query --ascend` in the
+next session.

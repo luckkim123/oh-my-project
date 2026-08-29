@@ -1,7 +1,7 @@
 """Single declaration point for this repo's on-disk root literals — the unified
 store `.hq` and the legacy store `.omp`.
 
-Every derived path hooks/*.py computes (rules.json, secretary/, wiki/,
+Every derived path hooks/*.py computes (rules.json, secretary/, posts/,
 garden-state.json, verify-throttle.json, ...) is named here once. Callers never
 join a root literal themselves; a re-entry lint (tests/test_omp_paths_lint.py)
 fails the build if either literal appears anywhere outside this file.
@@ -41,11 +41,11 @@ Two P3 scope boundaries worth stating, because both look like bugs otherwise:
   would force that decision rather than preserve it. `ledger.jsonl` is
   unambiguously `config/project/`, so the directory follows it and P6 promotes
   the narrative half.
-- `wiki/` lands at `community/wiki/`, not `community/posts/`. §9.3's target is
-  the *layer* (2); the `posts/` shape additionally requires converting each page
-  into the post schema with a `subject:` field, which store-spec and
-  decision/010 both assign to P6. The layer is correct now; the conversion is
-  not P3's.
+- `wiki/` is GONE (r7, 2026-08-30). It used to land at `community/wiki/` with
+  the page-to-post conversion deferred to P6; the wiki form is retired
+  outright instead, and `posts_dir()` replaces the getter below. A store still
+  holding wiki pages converts with omo's `convert-wiki-form.py`; nothing here
+  reads or creates `community/wiki/`.
 """
 from __future__ import annotations
 
@@ -239,8 +239,20 @@ def brief_md(base: Path) -> Path:
 
 # --- community/ layer -------------------------------------------------------
 
-def wiki_dir(base: Path) -> Path:
-    return _resolve(base, community_dir(base) / "wiki", legacy_root(base) / "wiki")
+def posts_dir(base: Path) -> Path:
+    """The community post store — what `wiki_dir()` used to point at.
+
+    The wiki form is retired (r7, 2026-08-30, user decision: "wiki 는 아예
+    없애는 걸로. Wiki 폴더 안만들게"). This is not a rename: the old getter
+    resolved a directory that, measured across every anchor on this machine,
+    held zero pages while `posts/` next to it held 127/33/17 — and the routing
+    checkpoint this store feeds (`omp_route_emit.py`) named that empty
+    directory as the knowledge SSOT on every turn.
+
+    There is no legacy fallback. `legacy_root(base)/"wiki"` was the pre-`.hq`
+    location of the retired form, and a store still holding it converts with
+    `convert-wiki-form.py` (omo) rather than being read in place."""
+    return community_dir(base) / "posts"
 
 
 # --- runtime/project/ layer -------------------------------------------------

@@ -71,11 +71,11 @@ to codify/dataset.
   hand-edited the file since the last regeneration — **STOP** and surface a one-line gate: "human-edited since last
   regeneration — overwrite / merge / skip?" instead of silently clobbering the edit. Only a hash match (or no prior
   snapshot on record) proceeds straight to the wholesale rewrite in step 5.
-- **Auto-accumulate to wiki (light channel).** Non-obvious patterns and decisions discovered while writing the docs
-  ("in this repo `tests/` mirrors the `src/` structure", "`legacy/` is frozen") are auto-appended to `.hq/community/wiki/*.md` —
-  no approval gate, for grep retrieval next session. ⚠️ The wiki is **append-only, no wholesale overwrite** — the
-  "overwrite wholesale" just above applies only to the *human SSOT .md (PROJECT/STRUCTURE/NAMING/DATASETS)*, and a wiki
-  note never erases existing content, it only appends a new section (`references/learning-protocol.md` §5). For an
+- **Auto-accumulate as a post (light channel).** Non-obvious patterns and decisions discovered while writing the docs
+  ("in this repo `tests/` mirrors the `src/` structure", "`legacy/` is frozen") are posted — `hq post --topic pattern|decision`
+  — no approval gate, for `hq query --ascend` retrieval next session. ⚠️ A post is **immutable, never a wholesale
+  overwrite** — the "overwrite wholesale" just above applies only to the *human SSOT .md (PROJECT/STRUCTURE/NAMING/DATASETS)*, and
+  a post never erases existing content; revising one means `hq edit` or a fresh superseding post (`references/learning-protocol.md` §5). For an
   observation worth *promoting* to a rule, do not auto-enforce — record it as a candidate in `.hq/config/project/learned.md` and pass
   it to the `omp-learn` gate. For the distinction between the two channels, see `references/learning-protocol.md`.
 - **Single dispatch.** The inventory can scan multiple folders in one pass, so a single project-scanner dispatch is
@@ -92,7 +92,7 @@ to codify/dataset.
 2. **Read the existing SSOT.** Read the existing 4 .md files (`community/`: `PROJECT.md`/`NAMING.md`; `config/project/`: `STRUCTURE.md`/`DATASETS.md`) plus the paired `.hq/config/project/rules.json`·`.hq/config/project/manifest.json`
    to grasp the current state. The schemas are `references/schemas/rules.schema.json`·
    `references/schemas/manifest.schema.json`. The .md narrative must *agree* with these .json files (the .json is the
-   truth). Also grep `.hq/community/wiki/` to retrieve patterns and decisions left by previous sessions.
+   truth). Also `hq query --ascend` to retrieve patterns and decisions left by previous sessions.
 3. **Hypothesize what changed.** Point out where the existing documents drifted from reality (e.g., a new folder not in
    the doc, a vanished directory, a new extension cluster). Validate this hypothesis with the next scan — before
    *rewriting* the document, figure out *what* to fix first.
@@ -105,7 +105,7 @@ to codify/dataset.
    - `STRUCTURE.md` — folder tree + role of each directory. Unpack `rules.json`'s structure rules into a human-readable narrative.
    - `NAMING.md` — naming rules + actual examples. Make it consistent with `rules.json`'s naming rules.
    - `DATASETS.md` — a human catalog view of `manifest.json` datasets[] (checksum·split·lineage summary).
-   If it conflicts with the paired .json, match the .json. Record non-obvious patterns separately in `.hq/community/wiki/` and
+   If it conflicts with the paired .json, match the .json. Record non-obvious patterns separately as posts (`hq post`) and
    rule-promotion candidates in `.hq/config/project/learned.md` (`references/learning-protocol.md`).
 6. **Task dispatch (inventory collection — always the core of the final step).** The measured inventory that *grounds*
    the writing/updating above is delegated to the read-only `project-scanner`. This skill is the controller that receives
@@ -129,7 +129,7 @@ to codify/dataset.
    )
    ```
 
-   Once the scanner returns the inventory → perform the step 5 writing, complete the pair-.json sync, wiki accumulation,
+   Once the scanner returns the inventory → perform the step 5 writing, complete the pair-.json sync, post accumulation,
    and learned-candidate separation, then report the output paths (omp-doc itself does not render a PASS/FAIL verdict —
    that is `omp-audit`).
 </Steps>
@@ -138,7 +138,7 @@ to codify/dataset.
 A list of refreshed/created `.hq/` human .md paths (whichever of `PROJECT.md`/`STRUCTURE.md`/`NAMING.md`/`DATASETS.md`
 you worked on) + a change summary versus the previous state (added/removed folders·naming patterns) + the pair-.json sync
 result (whether the conflict was matched to the .md side, or a .json mismatch needing handoff to codify/dataset) + the
-patterns newly appended to `.hq/community/wiki/` (if any) + the rule-promotion candidates written to `.hq/config/project/learned.md` (if any, →
+patterns newly posted under `.hq/community/posts/` (if any) + the rule-promotion candidates written to `.hq/config/project/learned.md` (if any, →
 to the `omp-learn` gate). Path convention is governed by `references/output-layout.md` as SSOT. Next-step guidance: to
 enforce rules use `omp-codify`, for compliance verification use `omp-audit`.
 </Output>

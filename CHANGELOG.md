@@ -5,6 +5,54 @@ All notable changes to this harness. Hook contract changes are recorded explicit
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-08-30 — the wiki half of the content audit retires; the learned.md half is untouched
+
+`lint_wiki()` did two unrelated jobs in one function: wiki-page hygiene and
+`learned.md` OBS-block analysis. The first is retired with the form; the second
+is byte-identical and still the input to `omp-learn`'s human gate.
+
+The form went because it had stopped being read. `.hq/community/wiki/` held zero
+pages on every anchor on this machine while `.hq/community/posts/` beside it held
+127 / 33 / 17. omp's answer to a query against it was `[]` — indistinguishable
+from a clean store. (The siblings disagreed even about how to say so: oms exited
+non-zero, omd returned an affirmative "fresh project — not an error".)
+
+### Removed
+- The wiki half of `lint_wiki()` — `orphan`, `stale`, `oversized`. These describe
+  a page-tree shape (a backlink graph, a single file's mtime and byte growth)
+  that has no analogue for immutable posts in a supersede chain. Not retargeted,
+  retired.
+- `omp_paths.wiki_dir()`, replaced by `posts_dir()` with no legacy fallback.
+- `omp-init` no longer seeds a store directory at all. `hq` creates
+  `.hq/community/posts/` lazily on the first `hq post`.
+
+### Changed
+- **`open_item` survives and was retargeted to post bodies** as
+  `scan_open_items(root)`. It is the resurfacing channel for unchecked `- [ ]`
+  commitments, and a resurfacing channel that stops firing looks exactly like
+  "nothing to resurface". Implemented in pure stdlib over
+  `posts_dir(root).rglob("*.md")` rather than shelling out to `hq`:
+  `omp_content_audit.py` is "pure stdlib, no file mutation" by its own docstring
+  and `omp_paths.py` already refuses to import omo ("omp cannot assume
+  oh-my-orchestrator is installed").
+- `lint_wiki()` keeps its name deliberately. It is `learned.md`-only now, and its
+  docstring says so; renaming would ripple into every caller for a name-only
+  reason.
+- The routing checkpoint points at `posts/` and reads it with
+  `hq query --ascend`.
+- **One test was passing vacuously and is now a real guard.**
+  `test_wiki_open_item_does_not_fire_on_prose_markers` asserted that a prose
+  marker produces no `open_item` — and after the split `lint_wiki` emits no
+  `open_item` at all, so the assertion was trivially true. Retargeted to
+  `scan_open_items`.
+- 283 passing / 5 skipped, from 282/5. One test removed (the `orphan`/`stale`/
+  `oversized` case, retired with what it tested), two added (`open_item` on an
+  empty store, and `posts_dir` having no legacy fallback). The seven
+  `learned.md` tests are untouched — same fixtures, same assertions.
+- Every remaining "wiki" string was opened and checked rather than
+  substring-matched. All four hits in `agents/auditor.md` are `[[wikilink]]`
+  dead-link scanning, an unrelated feature; that file needed no edit.
+
 ## [0.16.1] — 2026-08-29 — the surfaces that route agents were still on `.omp/`
 
 ### Fixed

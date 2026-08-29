@@ -117,8 +117,8 @@ per the OMC evidence-tag convention — grammar and extractor live in the same d
 - Example: `[BLOCKER:R-0003]`, `[DECISION:0002]`, `[LESSON:icloud-eviction]`.
 
 `scan_journal_tags` greps this pattern across `journal/*.md` to surface repeated-failure
-tags as candidates `omp-review` *presents* for wiki promotion — tagging never auto-promotes
-(D9: closing/promoting is a human's call).
+tags as candidates `omp-review` *presents* for post promotion (light channel) — tagging
+never auto-promotes (D9: closing/promoting is a human's call).
 
 ---
 
@@ -207,7 +207,7 @@ digest):
 |:---|:---|:---|:---|
 | `journal/` | append-only, truncation permanently forbidden | none — a daybook is never deleted; BRIEF only reads the last 7 days | a recurring failure pattern is **rewritten** into `learned.md` (a copy is not enough — it travels the heavy channel like any other observation) |
 | `todo.txt` | whole-file rewrite allowed (it's a snapshot) — but only via atomic write | done items move to `done.txt` at `omp-review` time | none |
-| `raid.md` | append + status updates | closed only by a human (D9); stale >14 days surfaces in `BRIEF.md` | a recurring issue becomes a `wiki/` note |
+| `raid.md` | append + status updates | closed only by a human (D9); stale >14 days surfaces in `BRIEF.md` | a recurring issue becomes a post (`hq post`) |
 | `decisions/` | write-once, reversals are a new ADR + `superseded_by` | never deleted | none — an ADR is already the terminal form |
 | `ledger.jsonl` | append-only, machine-only writer | none (event volume is daily-dozens scale; no cap for now, revisit if observed otherwise) | none |
 | `BRIEF.md` | regenerated wholesale only by `omp-brief`, gated by the managed-hash check | every regeneration *is* the update | none (it's a derived view, not a source) |
@@ -239,6 +239,6 @@ wrote.
   `secretary/` entry there is the pointer back to this document.
 - `references/learning-protocol.md` — the heavy/light channel boundary; secretary files
   are **not** a third learning channel — a promoted journal lesson or raid pattern still
-  travels through `learned.md` (heavy) or `wiki/` (light) exactly as before.
+  travels through `learned.md` (heavy) or a post (light) exactly as before.
 - `references/safe-fileops.md` — move/delete protocol; secretary files are never moved by
   `organizer`, only appended/regenerated in place by `chronicler`/hooks.

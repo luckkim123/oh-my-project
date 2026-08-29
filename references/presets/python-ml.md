@@ -177,9 +177,9 @@ recorded in `learned_refs`):
 | "notebook number prefixes are actually consistent" | promote §2's `info` notebook rule to `warn` |
 | "this repo uses an `experiments/` directory (not in the preset)" | add a new `directories[]` entry, specificity rises |
 
-What accumulates automatically into the light channel (`.hq/community/wiki/`) without approval: **reference notes** like
+What accumulates automatically into the light channel (`hq post`, landing under `.hq/community/posts/`) without approval: **reference notes** like
 "this project uses parquet", "the seed=42 convention", "the train script reads a hydra config". **Context** that
-isn't a rule (doesn't trigger file moves) goes to the wiki.
+isn't a rule (doesn't trigger file moves) becomes a post.
 
 ---
 

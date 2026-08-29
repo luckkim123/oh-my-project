@@ -102,12 +102,13 @@ Fields `size` and `digest` are **opt-in, nullable.** They require a live daemon
 (`docker images`/`inspect`). Default: leave `null`; fill only when the user
 opts into a read-only daemon query. Never guess or fabricate them.
 
-**`.hq/community/wiki/docker-*.md` — narrative knowledge** (heterogeneous prose, grep-recalled)
+**A post under `.hq/community/posts/` — narrative knowledge** (heterogeneous prose, `hq query`-recalled)
 
 Store here: *why* this base image was chosen, GUI/GPU domain rationale, build
-pitfalls encountered, domain-specific setup notes. Use a small YAML frontmatter
-(`tags`, `date`) and an INDEX line so grep can surface it. This is not queried
-by key — it is recalled by topic search.
+pitfalls encountered, domain-specific setup notes. `hq post --topic technique`
+(or `reference`) — `hq` owns the id and the on-disk location, so there is no
+frontmatter or INDEX line to hand-maintain. Recalled by `hq query --keyword
+<term> --ascend`, not queried by key.
 
 **Rule:** when omp-env adds a new image entry, it writes to both stores in the
 same pass, keeping them consistent without a reconciliation step later.
@@ -226,7 +227,7 @@ outside omp's scope.
   verify uniqueness before first launch.
 - **Host-port clash** — each user needs a distinct `BASE_PORT` offset. A port
   conflict silently routes traffic to the wrong container. Document the
-  allocation in `.hq/community/wiki/docker-multiuser-ports.md`.
+  allocation with `hq post --topic technique --subject docker-multiuser-ports`.
 - **SSHFS UID mapping and stale mounts** — SSHFS mounts survive container
   restarts but not daemon restarts. Stale mounts show `Transport endpoint is not
   connected`; unmount and remount. UID remapping (`-o uid=…`) must match the
@@ -244,7 +245,8 @@ Docker `userns-remap` (daemon-level UID isolation).
 
 **What stays per-project only** (never in a distributed card): concrete
 usernames, actual UIDs/GIDs, assigned GPU IDs, host port numbers, data-directory
-paths. These belong in `.hq/community/wiki/docker-multiuser-*.md` in the specific project.
+paths. These belong in a local `hq post --topic technique` (subject
+`docker-multiuser-*`) in the specific project.
 
 ---
 

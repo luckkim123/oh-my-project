@@ -29,8 +29,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 from omp_paths import (  # noqa: E402
     GATE_CORRUPT, GATE_LEGACY, GATE_NORMAL, GATE_OFF, AnchorError,
     brief_md, gate_state, garden_state_json, is_inside_store, learned_md,
-    parse_anchor_id, rules_json, secretary_dir, structure_md,
-    verify_throttle_json, wiki_dir,
+    parse_anchor_id, posts_dir, rules_json, secretary_dir, structure_md,
+    verify_throttle_json,
 )
 
 ROOT = Path(__file__).parent.parent
@@ -62,7 +62,7 @@ def _seed_migrated(base):
     (cfg / "rules.json").write_text("{}", encoding="utf-8")
     (cfg / "STRUCTURE.md").write_text("# s\n", encoding="utf-8")
     (cfg / "learned.md").write_text("# l\n", encoding="utf-8")
-    (base / ".hq" / "community" / "wiki").mkdir(parents=True, exist_ok=True)
+    (base / ".hq" / "community" / "posts").mkdir(parents=True, exist_ok=True)
     rt = base / ".hq" / "runtime" / "project"
     rt.mkdir(parents=True, exist_ok=True)
     (rt / "garden-state.json").write_text("{}", encoding="utf-8")
@@ -165,14 +165,13 @@ def test_every_helper_resolves_to_the_new_store_when_migrated(tmp_path):
     assert learned_md(tmp_path) == hq / "config/project/learned.md"
     assert secretary_dir(tmp_path) == hq / "config/project/secretary"
     assert brief_md(tmp_path) == hq / "config/project/secretary/BRIEF.md"
-    assert wiki_dir(tmp_path) == hq / "community/wiki"
+    assert posts_dir(tmp_path) == hq / "community/posts"
     assert garden_state_json(tmp_path) == hq / "runtime/project/garden-state.json"
     assert verify_throttle_json(tmp_path) == hq / "runtime/project/verify-throttle.json"
 
 
 def test_every_helper_falls_back_when_only_the_legacy_store_exists(tmp_path):
     _seed_legacy(tmp_path)
-    (tmp_path / ".omp" / "wiki").mkdir()
     (tmp_path / ".omp" / "STRUCTURE.md").write_text("# s\n", encoding="utf-8")
     (tmp_path / ".omp" / "learned.md").write_text("# l\n", encoding="utf-8")
     (tmp_path / ".omp" / "garden-state.json").write_text("{}", encoding="utf-8")
@@ -185,9 +184,18 @@ def test_every_helper_falls_back_when_only_the_legacy_store_exists(tmp_path):
     assert learned_md(tmp_path) == legacy / "learned.md"
     assert secretary_dir(tmp_path) == legacy / "secretary"
     assert brief_md(tmp_path) == legacy / "secretary/BRIEF.md"
-    assert wiki_dir(tmp_path) == legacy / "wiki"
     assert garden_state_json(tmp_path) == legacy / "garden-state.json"
     assert verify_throttle_json(tmp_path) == legacy / "state/verify-throttle.json"
+
+
+def test_posts_dir_has_no_legacy_fallback(tmp_path):
+    """`posts_dir()` is the one getter r7 (2026-08-30) removed `_resolve`'s
+    legacy branch from: the wiki form it replaces has no `.omp/`-era
+    equivalent, so even a legacy-only project resolves it to `.hq/community/
+    posts` unconditionally rather than falling back to `.omp/wiki` or
+    `.omp/posts` (neither of which anything ever wrote)."""
+    _seed_legacy(tmp_path)
+    assert posts_dir(tmp_path) == tmp_path / ".hq" / "community" / "posts"
 
 
 # --- stage 2: the anchor is the only test, in both directions --------------

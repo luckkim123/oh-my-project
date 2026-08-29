@@ -4,7 +4,7 @@ This card is the single source of truth for **how omp gets smarter about *your* 
 the more you use it**. It is the heart of omp's identity: shipped generic, specialized in
 place. Every skill or agent that reads, writes, or promotes project knowledge MUST obey
 this card — `omp-learn`, `omp-codify`, `omp-init`, the `rule-architect` agent, and the
-`wiki/` accumulation behavior.
+`posts/` accumulation behavior.
 
 > **Identity in one line.** omp ships as a *generic* harness (same logic for everyone) and
 > becomes *specialized* purely through the contents of `<project>/.hq/`. Specialization is
@@ -33,11 +33,12 @@ decisions are cheap memory, so they accumulate freely.
                 │                                                             │
         ── HEAVY CHANNEL (gated) ──                              ── LIGHT CHANNEL (no gate) ──
                 │                                                             │
-   learned.md  ──>  omp-learn  ──>  rule-architect              wiki/<topic>.md  (auto-append)
-   (observation     (promotion       (promotion judgment)               │
-    accrues)         skill)               │                      next session: deterministic
-                │                          ▼                      grep recall (no model search)
-                │                  HUMAN APPROVAL GATE                     │
+   learned.md  ──>  omp-learn  ──>  rule-architect              hq post --topic <category>
+   (observation     (promotion       (promotion judgment)          (each observation, own post)
+    accrues)         skill)               │                               │
+                │                          ▼                      next session: hq query
+                │                  HUMAN APPROVAL GATE            --ascend (deterministic recall)
+                │                          │                               │
                 │                          │                               ▼
                 │                          ▼                      injected as context,
                 └────────────────> rules.json  (specificity bump)  never auto-applied as a rule
@@ -62,15 +63,16 @@ gated path:
 `rule-architect` **proposes only** — it never writes `rules.json` itself in the learn flow;
 the human gate plus `omp-codify` perform the write. (Design §3: "규칙은 제안만, 강제는 사람." — rules are only proposed; only a human enforces.)
 
-### Light channel — PATTERNS / DECISIONS (`wiki/*.md` auto-append, grep recall, no gate)
+### Light channel — PATTERNS / DECISIONS (`hq post`, `hq query --ascend` recall, no gate)
 
 A **pattern or decision** is a note about the project that is useful to *remember* but is
 not an enforceable rule: "we decided to keep raw dumps even after cleaning", "the figures
-script expects PNG not SVG", "exp-2026-05 used the 80/20 split". These are cheap. They
-auto-append to `.hq/community/wiki/<topic>.md` during any stage, with **no approval gate**, and are
-recalled next session by **deterministic grep** over `wiki/` (§5). A wiki note is *context*,
-never an enforced rule — it can inform a future rule proposal, but it cannot itself cause a
-file to be flagged or moved. That promotion (wiki insight → candidate rule) only happens by
+script expects PNG not SVG", "exp-2026-05 used the 80/20 split". These are cheap. Each one
+becomes its own post — `hq post --topic <convention|pattern|decision|reference|technique>`
+— during any stage, with **no approval gate**, and posts are recalled next session by
+`hq query --keyword <term> --ascend --topic <category>` (§5). A post is *context*, never an
+enforced rule — it can inform a future rule proposal, but it cannot itself cause a file to
+be flagged or moved. That promotion (post insight → candidate rule) only happens by
 re-entering the heavy channel through `learned.md`.
 
 ### Channel routing rule (which channel does an observation take?)
@@ -78,7 +80,7 @@ re-entering the heavy channel through `learned.md`.
 | The observation… | Channel | Why |
 |:---|:---|:---|
 | could be enforced by audit or acted on by organize (folder role, naming regex, content convention, ignore glob) | **Heavy** (`learned.md`) | can move/flag files → needs the gate |
-| is a fact, rationale, or decision worth remembering but not enforcing | **Light** (`wiki/`) | cheap memory → no gate |
+| is a fact, rationale, or decision worth remembering but not enforcing | **Light** (a post, `hq post`) | cheap memory → no gate |
 | is ambiguous | **default to Light**, and let a human or a later `omp-learn` pass escalate it into `learned.md` | safer to remember-without-enforcing than to enforce-without-asking |
 
 ### Capturing USER feedback (the most important, most-missed trigger)
@@ -102,8 +104,8 @@ a running skill — capture it the same turn, before moving on:
    an ignore glob, "files of type X must live under Y") → **Heavy**: append an `OBS-NNNN`
    block to `learned.md` (§2 format), so `omp-learn` can later promote it through the gate.
    An operating habit / reporting preference / decision that audit can't mechanically enforce
-   ("show only incomplete", "prefer `done`") → **Light**: append to the relevant
-   `wiki/<topic>.md` (dated section, append-only). Ambiguous → default Light.
+   ("show only incomplete", "prefer `done`") → **Light**: `hq post --topic <category>`
+   recording the observation. Ambiguous → default Light.
 2. **Mark provenance.** A feedback-sourced `learned.md` block sets `source_stage: feedback`
    and `user_overridden: false`; if the feedback *contradicts* an existing rule, the existing
    rule's candidate is marked `user_overridden: true` (the user's "no" is durable, §3).
@@ -129,7 +131,7 @@ Each observation is one fenced block:
 ```
 ## OBS-<NNNN>  <one-line summary>
 - id: OBS-<NNNN>
-- channel: rule                      # always 'rule' in learned.md (light-channel notes go to wiki/)
+- channel: rule                      # always 'rule' in learned.md (light-channel notes go to posts/)
 - status: candidate | promoted | rejected | superseded
 - pattern: <precise, testable statement of the regularity>
 - candidate_rule:                    # the exact rules.json edit this would become, if promoted
@@ -278,42 +280,47 @@ generic-preset or has genuinely learned this project.
 
 ---
 
-## 5. The obsidian / second-brain analogy (wiki = backlinked notes recalled by grep)
+## 5. The community-post model (posts recalled by `hq query`)
 
-omp's identity is "a second brain that knows your local directory." The `wiki/` is that
-second brain's **note layer**, and it is modeled directly on Obsidian:
+omp's identity is "a second brain that knows your local directory." `.hq/community/posts/`
+is that second brain's **note layer** (r7, 2026-08-30 — replaces the wiki page-tree this
+section used to describe; see `output-layout.md` for the path contract):
 
-- **`wiki/<topic>.md` = a note.** One Markdown file per topic (a dataset, a subsystem, a
-  recurring decision). Stages auto-append observations and decisions to the relevant note.
-- **`[[backlinks]]` = cross-references.** Notes link to each other and to real paths with
-  Obsidian-style `[[wiki-link]]` text. A note about `train.parquet` links `[[data-pipeline]]`;
-  the decision note links back. Backlinks are plain text — no database, no index to corrupt.
-- **grep = recall.** Next session, omp does not "search its memory" with a model. It runs
-  **deterministic grep** over `wiki/` for the terms relevant to the current task, and injects
-  the matching notes as context. This is the obsidian "open the backlinked note" gesture,
-  done mechanically.
+- **A post = a note.** One Markdown file per observation, filed under a post-directory
+  (`finding/`, `decision/`, `handoff/`, …) that says what a reader wants to *do* with it, and
+  carrying a `topic:` field (`convention`/`pattern`/`decision`/`reference`/`technique`) that
+  says what it's *about* — the category axis that replaced `wiki/<topic>.md`. Stages
+  `hq post` a new note per observation or decision; there is no hand-written file.
+- **`subject:` is identity, not a backlink.** Posts sharing a `subject:` form a supersede
+  chain with exactly one head — the mutable-record analogue of "revisit the same note". A
+  post about a one-off fact carries no `subject:` and just accumulates alongside its
+  siblings under the same `topic:`. There is no `[[wikilink]]` cross-reference graph between
+  posts — `hq` is a keyword index, not a backlink database.
+- **`hq query` = recall.** Next session, omp does not "search its memory" with a model. It
+  runs `hq query --keyword <term> --ascend --topic <category>` — **deterministic keyword
+  match, never embeddings** — and injects the matching posts as context. `--ascend` also
+  merges in every ancestor anchor's posts (the two-level local/global model), nearest first;
+  omitting it silently reads the nearest anchor only.
 
 Why this matters: the recall is **reproducible and inspectable**. The same query returns the
-same notes every time; a human can run the identical grep and see exactly what omp will
-recall. There is no opaque ranking, no embedding drift, no possibility of recalling a note
+same posts every time; a human can run the identical `hq query` and see exactly what omp will
+recall. There is no opaque ranking, no embedding drift, no possibility of recalling a post
 that does not literally contain the queried terms. The second brain remembers *only what was
 actually written*, and recalls it *only by literal match*. That is the entire trust model.
 
-**Wiki notes are append-only.** When a stage revisits an existing `wiki/<topic>.md`, it
-*appends* (preferably as a dated `## <ISO date> — <one-line>` section), never rewrites or
-truncates the file. Whole-file overwrite is reserved for the paired SSOT docs
-(`PROJECT.md` / `STRUCTURE.md` / `NAMING.md` / `DATASETS.md`, regenerated wholesale by
-`omp-doc`/`omp-codify`) — *never* for a wiki note. The light channel must accrue, not
-replace: a revisited topic deepens (old observation + new section coexist as a ledger the
-human reads as an evolution), it does not get clobbered. This mirrors how the heavy channel
-already treats `learned.md` (the append-only observation ledger, §2), so both channels share
-one append discipline — knowledge accrues without loss. (The `## <date>` heading is a *soft*
-convention, not a schema: it is free-form grep-able prose, never a parsed frontmatter field —
-§6.A's "no database, no index" trust model is untouched.)
+**Posts are immutable, not append-only.** Where a `wiki/<topic>.md` note used to gain a new
+dated section in place, a post is a sealed record: `hq query --post-id <id>` returns its body
+unchanged, and paraphrasing it on the way to the reader is how a store stops being a
+standard. Revising an existing note means either `hq edit` (a git anchor) or a fresh
+`hq post --subject <s> --supersedes <id>` — never a hand-edited append. The supersede chain
+IS the ledger; its head is the current answer, and superseded posts stay on disk as history
+(the same provenance-over-deletion instinct §2's `learned.md` already applies to
+promoted/rejected observations, so both channels still share one no-loss discipline — only
+the mechanism moved from "append a section" to "supersede a post").
 
-(The light channel is intentionally low-ceremony: a wiki note is never load-bearing for an
-enforced rule. If a wiki insight should *become* enforceable, it must be restated as an
-observation in `learned.md` and travel the heavy channel through the human gate. The wiki
+(The light channel is intentionally low-ceremony: a post is never load-bearing for an
+enforced rule. If a post's insight should *become* enforceable, it must be restated as an
+observation in `learned.md` and travel the heavy channel through the human gate. The post
 informs; it does not legislate.)
 
 ---
@@ -324,7 +331,8 @@ These are hard prohibitions. omp's value collapses if any is violated, because e
 trades a deterministic, inspectable mechanism for an opaque one that can fabricate.
 
 ### A. No embedding / semantic search for recall
-Recall over `wiki/` and `learned.md` is **deterministic grep only**. omp MUST NOT use vector
+Recall over `.hq/community/posts/` (`hq query`) and `learned.md` (grep) is **deterministic,
+literal-match only**. omp MUST NOT use vector
 search, embeddings, or any similarity-ranked retrieval to decide what to remember or recall.
 Rationale: embedding recall can surface a note that does not literally support the claim, or
 silently rank a fabrication above a fact — the same hallucination/citation-unsafe failure
@@ -349,9 +357,9 @@ recomputed `specificity`. A rule that appears in `rules.json` with no provenance
 contradicts its paired `.md`, is a protocol violation — `omp-audit` should flag it.
 
 ### D. (Corollary) No enforcement from the light channel
-A `wiki/` note MUST NOT be treated as an enforceable rule. It is context only. Acting on a
-wiki note as if it were a rule (e.g. moving files because a note "decided" something) bypasses
-both the evidence test (§3) and the human gate (§B). To enforce, escalate to `learned.md`.
+A post MUST NOT be treated as an enforceable rule. It is context only. Acting on a post as
+if it were a rule (e.g. moving files because a note "decided" something) bypasses both the
+evidence test (§3) and the human gate (§B). To enforce, escalate to `learned.md`.
 
 ### E. (Corollary) No fabricated evidence
 An entry in `learned.md` MUST cite real, enumerable paths/events in `evidence[]`. omp does
@@ -371,7 +379,7 @@ Putting it together — the canonical lifecycle of one learned rule:
    under `data/processed/`. Each sighting appends to `OBS-0007` in `learned.md`:
    `evidence_count` climbs 1 → 2 → 3 → 4, `counter_examples` stays 0, `last_seen` advances.
    In parallel, the *decision* "we keep the scaler.pkl even though it's regenerable" is a
-   cheap note → it auto-appends to `wiki/data-pipeline.md` (light channel, no gate).
+   cheap note → `hq post --topic decision --subject data-pipeline` (light channel, no gate).
 3. **learn** — `omp-learn` runs. `rule-architect` checks `OBS-0007` against §3: count ≥ 3 ✓,
    counter-examples 0 ✓, not user-overridden ✓, stable across sessions ✓, no contradiction ✓.
    It drafts the `naming.patterns[]` edit + a specificity bump, records provenance, **stops at
@@ -395,7 +403,7 @@ handoff. It does not replace or bypass this document's two channels. Three bound
 
 **A. Secretary files are not a rules channel.** Structure/naming *observations* still route exclusively through
 this protocol's heavy channel (`learned.md` → `omp-learn` → human gate → `rules.json`) and light channel
-(`wiki/*.md` auto-append). A journal entry or a ledger event is a narrative/mechanical record of *what happened*,
+(`hq post`). A journal entry or a ledger event is a narrative/mechanical record of *what happened*,
 not a proposal that a rule should exist — `omp_route_emit.py` still owns routing an observation to the correct
 channel (§"Channel routing rule" above), and the secretary axis does not introduce a third path around it. Writing
 "always put .pkl under data/processed/" in a journal entry has zero effect on `rules.json`; it only becomes a rule
@@ -412,7 +420,7 @@ sessions. Neither one absorbs the other's role: T11 was already adopted for the 
 **C. Journal `[LESSON:]` tag aggregation stops at *candidate presentation*, never auto-promotion.**
 Journal entries may carry an optional inline tag grammar (`[BLOCKER:<raid-id>]` / `[LESSON:<slug>]` /
 `[DECISION:<adr-id>]`, `docs/design/2026-07-11-omp-secretary-upgrade-plan.md` §3 / line 176). `scan_journal_tags`
-may grep these and a review skill may surface repeated `[LESSON:]` tags as *wiki-promotion candidates* — but this
+may grep these and a review skill may surface repeated `[LESSON:]` tags as *post-promotion candidates* — but this
 is presentation only. The heavy-channel gate (human approval before any `rules.json` write, §3 above and
 "6.B No auto-promotion without the human gate" below) is unchanged and unconditional; no journal tag, however
 often repeated, promotes itself. This is the same invariant as anti-pattern B applied to the new capture surface,

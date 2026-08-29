@@ -5,7 +5,7 @@ description: |
   todo.txt task (migrate/strike/done, human-judged per item, never auto-carried-over), a
   `scan_stale` sweep (stale task/blocker, BRIEF drift, sync-conflict copies), a `raid.md`
   reconfirmation pass (still valid? human closes only), a `scan_journal_tags` tally that *presents*
-  repeated [LESSON:]/[BLOCKER:] tags as wiki-promotion candidates without promoting them, and a
+  repeated [LESSON:]/[BLOCKER:] tags as post-promotion candidates without promoting them, and a
   closing recommendation to run `omp-brief`.
   Triggers: 주간 리뷰, 정리하자, 리뷰 돌려, migration, weekly review, 재평가,
   이번 주 리뷰, todo 정리, stale 스캔, review todo, weekly cleanup
@@ -20,7 +20,7 @@ A weekly (or on-demand) hygiene pass over the secretary axis, borrowing the Bull
 forward. This is re-evaluation, not carry-over — an item survives a review only because a human
 decided it should, not because nobody looked at it. `omp-review` also surfaces what has gone stale
 (`scan_stale`), asks whether each open `raid.md` item is still live, and tallies repeated journal
-tags as **candidates** for wiki promotion — it never promotes anything itself (D9: closing/deleting
+tags as **candidates** for post promotion — it never promotes anything itself (D9: closing/deleting
 is always a human's call). This is the GTD "get current" moment for the secretary axis; without it,
 `todo.txt`/`raid.md` are a stale-item graveyard (design §6 item 7).
 </Purpose>
@@ -28,7 +28,7 @@ is always a human's call). This is the GTD "get current" moment for the secretar
 <Use_When>
 - "주간 리뷰 돌리자" / "정리하자" / "migration 하자" — a scheduled or ad hoc weekly re-evaluation
 - Deciding whether stale-looking tasks/blockers are still worth tracking
-- Wanting a tally of recurring `[LESSON:]`/`[BLOCKER:]` journal tags as wiki-promotion candidates
+- Wanting a tally of recurring `[LESSON:]`/`[BLOCKER:]` journal tags as post-promotion candidates
 - Moving accumulated `done` tasks out of `todo.txt` into `done.txt`
 </Use_When>
 
@@ -38,8 +38,8 @@ is always a human's call). This is the GTD "get current" moment for the secretar
 - Regenerating `BRIEF.md` from current state → `omp-brief` (this skill recommends running it last,
   it does not regenerate BRIEF itself).
 - `.hq/config/project/secretary/` doesn't exist yet → `omp-init` first; there is nothing to review.
-- Actually promoting a wiki/learned.md candidate → `omp-learn`'s promotion gate; this skill only
-  names candidates, it never writes `learned.md`/`wiki/`.
+- Actually promoting a post/learned.md candidate → `omp-learn`'s promotion gate; this skill only
+  names candidates, it never writes `learned.md` or a post.
 </Do_Not_Use_When>
 
 <Execution_Policy>
@@ -61,10 +61,10 @@ is always a human's call). This is the GTD "get current" moment for the secretar
   need a record to exist first, and which `rules.json` `secretary.surfaces[]` can opt out of)
   all come from this one call. Do not hand-scan ages or grep for duplicates
   separately; `scan_stale` is the single source for what counts as stale.
-- ⚠️ **`scan_journal_tags(root)` tallies are wiki-promotion *candidates* only — never auto-promoted.**
+- ⚠️ **`scan_journal_tags(root)` tallies are post-promotion *candidates* only — never auto-promoted.**
   Count repeated `[LESSON:...]`/`[BLOCKER:...]` slugs across `journal/*.md`; a tag appearing 2+ times
-  is presented to the human as "recurring — consider promoting to wiki via `omp-learn`", nothing
-  more. This skill never writes `wiki/` or `learned.md` itself (learning-protocol light channel
+  is presented to the human as "recurring — consider promoting to a post via `omp-learn`", nothing
+  more. This skill never writes a post or `learned.md` itself (learning-protocol light channel
   boundary, same as `omp-log`'s handoff rule).
 - ⚠️ **`raid.md` reconfirmation asks, never assumes.** For every open `raid.md` entry, ask "is this
   still valid?" — closing happens **only** after an explicit human yes, logged as a `blocker_closed`
@@ -86,8 +86,8 @@ is always a human's call). This is the GTD "get current" moment for the secretar
 3. **Per-blocker reconfirmation pass**: for each open `raid.md` entry, ask "still valid?" — human
    answer decides keep-open vs. `closeable?` flag vs. explicit close (close only on explicit yes).
 4. **Tally journal tags**: present `scan_journal_tags(root)` grouped by slug, highlighting any slug
-   appearing 2+ times as a wiki-promotion candidate — hand off by name to `omp-learn`, do not write
-   `wiki/`/`learned.md` here.
+   appearing 2+ times as a post-promotion candidate — hand off by name to `omp-learn`, do not write
+   a post or `learned.md` here.
 5. **Delegate the writes to chronicler (single dispatch)** — one `Task(subagent_type="oh-my-project:chronicler", ...)`
    call carrying every confirmed verdict:
    ```
@@ -117,7 +117,7 @@ is always a human's call). This is the GTD "get current" moment for the secretar
   default)
 - `scan_stale` findings surfaced (stale_task / stale_blocker / brief_drift / conflict_copy / axis_dormant counts)
 - `raid.md` reconfirmation outcome (kept-open / flagged-closeable / closed counts, all human-decided)
-- Journal tag tally: any slug at 2+ occurrences, named as a wiki-promotion candidate for `omp-learn`
+- Journal tag tally: any slug at 2+ occurrences, named as a post-promotion candidate for `omp-learn`
   (or "no recurring tags")
 - Confirmation that `todo.txt`/`done.txt` were rewritten via tempfile+`os.replace`, not
   `atomic_write_json`

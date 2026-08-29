@@ -174,7 +174,7 @@ Patterns that learn frequently promotes the more you use a Johnny Decimal worksp
 - **Extension → location rules**: version-bloat prevention rules like "in this workspace, keep only the latest version of a `.pptx` copy; old versions go to trash"
   (the signature pitfall of this type — copy accumulation of decks and large artifacts).
 - **Hardening the canonical notation**: converge on one of dot notation vs shorthand notation → promote the rest to `error`.
-- **Recording the meaning of empty numbers**: accumulate in wiki/ whether a given empty number is "reserved" or "awaiting activation" (light channel).
+- **Recording the meaning of empty numbers**: post (`hq post --topic reference`) whether a given empty number is "reserved" or "awaiting activation" (light channel).
 - **Index synchronization rule**: enforce updating `00_Index/README.md` when a new Category is added (prevents authoritative-source drift).
 - **Sync-medium pitfall**: renaming a folder on iCloud/Drive triggers original-restore conflicts → make "avoid rename; verify residue after mv"
   an organize rule (this type often delegates to sync rather than git).

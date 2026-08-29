@@ -29,8 +29,8 @@ codify* them, not to absorb them.
     │   ├── PROJECT.md                   # human: what this project is, one screen
     │   ├── NAMING.md                    # human: naming conventions, with examples
     │   ├── CONVENTIONS.md               # human: file-content conventions — note bodies or code idioms (paired with rules.json.content_conventions[]; only when present)
-    │   └── wiki/                        # auto-accumulated patterns/decisions (grep-recalled)
-    │       └── *.md
+    │   └── posts/                       # auto-accumulated patterns/decisions (`hq query --ascend` recalled)
+    │       └── <kind>/*.md              #   nested one level under a post-directory (finding/, decision/, …)
     └── work/project/                    # ── work layer: regenerable, NOT the SSOT (ignored) ──
         ├── scans/                       # project-scanner raw inventories (input to synthesis)
         │   └── scan-{YYYY-MM-DD-HHMM}.json
@@ -90,12 +90,15 @@ pass so they never drift. audit reads the .json (machine truth); humans read the
 - **Heavy (rules)**: `learned.md` accumulates observations → `omp-learn` promotes them
   into `rules.json` **only after a human approval gate**. Promotion raises
   `rules.json.specificity` toward 1.
-- **Light (patterns/decisions)**: `wiki/*.md` is auto-appended during any omp stage,
-  no gate, recalled next session by deterministic grep (the obsidian-backlink feel).
+- **Light (patterns/decisions)**: each observation is its own post — `hq post --topic
+  <convention|pattern|decision|reference|technique>` — during any omp stage, no gate,
+  recalled next session by `hq query --keyword <term> --ascend --topic <category>`
+  (deterministic keyword match, never embeddings — the obsidian-backlink feel, minus
+  the backlinks). `--ascend` also merges in every ancestor anchor's posts, nearest first.
 
-### Open commitments in a wiki note: write them as `- [ ]`
+### Open commitments in a post: write them as `- [ ]`
 
-A wiki note routinely records something the session *promised to do later* — "미결",
+A post routinely records something the session *promised to do later* — "미결",
 "별도 세션 대상", "pending". Write those as **unchecked markdown checkboxes**, one per
 line, and close them by changing `[ ]` to `[x]`:
 
@@ -104,11 +107,11 @@ line, and close them by changing `[ ]` to `[x]`:
 - [x] decouple the Kanban sources from rules.json
 ```
 
-`lint_wiki` reports the unchecked ones as `open_item`, and `omp-brief` enumerates them
-into the next-session goal. **Prose is not scanned and never will be** — on one vault a
-prose-marker scan produced 3 false positives out of 7 hits, because a heading that
-*declares an item resolved* contains the same words as the item, and a filename can too.
-A checkbox carries its own open/closed state; a sentence does not.
+`scan_open_items` reports the unchecked ones as `open_item`, and `omp-brief` enumerates
+them into the next-session goal. **Prose is not scanned and never will be** — on one
+vault a prose-marker scan produced 3 false positives out of 7 hits, because a heading
+that *declares an item resolved* contains the same words as the item, and a filename can
+too. A checkbox carries its own open/closed state; a sentence does not.
 
 **There is no age gate.** File mtime answers "was this page edited", not "how long has
 this item sat": the case that motivated the channel was a three-month-old commitment in
@@ -119,7 +122,7 @@ closes one.
 ## .gitignore guidance (structural, not a per-project choice)
 
 Tracked-vs-ignored is fixed by layer, not asked: `.hq/config/project/` and `.hq/community/`
-(`rules.json`/`*.md`, `learned.md`, `wiki/`) are always tracked, sharing conventions with the
+(`rules.json`/`*.md`, `learned.md`, `posts/`) are always tracked, sharing conventions with the
 team; `.hq/work/project/` and `.hq/runtime/project/` are always gitignored via the two
 `**/.hq/work/` / `**/.hq/runtime/` lines (store-spec §5). There is no whole-store commit choice
 to make or record.

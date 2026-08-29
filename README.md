@@ -75,12 +75,12 @@ Mechanical appends (`ledger.jsonl`, journal session-stubs) are hook-owned (`hook
 
 ## "Generic→specialized" evolution — 2 channels
 
-Just as Obsidian is a second brain, omp recovers accumulated context via grep.
+Just as Obsidian is a second brain, omp recovers accumulated context via `hq query`.
 
 - **Heavy channel (rules)**: `learned.md` observations accumulate → `omp-learn` promotion decision → **human approval** → `rules.json` evolves (`specificity` rises 0→1)
-- **Light channel (patterns/decisions)**: `.hq/community/wiki/*.md` accumulates automatically → recovered via grep in the next session (no approval needed)
+- **Light channel (patterns/decisions)**: a post (`hq post --topic <convention|pattern|decision|reference|technique>`) accumulates automatically under `.hq/community/posts/` → recovered via `hq query --ascend` in the next session (no approval needed)
 
-Heavy goes through a gate, light is automatic — inheriting the wiki(automatic) vs gate(approval) split of oms/omd.
+Heavy goes through a gate, light is automatic — inheriting the post(automatic) vs gate(approval) split of oms/omd.
 
 ## `.hq/` SSOT (dual: human-readable .md + machine-readable .json)
 
@@ -92,7 +92,7 @@ Heavy goes through a gate, light is automatic — inheriting the wiki(automatic)
 │   └── learned.md                                          ← observations awaiting promotion
 └── community/
     ├── PROJECT.md   NAMING.md
-    └── wiki/                                                ← auto-accumulated (recovered via grep)
+    └── posts/                                               ← auto-accumulated (recovered via `hq query --ascend`)
 ```
 
 ## Agents (6)

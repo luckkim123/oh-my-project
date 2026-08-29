@@ -45,7 +45,7 @@ The mechanism is deliberately **not new**. `rules.json.content_conventions[]` is
 - ⚠️ **Predict the violations before proposing.** Run the candidate regex over the tree and report how many files it would fail *today*. A rule that fails 200 of 210 files is not the house style — it is the inverse of the house style, or the regex is wrong. This check is what stops a confidently backwards rule from entering the SSOT.
 - ⚠️ **Never edit source.** Not to "demonstrate" the convention, not to fix a violation found while scanning. `omp-organize` is the only stage that touches user files at all, and even that only moves them.
 - **specificity + provenance.** An induced rule is `origin: "inductive"` (never `preset`). Raise `specificity` and record the source in `learned_refs[]` through codify, exactly as a learn promotion does.
-- Light observations ("this tree splits helpers by layer, unusually") append to `.hq/community/wiki/` without a gate. Only the rule change is gated.
+- Light observations ("this tree splits helpers by layer, unusually") become a post (`hq post`) without a gate. Only the rule change is gated.
 </Execution_Policy>
 
 <Steps>

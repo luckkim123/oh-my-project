@@ -115,9 +115,9 @@ Each time learn promotes one item, `specificity` shifts from 0 toward 1, and the
 
 ---
 
-## 6. wiki auto-accumulation examples (lightweight channel, no approval needed)
+## 6. post auto-accumulation examples (lightweight channel, no approval needed)
 
-Lightweight patterns/decisions auto-appended to `.hq/community/wiki/` during `research-lab` operation (recalled by grep in the next session):
+Lightweight patterns/decisions posted (`hq post --topic pattern|decision`) during `research-lab` operation, landing under `.hq/community/posts/` (recalled by `hq query --ascend` in the next session):
 - "Started writing the seed into config.yaml from exp-013 on — earlier experiments have unknown seeds"
 - "data/raw/ is a NAS mirror, local keeps only processed — original hash is UNHASHED in the manifest"
 - "Figure font fixed at 16pt for presentations (rcParams in make_figures.py)"

@@ -2,7 +2,7 @@
 name: omp-learn
 description: |
   Observation → rule promotion (omp's core evolution gate) — rule-architect reviews the observations
-  accumulated in `.hq/config/project/learned.md` during operation plus the auto-accumulated patterns in `.hq/community/wiki/`,
+  accumulated in `.hq/config/project/learned.md` during operation plus the auto-accumulated patterns posted under `.hq/community/posts/`,
   and judges which of them qualify to be promoted into `rules.json` rules. The heavy channel (rules)
   must always pass a human approval gate, and each promotion raises rules.json's specificity, advancing
   "generic → specialized to this project" by one notch.
@@ -38,7 +38,7 @@ disk.
 - If you are *designing rules for the first time* or directly editing structure/naming rules → `omp-codify`
   (learn is *observation → evolving existing rules*, codify is *codifying/updating rules*).
 - If it is just a lightweight pattern/decision memo and not an enforced rule → do not promote; leave it to
-  auto-accumulate in `.hq/community/wiki/` (no gate needed, recalled via grep next session). Not every observation
+  auto-accumulate as a post (`hq post`) (no gate needed, recalled via `hq query --ascend` next session). Not every observation
   becomes a rule.
 - If it is rule *compliance verification* (PASS/FAIL) → `omp-audit` (auditor). learn *creates* rules, audit
   *adjudicates* them — different lanes.
@@ -56,7 +56,7 @@ disk.
   again at the next learn).
 - ⚠️ **Respect the 2-channel separation** — only the *heavy channel* (rules: learned.md → promotion →
   rules.json) is this skill's target and passes the gate. The *light channel* (patterns/decisions:
-  `.hq/community/wiki/*.md` auto-append) needs no gate — leave it untouched. Do not force-promote an observation
+  `hq post` under `.hq/community/posts/`) needs no gate — leave it untouched. Do not force-promote an observation
   that is not worth solidifying into a rule.
 - ⚠️ **Provenance enforced** — each promoted rule records the learned.md observation id that was its basis in
   `rules.json.learned_refs[]` (the schema's tracing field). A rule without provenance = a guess = silent file
@@ -84,11 +84,11 @@ disk.
    following files:
    - `<project>/.hq/config/project/learned.md` — observations awaiting promotion (this skill's input)
    - `<project>/.hq/config/project/rules.json` — existing rules to evolve (not a blind replacement, but *evolve*)
-   - `<project>/.hq/community/wiki/*.md` — light channel. grep to recall whether signals worth solidifying into rules
-     have accumulated here (but wiki is an area that auto-accumulates without a gate, so *read* only — leave it untouched)
+   - `hq query --ascend` over `.hq/community/posts/` — light channel. Recall whether signals worth solidifying
+     into rules have accumulated here (but posts auto-accumulate without a gate, so *read* only — leave it untouched)
 2. **Classify observations (2-channel discrimination)**: for each observation in learned.md, separate into
    (a) candidate for promotion into a rule (heavy channel — subject to the gate) vs (b) pattern/decision memo
-   (light channel — leave in wiki, no gate needed). Not every observation becomes a rule — apply the channel
+   (light channel — leave as a post, no gate needed). Not every observation becomes a rule — apply the channel
    criteria in `references/learning-protocol.md`.
 3. **First-pass promotion candidate selection (evidence bar)**: for each heavy-channel candidate, look at the
    repetition count and presence of counterexamples. If it clears the evidence bar (repeated ≥ N times + no
@@ -113,7 +113,7 @@ disk.
      Input (to read):
      - <project>/.hq/config/project/learned.md      # observations awaiting promotion (incl. occurrence·counterexamples)
      - <project>/.hq/config/project/rules.json      # existing rules to evolve (evolve, not replace)
-     - <project>/.hq/community/wiki/*.md       # light-channel signals (read only)
+     - <project>/.hq/community/posts/       # light-channel signals, via `hq query --ascend` (read only)
      - references/schemas/rules.schema.json   # draft must conform exactly here (additionalProperties:false)
      - references/learning-protocol.md        # 2-channel definitions + evidence bar (SSOT for promotion criteria)
 
